@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-AG-01 · 按需选协调者和三名以上子 Agent
+caption FR-AG-01 / UC-05 / SA-P04 / UAT-04、20、EXT-01
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "流程配置者和协调 Agent" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+participant "本机 Agent" as E
+== As-Is · 本地原型观察 ==
+A -> S : 在普通节点选协调者与子 Agent
+S -> S : 原型保存从目录选取的角色并按选择派发
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 在普通节点选协调者与子 Agent
+S -> R : 核对目录、角色授权和节点选中集合
+alt 每个已选角色可用且有使用权限
+  S -> S : 固化角色及版本，只生成已选任务
+  S -> E : 以已选角色、任务或会话传递
+  S -> R : 保留目录、角色授权和节点选中集合及可核对记录
+  S --> A : 至少可核对三个已选与一个未选
+else 条件不满足或结果不可确认
+  S --> A : 无权或不可用角色提示；未选角色无任务
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

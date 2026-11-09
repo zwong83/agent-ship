@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-04 发起运行与 Git 准备
+caption UC-04 · FR-REQ-03/04、FR-RUN-01/02/05
+
+actor "主负责人" as Owner
+participant "启动用例" as Start
+database "PostgreSQL" as DB
+participant "发起电脑 Worker" as Worker
+participant "Git 托管方" as Git
+
+Owner -> Start : 确认需求、类型、流程、设备证明、请求键
+Start -> DB : 校验当前授权后查同范围命令收据
+alt 同键、同内容且已受理
+  Start --> Owner : 返回原运行
+else 新请求
+  Start -> Start : 核验主负责人、使用权、已选流程版本\n未关联仓库固定新功能，检查描述和设备证明
+  alt 校验不通过或同键不同内容
+    Start --> Owner : 拒绝，返回校验原因或冲突
+  else 合法
+    Start -> DB : 单事务消费一次性挑战\n写运行快照、Git 待执行项与收据
+    Start --> Owner : 运行已创建，等待 Git 准备
+    Worker -> Start : 绑定设备领取任务
+    Worker -> Start : 复核租约、目标与外部写入范围
+    Start -> DB : 记录外部操作键与意图
+    Worker -> Git : 按仓库或分支操作键核对后准备
+    note right of Git
+      新需求先建仓并关联原需求。
+      新功能、重构、常规修复从 dev 起步，
+      缺 dev 时先从仓库默认分支创建。
+      紧急修复从仓库实际默认分支起步。
+    end note
+    alt 核对到正确仓库与分支
+      Worker -> Start : 回报仓库、基准提交及工作分支
+      Start -> DB : 保存证据并释放研发门槛
+    else 明确失败或结果未知
+      Worker -> Start : 回报安全原因与现有证据
+      Start -> DB : 保留失败或待核对，研发继续等待
+    end
+  end
+end
+@enduml

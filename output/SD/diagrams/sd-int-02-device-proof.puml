@@ -1,0 +1,38 @@
+@startuml
+title SD-I02 · Java worker 配对和同机证明
+caption UC-04、08 / FR-REQ-04 / FR-RUN-01、04 / API v1
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+boundary "发起浏览器" as UI
+participant "共享平台" as API
+participant "发起电脑 Java worker" as W
+database "本机受限状态区" as Local
+
+group 一次性配对
+  UI -> API : 登录后申请限时配对码
+  API --> UI : 一次性码
+  W -> API : 配对码、设备名与设备公钥
+  API -> API : 核对并消费配对码
+  API --> W : 设备 ID 与设备凭据
+  W -> Local : 保存身份、私钥和凭据
+end
+
+group 启动时证明
+  UI -> API : 申请绑定当前会话的限时挑战
+  API --> UI : 挑战 ID、随机数、到期时间
+  UI -> W : 从精确允许来源 POST /proof
+  W -> Local : 核对浏览器 Origin，读取签名材料
+  W --> UI : 设备签名；不返回私钥或设备凭据
+  UI -> API : 启动请求键、选择版本及签名
+  alt 已受理且当前仍有权查看
+    API --> UI : 原运行与启动收据
+  else 授权、版本、挑战及签名有效
+    API -> API : 同一事务消费挑战并绑定设备
+    API --> UI : 运行 ID 与受理状态
+  else 不通过
+    API --> UI : 拒绝启动，无 Git 副作用
+  end
+end
+@enduml

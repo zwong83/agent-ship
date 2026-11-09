@@ -1,0 +1,41 @@
+@startuml
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-05 阶段调度、角色产出与结束
+caption UC-05、UC-08 · FR-FLOW-03/04、FR-AG-01～06、FR-DEL-01～03
+
+start
+:读取运行快照、激活路线、节点与任务状态;
+if (运行停止或已完成？) then (是)
+  stop
+else (否)
+endif
+if (已到结束标记且实际路线均完成？) then (是)
+  :同一事务写运行完成及证据索引;
+  stop
+else (否)
+endif
+:定位最早未完成阶段\n仅选择依赖已满足且已激活的节点;
+if (有可派发节点？) then (是)
+else (否)
+  :保留等待原因，由后续有效事件重新求值;
+  stop
+endif
+if (同阶段且共享已完成上游，各自就绪？) then (是)
+  :按该并行批次派发;
+else (否)
+  :按配置顺序推进可执行节点;
+endif
+:按快照派发已选角色\n按指定顺序或默认并行，遵守设备容量;
+if (收到待答或失败事件？) then (是)
+  :标记该角色待答或失败\n其他可执行角色继续;
+  :经授权只重试失败角色\n已成功结果沿用;
+else (否)
+endif
+if (所选角色均成功且节点最终产物可引用？) then (是)
+  :记录产物版本和来源\n完成节点并生成后续待执行项;
+else (否)
+  :保持未完成，不释放依赖;
+endif
+stop
+@enduml

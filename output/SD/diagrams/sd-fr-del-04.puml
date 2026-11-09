@@ -1,0 +1,51 @@
+@startuml
+title SD-FR-DEL-04 · 发布放行、实际执行与证据
+caption FR-DEL-04 / UC-07、UC-08 / BR-07、BR-46 / SA-P07、SA-P08 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+participant "Git / 外部服务" as X
+
+== As-Is · 原型证据 ==
+N --> W : 通过检查及节点产物条件后派发发布任务
+W -> X : 以工作分支和目标发起并查询工作流
+note over N #Orange
+  SA-P07、SA-P08 问题：原型可查询供应商结果；未覆盖同提交不同构建的放行一致性，真实发布待验收。
+  证据 src/engine.mjs:99–117,140–141 / src/providers.mjs:94–139
+end note
+
+== To-Be · 后续正式发布（Deferred） ==
+W -> A : authorizeExternalEffect 发布候选及目标
+group TX · 验证放行并登记意图
+  A -> D : 锁运行；核对有效租约、权限、适用审批\n校验原检查复查与通过测试属于当前工件
+  alt 放行未满足或证据不匹配
+    A --> W : 禁止调用供应商；看板显示等待原因
+  else 闸门通过
+    A -> D : 按原操作键登记目标、候选工件和意图
+    A --> W : 返回获准的短期操作范围
+  end
+end
+opt 已获准，数据库事务之外
+  W -> X : 发布确切工件并核对外部事实
+  W -> A : 回报实际目标、工件、结果及外部凭证
+  alt 真实成功可核对
+    A -> D : TX 保存发布记录；适用节点可继续
+  else 明确失败或结果未知
+    A -> D : 留失败原因或待核对；不标记发布完成
+  end
+end
+A --> U : 可见目标、产物、状态与可核对的位置
+note over A,D : 具体目标和放行角色见 SA-D02、SA-D09。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

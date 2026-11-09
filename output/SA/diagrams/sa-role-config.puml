@@ -1,0 +1,22 @@
+@startuml
+title SA-ROLE01 · 账号与配置角色
+caption UC-01～03 / BR-12、17～26、33、50 / To-Be Proposed
+!pragma layout smetana
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+left to right direction
+actor "访客" as A
+actor "配置主负责人" as O
+actor "已分配副负责人" as D
+rectangle "平台配置责任" {
+ usecase "注册与登录" as Log
+ usecase "创建、编辑和查找配置" as Edit
+ usecase "增减负责人或转交" as Transfer
+ usecase "编辑获分配配置" as Limited
+}
+A --> Log
+O --> Edit
+O --> Transfer
+D --> Limited
+note bottom of Limited : 编辑按当前角色。\n需求副负责人不能启动或进入运行聊天。
+@enduml

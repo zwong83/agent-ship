@@ -1,0 +1,25 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-05B · 节点内多 Agent 与交付物
+participant "协调 Agent" as Lead
+participant "已选角色 A" as A
+participant "已选角色 B…N" as B
+participant "节点与产物" as N
+Lead -> A : 按选定角色派发
+Lead -> B : 有顺序则按配置；否则并行
+A -> B : 定向交接任务信息
+A --> Lead : 成功结果
+B --> Lead : 成功或失败结果
+alt 某角色失败
+  Lead -> N : 显示失败角色和已确认原因
+  N -> B : 操作者触发，仅失败角色重试
+else 所选角色均成功或已由人工跳过失败项
+  Lead -> N : 汇总最终产物及来源
+  N --> N : 关联产品定义／代码／测试报告
+end
+note over Lead,N : 未选角色无任务；角色无需各自交付最终产物。
+@enduml

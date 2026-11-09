@@ -1,0 +1,46 @@
+@startuml
+title SD-I04 · Git 准备与未知结果核对
+caption UC-04、08 / FR-RUN-01～03、05 / NFR-PRD-02～03
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+participant "共享平台" as API
+participant "发起电脑 worker" as W
+participant "真实 Git 托管" as Git
+
+W -> API : 轮询
+API --> W : 校验启动后派发准备任务
+W -> API : 复核当前租约、目标及外部写权限
+API --> W : 记录意图，发短期授权
+alt 需求尚未关联仓库
+  W -> Git : 按稳定操作键核对或创建预期仓库
+else 需求已有仓库
+  W -> Git : 核对归属、实际默认分支和基准提交
+end
+alt 仓库及归属已确认
+  W -> API : 回报确认结果；需要时事务关联需求和运行
+  alt 新功能、重构、常规修复
+    opt 缺 dev
+      W -> Git : 从该仓默认分支补建 dev
+    end
+    W -> Git : 从 dev 准备 feature / refactor / fix
+  else 紧急修复
+    W -> Git : 从该仓默认分支准备 hotfix
+  end
+end
+
+alt 仓库与分支均确认成功
+  W -> API : 写回仓库、分支、基准及外部证据
+  API -> API : 解锁研发
+else 明确失败或结果未知
+  W -> API : 记录原因、已确认步骤及操作引用
+  W -> Git : 恢复先核对同一请求；沿用已确认步骤
+  alt 唯一确认结果 / 确认可安全重试
+    W -> API : 回报结果或经授权续做
+  else 仍未知或冲突
+    W -> API : 标为待处理，保持研发等待
+  end
+end
+note over API,W : 每次外部写入均须重新核对授权。
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+title SA-FR-AG-05 · 重试或跳过失败子 Agent
+caption FR-AG-05 / UC-05 / SA-P04 / UAT-36、EXT-02
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "当前聊天操作者" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+participant "本机 Agent" as E
+== As-Is · 本地原型观察 ==
+A -> S : 从失败角色条目请求重试
+S -> S : 原型从失败的角色任务单独开启下一尝试
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 在失败角色条目选择重试或跳过
+S -> R : 核对失败角色、独立尝试和成功结果
+alt 当前页有权且该角色可重试
+  S -> S : 只开启失败角色的新尝试并记录审计
+  S -> E : 以已选角色、任务或会话传递
+  S -> R : 保留失败角色、独立尝试和成功结果及可核对记录
+  S --> A : 其他已成功结果可沿用
+else 当前页有权且选择跳过失败角色
+  S -> R : 保留失败与跳过记录
+  S --> A : 节点仍须满足最终产物条件
+else 条件不满足或结果不可确认
+  S --> A : 越权、重复或已成功角色不产生新尝试
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

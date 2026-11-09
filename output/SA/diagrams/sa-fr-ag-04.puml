@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-AG-04 · 收齐成功结果并形成最终产物
+caption FR-AG-04 / UC-05 / SA-P04 / UAT-37
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "协调 Agent 与调度者" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+participant "本机 Agent" as E
+== As-Is · 本地原型观察 ==
+A -> S : 角色报告结果或协调者提交产物
+S -> S : 原型只在角色和协调产物满足后完成普通节点
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 角色报告结果或协调者提交产物
+S -> R : 核对已选角色结果、最终产物和前置状态
+alt 所选角色均成功或已跳过，最终产物可引用
+  S -> S : 提交节点产物并开放依赖节点
+  S -> E : 以已选角色、任务或会话传递
+  S -> R : 保留已选角色结果、最终产物和前置状态及可核对记录
+  S --> A : 下游可读取该节点最终产物
+else 条件不满足或结果不可确认
+  S --> A : 未处置失败、产物冲突或缺最终产物时保留等待
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

@@ -1,0 +1,414 @@
+table,column,pg_type,unit_or_format,nullable,default_or_generation,classification_proposed,logical_owner,inline_constraint,retention_status,audit_scope
+account,id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,PRIMARY KEY,资料留存待 SA-D07/09,创建／授权变更审计
+account,display_name,text,text,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL CHECK (btrim(display_name) <> ''),资料留存待 SA-D07/09,创建／授权变更审计
+account,username,text,text,否,,账号及联系资料／受限,平台身份与配置,"NOT NULL CHECK (username COLLATE ""C"" ~ '^[A-Za-z0-9_-]{1,100}$')",资料留存待 SA-D07/09,创建／授权变更审计
+account,username_key,text,text,否,,账号及联系资料／受限,平台身份与配置,"NOT NULL UNIQUE CHECK (username_key = lower(username COLLATE ""C""))",资料留存待 SA-D07/09,创建／授权变更审计
+account,email,text,text,否,,账号及联系资料／受限,平台身份与配置,NOT NULL CHECK (btrim(email) <> ''),资料留存待 SA-D07/09,创建／授权变更审计
+account,email_login_key,text,text,否,,账号及联系资料／受限,平台身份与配置,NOT NULL UNIQUE CHECK (btrim(email_login_key) <> ''),资料留存待 SA-D07/09,创建／授权变更审计
+account,phone,text,带国家区号的规范手机号,否,,账号及联系资料／受限,平台身份与配置,"NOT NULL UNIQUE CHECK (phone COLLATE ""C"" ~ '^[+][1-9][0-9]{1,14}$')",资料留存待 SA-D07/09,创建／授权变更审计
+account,email_verified_at,timestamptz,UTC instant,是,,账号及联系资料／受限,平台身份与配置,激活要求双渠道验证时点均存在,资料留存待 SA-D07/09,验证及激活状态审计
+account,phone_verified_at,timestamptz,UTC instant,是,,账号及联系资料／受限,平台身份与配置,激活要求双渠道验证时点均存在,资料留存待 SA-D07/09,验证及激活状态审计
+account,password_hash,text,text,否,,凭据衍生数据／受限,平台身份与配置,NOT NULL CHECK (btrim(password_hash) <> ''),资料留存待 SA-D07/09,创建／授权变更审计
+account,status,text,text,否,,账号凭据、联系资料和权限受保护,平台身份与配置,"NOT NULL CHECK (status IN ('pending', 'active', 'revoked'))",资料留存待 SA-D07/09,创建／授权变更审计
+account,created_at,timestamptz,UTC instant,否,statement_timestamp(),账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL DEFAULT statement_timestamp(),资料留存待 SA-D07/09,创建／授权变更审计
+account_session,id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,PRIMARY KEY,资料留存待 SA-D07/09,创建／授权变更审计
+account_session,account_id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES account(id),资料留存待 SA-D07/09,创建／授权变更审计
+account_session,token_digest,bytea,bytea,否,,凭据衍生数据／受限,平台身份与配置,NOT NULL UNIQUE CHECK (octet_length(token_digest) = 32),资料留存待 SA-D07/09,创建／授权变更审计
+account_session,created_at,timestamptz,UTC instant,否,statement_timestamp(),账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL DEFAULT statement_timestamp(),资料留存待 SA-D07/09,创建／授权变更审计
+account_session,expires_at,timestamptz,UTC instant,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL,资料留存待 SA-D07/09,创建／授权变更审计
+account_session,revoked_at,timestamptz,UTC instant,是,,账号凭据、联系资料和权限受保护,平台身份与配置,见表级键及业务规则,资料留存待 SA-D07/09,创建／授权变更审计
+project,id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,PRIMARY KEY,资料留存待 SA-D07/09,创建／授权变更审计
+project,name,text,text,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL CHECK (btrim(name) <> ''),资料留存待 SA-D07/09,创建／授权变更审计
+project_permission,project_id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES project(id),资料留存待 SA-D07/09,创建／授权变更审计
+project_permission,account_id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES account(id),资料留存待 SA-D07/09,创建／授权变更审计
+project_permission,capability,text,text,否,,账号凭据、联系资料和权限受保护,平台身份与配置,"NOT NULL CHECK (capability IN ('view_project', 'create_requirement'))",资料留存待 SA-D07/09,创建／授权变更审计
+project_permission,granted_by,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES account(id),资料留存待 SA-D07/09,创建／授权变更审计
+project_permission,granted_at,timestamptz,UTC instant,否,statement_timestamp(),账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL DEFAULT statement_timestamp(),资料留存待 SA-D07/09,创建／授权变更审计
+project_permission,expires_at,timestamptz,UTC instant,是,,账号凭据、联系资料和权限受保护,平台身份与配置,见表级键及业务规则,资料留存待 SA-D07/09,创建／授权变更审计
+project_permission,revoked_at,timestamptz,UTC instant,是,,账号凭据、联系资料和权限受保护,平台身份与配置,见表级键及业务规则,资料留存待 SA-D07/09,创建／授权变更审计
+configuration,id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,PRIMARY KEY,资料留存待 SA-D07/09,创建／授权变更审计
+configuration,kind,text,text,否,,账号凭据、联系资料和权限受保护,平台身份与配置,"NOT NULL CHECK (kind IN ('requirement', 'workflow', 'agent'))",资料留存待 SA-D07/09,创建／授权变更审计
+configuration,owner_id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES account(id),资料留存待 SA-D07/09,创建／授权变更审计
+configuration,version,bigint,count/version/ordinal,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL CHECK (version >= 1),资料留存待 SA-D07/09,创建／授权变更审计
+configuration,created_at,timestamptz,UTC instant,否,statement_timestamp(),账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL DEFAULT statement_timestamp(),资料留存待 SA-D07/09,创建／授权变更审计
+configuration,updated_at,timestamptz,UTC instant,否,statement_timestamp(),账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL DEFAULT statement_timestamp(),资料留存待 SA-D07/09,创建／授权变更审计
+configuration_deputy,configuration_id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES configuration(id),资料留存待 SA-D07/09,创建／授权变更审计
+configuration_deputy,account_id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES account(id),资料留存待 SA-D07/09,创建／授权变更审计
+configuration_deputy,granted_by,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES account(id),资料留存待 SA-D07/09,创建／授权变更审计
+configuration_deputy,granted_at,timestamptz,UTC instant,否,statement_timestamp(),账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL DEFAULT statement_timestamp(),资料留存待 SA-D07/09,创建／授权变更审计
+configuration_deputy,revoked_at,timestamptz,UTC instant,是,,账号凭据、联系资料和权限受保护,平台身份与配置,见表级键及业务规则,资料留存待 SA-D07/09,创建／授权变更审计
+repository,id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,PRIMARY KEY,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+repository,provider,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(provider) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+repository,provider_repository_id,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(provider_repository_id) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+repository,display_name,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+repository,default_branch,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,CHECK (default_branch IS NULL OR btrim(default_branch) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+requirement,id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,PRIMARY KEY,资料留存待 SA-D07/09,创建／授权变更审计
+requirement,kind,text,text,是,生成列,账号凭据、联系资料和权限受保护,平台身份与配置,GENERATED ALWAYS AS ('requirement'::text) STORED,资料留存待 SA-D07/09,创建／授权变更审计
+requirement,project_id,uuid,identifier,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL REFERENCES project(id),资料留存待 SA-D07/09,创建／授权变更审计
+requirement,name,text,text,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL CHECK (btrim(name) <> ''),资料留存待 SA-D07/09,创建／授权变更审计
+requirement,name_key,text,text,否,,账号凭据、联系资料和权限受保护,平台身份与配置,NOT NULL UNIQUE CHECK (btrim(name_key) <> ''),资料留存待 SA-D07/09,创建／授权变更审计
+requirement,description,text,text,是,,账号凭据、联系资料和权限受保护,平台身份与配置,见表级键及业务规则,资料留存待 SA-D07/09,创建／授权变更审计
+requirement,repository_id,uuid,identifier,是,,账号凭据、联系资料和权限受保护,平台身份与配置,REFERENCES repository(id),资料留存待 SA-D07/09,创建／授权变更审计
+workflow,id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,PRIMARY KEY,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow,kind,text,text,是,生成列,需求规则和 Agent 指令限制访问,平台流程配置,GENERATED ALWAYS AS ('workflow'::text) STORED,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow,name,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (btrim(name) <> ''),版本和配置留存待 SA-D05/09,封存版本及来源
+agent_config,id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,PRIMARY KEY,版本和配置留存待 SA-D05/09,封存版本及来源
+agent_config,kind,text,text,是,生成列,需求规则和 Agent 指令限制访问,平台流程配置,GENERATED ALWAYS AS ('agent'::text) STORED,版本和配置留存待 SA-D05/09,封存版本及来源
+agent_config,name,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (btrim(name) <> ''),版本和配置留存待 SA-D05/09,封存版本及来源
+agent_definition,id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,PRIMARY KEY,版本和配置留存待 SA-D05/09,封存版本及来源
+agent_definition,role_key,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL UNIQUE CHECK (btrim(role_key) <> ''),版本和配置留存待 SA-D05/09,封存版本及来源
+agent_definition,source,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,"NOT NULL CHECK (source IN ('builtin', 'configured'))",版本和配置留存待 SA-D05/09,封存版本及来源
+agent_definition,agent_config_id,uuid,identifier,是,,需求规则和 Agent 指令限制访问,平台流程配置,UNIQUE REFERENCES agent_config(id),版本和配置留存待 SA-D05/09,封存版本及来源
+agent_version,agent_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL REFERENCES agent_definition(id),版本和配置留存待 SA-D05/09,封存版本及来源
+agent_version,version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (version >= 1),版本和配置留存待 SA-D05/09,封存版本及来源
+agent_version,display_name,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+agent_version,instruction,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+agent_version,skill_ref,text,text,是,,需求规则和 Agent 指令限制访问,平台流程配置,见表级键及业务规则,版本和配置留存待 SA-D05/09,封存版本及来源
+agent_version,created_at,timestamptz,UTC instant,否,statement_timestamp(),需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL DEFAULT statement_timestamp(),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_version,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL REFERENCES workflow(id),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_version,version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (version >= 1),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_version,saved_by,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL REFERENCES account(id),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_version,schema_version,integer,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (schema_version >= 1),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_version,created_at,timestamptz,UTC instant,否,statement_timestamp(),需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL DEFAULT statement_timestamp(),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_version,sealed_at,timestamptz,UTC instant,是,,需求规则和 Agent 指令限制访问,平台流程配置,见表级键及业务规则,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_stage,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_stage,workflow_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_stage,stage_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_stage,name,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (btrim(name) <> ''),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_stage,ordinal,integer,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (ordinal >= 1),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,workflow_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,stage_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,name,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (btrim(name) <> ''),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,ordinal,integer,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (ordinal >= 1),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,kind,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,"NOT NULL CHECK (kind IN ('work', 'check', 'publish', 'end'))",版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,purpose,text,text,是,,需求规则和 Agent 指令限制访问,平台流程配置,"CHECK (purpose IN ('requirement', 'product', 'frontend', 'backend', 'test', 'repair', 'other'))",版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_node,agent_order,text,text,是,,需求规则和 Agent 指令限制访问,平台流程配置,"CHECK (agent_order IN ('parallel', 'serial'))",版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_dependency,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_dependency,workflow_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_dependency,node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_dependency,prerequisite_node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,workflow_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,node_kind,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,"NOT NULL CHECK (node_kind IN ('work', 'check', 'publish'))",版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,agent_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,agent_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,role,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,"NOT NULL CHECK (role IN ('coordinator', 'subagent'))",版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_role,ordinal,integer,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (ordinal >= 1),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_check,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_check,workflow_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_check,check_node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_check,node_kind,text,text,是,生成列,需求规则和 Agent 指令限制访问,平台流程配置,GENERATED ALWAYS AS ('check'::text) STORED,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_check,pass_entry_node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_check,repair_entry_node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_check,automatic_repair_limit,integer,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (automatic_repair_limit >= 0),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_route_node,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_route_node,workflow_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_route_node,check_node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_route_node,node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_route_node,outcome,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,"NOT NULL CHECK (outcome IN ('pass', 'repair'))",版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_publication,workflow_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_publication,workflow_version,bigint,count/version/ordinal,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_publication,node_id,uuid,identifier,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_publication,node_kind,text,text,是,生成列,需求规则和 Agent 指令限制访问,平台流程配置,GENERATED ALWAYS AS ('publish'::text) STORED,版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_publication,target_ref,text,text,否,,需求规则和 Agent 指令限制访问,平台流程配置,NOT NULL CHECK (btrim(target_ref) <> ''),版本和配置留存待 SA-D05/09,封存版本及来源
+workflow_publication,workflow_ref,text,text,是,,需求规则和 Agent 指令限制访问,平台流程配置,见表级键及业务规则,版本和配置留存待 SA-D05/09,封存版本及来源
+device,id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,PRIMARY KEY,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,account_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL REFERENCES account(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,display_name,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,mode,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (mode IN ('demo', 'codex'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,protocol_version,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,paired_origin,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,token_digest,bytea,bytea,否,,凭据衍生数据／受限,平台运行；设备提供状态,NOT NULL UNIQUE CHECK (octet_length(token_digest) = 32),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,proof_public_key,bytea,bytea,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (octet_length(proof_public_key) > 0),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,codex_status,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (codex_status IN ('available', 'unavailable', 'unknown', 'not_required'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,last_seen_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device,revoked_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_pairing,id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,PRIMARY KEY,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_pairing,account_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL REFERENCES account(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_pairing,session_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_pairing,code_digest,bytea,bytea,否,,凭据衍生数据／受限,平台运行；设备提供状态,NOT NULL UNIQUE CHECK (octet_length(code_digest) = 32),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_pairing,paired_origin,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_pairing,expires_at,timestamptz,UTC instant,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_pairing,consumed_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_challenge,id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,PRIMARY KEY,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_challenge,account_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL REFERENCES account(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_challenge,session_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_challenge,nonce,bytea,bytea,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (octet_length(nonce) >= 16),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_challenge,platform_origin,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_challenge,expires_at,timestamptz,UTC instant,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+device_challenge,consumed_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,PRIMARY KEY,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,project_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,requirement_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,workflow_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,workflow_version,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,initiator_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,device_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,mode,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (mode IN ('demo', 'codex'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,work_type,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (work_type IN ('feature', 'refactor', 'hotfix', 'fix'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,state,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (state IN ('queued', 'preparing', 'running', 'waiting', 'needs_attention', 'failed', 'completed', 'stopped'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,current_revision,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (current_revision >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,state_version,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (state_version >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,repository_id,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,REFERENCES repository(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,base_branch,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,work_branch,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,base_commit,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,git_default_branch,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,CHECK (git_default_branch IS NULL OR btrim(git_default_branch) <> ''),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,reason_code,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,created_at,timestamptz,UTC instant,否,statement_timestamp(),设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL DEFAULT statement_timestamp(),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,finished_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run,github_namespace,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,CHECK (github_namespace IS NULL OR btrim(github_namespace) <> ''),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_requirement_revision,run_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL REFERENCES run(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_requirement_revision,revision,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (revision >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_requirement_revision,requirement_version,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (requirement_version >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_requirement_revision,title,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_requirement_revision,description,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_requirement_revision,recorded_by,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL REFERENCES account(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_requirement_revision,created_at,timestamptz,UTC instant,否,statement_timestamp(),设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL DEFAULT statement_timestamp(),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,PRIMARY KEY,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,run_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,workflow_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,workflow_version,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,node_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,wave,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (wave >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,requirement_revision,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,state,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (state IN ('blocked', 'ready', 'running', 'waiting_reply', 'needs_attention', 'failed', 'complete', 'skipped', 'stopped'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+node_execution,started_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,首次成功领取时写入，此后不可变,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,PRIMARY KEY,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,run_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,device_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,execution_id,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,workflow_id,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,workflow_version,bigint,count/version/ordinal,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,node_id,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,agent_id,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,agent_version,bigint,count/version/ordinal,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,role,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"CHECK (role IN ('coordinator', 'subagent'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,kind,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (kind IN ('git', 'agent', 'coordinator', 'publish', 'reconcile'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,requirement_revision,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+role_task,current_attempt,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (current_attempt >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,task_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,attempt_number,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (attempt_number >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,attempt_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL UNIQUE,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,device_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,state,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (state IN ('queued', 'leased', 'running', 'waiting_reply', 'succeeded', 'failed', 'canceled', 'needs_attention'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,available_at,timestamptz,UTC instant,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,lease_epoch,bigint,count/version/ordinal,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,lease_deadline,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,last_event_sequence,bigint,count/version/ordinal,否,0,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL DEFAULT 0 CHECK (last_event_sequence >= 0),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,session_ref,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,checkpoint,jsonb,jsonb,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,CHECK (checkpoint IS NULL OR jsonb_typeof(checkpoint) = 'object'),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,reason_code,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,disposition,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,CHECK (disposition IS NULL OR disposition = 'skipped'),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,disposed_by,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,REFERENCES account(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_attempt,disposed_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,与跳过处置及操作者一起写入,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,PRIMARY KEY,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,task_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,attempt_number,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,lease_epoch,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (lease_epoch >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,event_sequence,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (event_sequence >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,event_type,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (event_type IN ('progress', 'message', 'question', 'complete', 'failure'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,request_key,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (btrim(request_key) <> ''),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+task_event,created_at,timestamptz,UTC instant,否,statement_timestamp(),设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL DEFAULT statement_timestamp(),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,run_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,workflow_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,workflow_version,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,check_node_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,node_kind,text,text,是,生成列,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,GENERATED ALWAYS AS ('check'::text) STORED,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,current_wave,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (current_wave >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,automatic_repair_count,integer,count/version/ordinal,否,0,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL DEFAULT 0 CHECK (automatic_repair_count >= 0),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,manual_repair_count,integer,count/version/ordinal,否,0,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL DEFAULT 0 CHECK (manual_repair_count >= 0),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_cycle,state,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (state IN ('pending', 'pass', 'repair', 'unresolved', 'limit_reached', 'stopped'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,run_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,check_node_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,wave,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (wave >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,requirement_revision,bigint,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,recheck_of_round,integer,count/version/ordinal,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"Composite FK (run_id, check_node_id, recheck_of_round) to repair_round",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,checked_commit,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,checked_artifact_version,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,outcome,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (outcome IN ('pending', 'pass', 'repair', 'unresolved'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,reason_code,text,text,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,completed_at,timestamptz,UTC instant,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+check_wave,report_artifact_id,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,见表级键及业务规则,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,run_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,check_node_id,uuid,identifier,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,round_number,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL CHECK (round_number >= 1),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,triggering_wave,integer,count/version/ordinal,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL,租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,kind,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (kind IN ('automatic', 'manual'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,authorized_by,uuid,identifier,是,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,REFERENCES account(id),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,state,text,text,否,,设备证明、尝试和工作内容受保护,平台运行；设备提供状态,"NOT NULL CHECK (state IN ('queued', 'running', 'complete', 'failed', 'stopped'))",租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+repair_round,created_at,timestamptz,UTC instant,否,statement_timestamp(),设备证明、尝试和工作内容受保护,平台运行；设备提供状态,NOT NULL DEFAULT statement_timestamp(),租约、执行历史留存待 SA-D08/09,任务变更和回报收据
+run_permission,run_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES run(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+run_permission,account_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES account(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+run_permission,capability,text,text,否,,对话及授权受保护,平台聊天与权限,"NOT NULL CHECK (capability IN ('view_run', 'chat', 'confirm_change', 'publish', 'reconcile'))",问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+run_permission,granted_by,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES account(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+run_permission,granted_at,timestamptz,UTC instant,否,statement_timestamp(),对话及授权受保护,平台聊天与权限,NOT NULL DEFAULT statement_timestamp(),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+run_permission,expires_at,timestamptz,UTC instant,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+run_permission,revoked_at,timestamptz,UTC instant,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_lease,run_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,PRIMARY KEY REFERENCES run(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_lease,epoch,bigint,count/version/ordinal,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (epoch >= 0),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_lease,holder_account_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,REFERENCES account(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_lease,holder_session_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_lease,holder_tab_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_lease,heartbeat_until,timestamptz,UTC instant,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_lease,grace_until,timestamptz,UTC instant,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,PRIMARY KEY,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,run_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES run(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,message_type,text,text,否,,对话及授权受保护,平台聊天与权限,"NOT NULL CHECK (message_type IN ('message', 'handoff', 'system'))",问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,actor_account_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,REFERENCES account(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,actor_task_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,target_task_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,body,text,text,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (btrim(body) <> ''),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,created_at,timestamptz,UTC instant,否,statement_timestamp(),对话及授权受保护,平台聊天与权限,NOT NULL DEFAULT statement_timestamp(),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,source_event_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,UNIQUE REFERENCES task_event(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,accepted_ordinal,bigint,count/version/ordinal,否,GENERATED ALWAYS AS IDENTITY,对话及授权受保护,平台聊天与权限,运行内稳定分页键,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+chat_message,in_reply_to_inbox_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,REFERENCES agent_inbox(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,PRIMARY KEY,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,run_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES run(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,task_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,attempt_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,source_event_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL UNIQUE REFERENCES task_event(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,session_ref,text,text,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (btrim(session_ref) <> ''),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,body,text,text,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (btrim(body) <> ''),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_question,created_at,timestamptz,UTC instant,否,statement_timestamp(),对话及授权受保护,平台聊天与权限,NOT NULL DEFAULT statement_timestamp(),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+question_resolution,question_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,PRIMARY KEY REFERENCES agent_question(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+question_resolution,actor_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES account(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+question_resolution,action,text,text,否,,对话及授权受保护,平台聊天与权限,"NOT NULL CHECK (action IN ('reply', 'cancel'))",问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+question_resolution,answer,text,text,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+question_resolution,accepted_at,timestamptz,UTC instant,否,statement_timestamp(),对话及授权受保护,平台聊天与权限,NOT NULL DEFAULT statement_timestamp(),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,PRIMARY KEY,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,run_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,task_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,session_ref,text,text,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (btrim(session_ref) <> ''),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,kind,text,text,否,,对话及授权受保护,平台聊天与权限,"NOT NULL CHECK (kind IN ('message', 'handoff', 'answer', 'continue_without_answer', 'change_confirmed'))",问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,question_id,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,UNIQUE REFERENCES question_resolution(question_id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,payload,jsonb,jsonb,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (jsonb_typeof(payload) = 'object'),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,delivery_state,text,text,否,,对话及授权受保护,平台聊天与权限,"NOT NULL CHECK (delivery_state IN ('pending', 'delivered', 'unknown'))",问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,created_at,timestamptz,UTC instant,否,statement_timestamp(),对话及授权受保护,平台聊天与权限,NOT NULL DEFAULT statement_timestamp(),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+agent_inbox,delivered_at,timestamptz,UTC instant,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,PRIMARY KEY,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,run_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES run(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,proposed_by,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL REFERENCES account(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,based_on_revision,bigint,count/version/ordinal,否,,对话及授权受保护,平台聊天与权限,NOT NULL,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,proposed_title,text,text,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (btrim(proposed_title) <> ''),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,proposed_description,text,text,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,state,text,text,否,,对话及授权受保护,平台聊天与权限,"NOT NULL CHECK (state IN ('pending', 'confirmed', 'rejected'))",问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,confirmed_by,uuid,identifier,是,,对话及授权受保护,平台聊天与权限,REFERENCES account(id),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,effective_revision,bigint,count/version/ordinal,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,created_at,timestamptz,UTC instant,否,statement_timestamp(),对话及授权受保护,平台聊天与权限,NOT NULL DEFAULT statement_timestamp(),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,confirmed_at,timestamptz,UTC instant,是,,对话及授权受保护,平台聊天与权限,见表级键及业务规则,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,execution_id,uuid,identifier,否,,对话及授权受保护,平台聊天与权限,NOT NULL，和运行组成节点执行外键,问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,based_on_requirement_version,bigint,count/version/ordinal,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (based_on_requirement_version >= 1),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+requirement_change,proposed_name_key,text,text,否,,对话及授权受保护,平台聊天与权限,NOT NULL CHECK (btrim(proposed_name_key) <> ''),问答和对话留存待 SA-D03/06/09,占用、答复、取消与修订
+artifact,id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,PRIMARY KEY,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,run_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,execution_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,task_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,attempt_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,requirement_revision,bigint,count/version/ordinal,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,kind,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (kind IN ('product', 'code', 'test', 'publication', 'other'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,mode,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (mode IN ('demo', 'codex'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,title,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(title) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,source_ref,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(source_ref) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,content_digest,bytea,bytea,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,CHECK (content_digest IS NULL OR octet_length(content_digest) = 32),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,repository_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES repository(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,work_branch,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,commit_id,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,candidate_ref,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,test_outcome,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"CHECK (test_outcome IN ('passed', 'failed', 'unresolved'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact,created_at,timestamptz,UTC instant,否,statement_timestamp(),代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL DEFAULT statement_timestamp(),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+artifact_archive,artifact_id,uuid,identifier,否,,归档授权与 Git 证据,平台与发起设备,PRIMARY KEY；与 run_id 共同引用产物,随运行证据保存,批准、授权与结果核对
+artifact_archive,run_id,uuid,identifier,否,,归档授权与 Git 证据,平台与发起设备,与 device_id 共同引用运行,随运行证据保存,批准、授权与结果核对
+artifact_archive,device_id,uuid,identifier,否,,归档授权与 Git 证据,平台与发起设备,固定为发起设备,随运行证据保存,批准、授权与结果核对
+artifact_archive,approved_by,uuid,identifier,否,,归档授权与 Git 证据,平台与发起设备,REFERENCES account(id),随运行证据保存,批准、授权与结果核对
+artifact_archive,approved_at,timestamptz,UTC instant,否,statement_timestamp(),归档授权与 Git 证据,平台与发起设备,批准时刻,随运行证据保存,批准、授权与结果核对
+artifact_archive,available_at,timestamptz,UTC instant,否,statement_timestamp(),归档授权与 Git 证据,平台与发起设备,任务可领时刻,随运行证据保存,批准、授权与结果核对
+artifact_archive,state,text,enum,否,'queued',归档授权与 Git 证据,平台与发起设备,queued / leased / succeeded / unknown / failed,随运行证据保存,批准、授权与结果核对
+artifact_archive,epoch,bigint,integer,是,,归档授权与 Git 证据,平台与发起设备,>= 1；与 lease_until 同时为空或非空,随运行证据保存,批准、授权与结果核对
+artifact_archive,lease_until,timestamptz,UTC instant,是,,归档授权与 Git 证据,平台与发起设备,领取后写入,随运行证据保存,批准、授权与结果核对
+artifact_archive,export_commit,text,Git object ID,是,,归档授权与 Git 证据,平台与发起设备,40 或 64 位小写十六进制；确认成功前必须固定,随运行证据保存,批准、授权与结果核对
+artifact_archive,reason_code,text,safe code,是,,归档授权与 Git 证据,平台与发起设备,仅保存受控原因,随运行证据保存,批准、授权与结果核对
+artifact_archive,confirmed_at,timestamptz,UTC instant,是,,归档授权与 Git 证据,平台与发起设备,仅成功归档时写入,随运行证据保存,批准、授权与结果核对
+publication_gate,id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,PRIMARY KEY,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,run_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,execution_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,requirement_revision,bigint,count/version/ordinal,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,candidate_commit,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(candidate_commit) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,artifact_version,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(artifact_version) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,target_ref,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(target_ref) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,policy_ref,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(policy_ref) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,gate_state,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (gate_state IN ('blocked', 'allowed', 'superseded'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,required_checks,integer,count/version/ordinal,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (required_checks >= 0),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,test_required,boolean,boolean,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,approval_required,boolean,boolean,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,test_evidence_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,approved_by,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES account(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_gate,created_at,timestamptz,UTC instant,否,statement_timestamp(),代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL DEFAULT statement_timestamp(),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_check_evidence,gate_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_check_evidence,run_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_check_evidence,check_node_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+publication_check_evidence,wave,integer,count/version/ordinal,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,PRIMARY KEY,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,operation_key,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL UNIQUE CHECK (btrim(operation_key) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,requirement_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL REFERENCES requirement(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,run_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,publication_gate_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,provider,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(provider) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,mode,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (mode IN ('demo', 'codex'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,effect,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (effect IN ('create_repository', 'create_base_branch', 'create_work_branch', 'push_code', 'dispatch_publication'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,target_key,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(target_key) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,artifact_version,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,state,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (state IN ('intended', 'dispatching', 'unknown', 'succeeded', 'failed'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,last_authorized_task_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,last_authorized_epoch,bigint,count/version/ordinal,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,CHECK (last_authorized_epoch IS NULL OR last_authorized_epoch >= 1),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,authorization_deadline,timestamptz,UTC instant,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,provider_result_id,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation,created_at,timestamptz,UTC instant,否,statement_timestamp(),代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL DEFAULT statement_timestamp(),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,run_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL REFERENCES run(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,effect,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (effect IN ('create_repository', 'create_base_branch', 'create_work_branch', 'push_code', 'dispatch_publication'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,target_key,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(target_key) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,approved_by,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL REFERENCES account(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,policy_ref,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(policy_ref) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,approved_at,timestamptz,UTC instant,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,expires_at,timestamptz,UTC instant,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+run_external_grant,revoked_at,timestamptz,UTC instant,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation_task,operation_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL REFERENCES external_operation(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+external_operation_task,task_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL REFERENCES role_task(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,PRIMARY KEY,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,operation_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL REFERENCES external_operation(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,source_task_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES role_task(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,source_account_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES account(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,outcome,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (outcome IN ('confirmed_success', 'confirmed_failure', 'unknown'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,provider_result_id,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,repository_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES repository(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,observed_branch,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,observed_commit,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,observed_target,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,observed_artifact_version,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,observed_at,timestamptz,UTC instant,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+operation_evidence,recorded_at,timestamptz,UTC instant,否,statement_timestamp(),代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL DEFAULT statement_timestamp(),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,actor_kind,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (actor_kind IN ('account', 'device'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,actor_account_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES account(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,actor_device_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES device(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,actor_id,uuid,identifier,否,生成列,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"GENERATED ALWAYS AS (coalesce(actor_account_id, actor_device_id)) STORED",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,scope,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(scope) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,request_key,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(request_key) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,request_digest,bytea,bytea,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (octet_length(request_digest) = 32),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,result_kind,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,result_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,created_at,timestamptz,UTC instant,否,statement_timestamp(),代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL DEFAULT statement_timestamp(),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+command_receipt,accepted_at,timestamptz,UTC instant,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,PRIMARY KEY,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,request_id,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL CHECK (btrim(request_id) <> ''),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,actor_account_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES account(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,actor_device_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES device(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,run_id,uuid,identifier,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,REFERENCES run(id),工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,target_kind,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,target_id,uuid,identifier,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,action,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,outcome,text,text,否,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,"NOT NULL CHECK (outcome IN ('accepted', 'denied', 'conflict', 'reconciled'))",工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,reason_code,text,text,是,,代码、产物、审计受保护,平台证据；外部结果由供应商证实,见表级键及业务规则,工件和审计留存待 SA-D02/09,原请求、核对与关键审计
+audit_event,occurred_at,timestamptz,UTC instant,否,statement_timestamp(),代码、产物、审计受保护,平台证据；外部结果由供应商证实,NOT NULL DEFAULT statement_timestamp(),工件和审计留存待 SA-D02/09,原请求、核对与关键审计

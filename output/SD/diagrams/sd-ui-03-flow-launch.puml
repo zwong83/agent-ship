@@ -1,0 +1,43 @@
+@startuml
+title SD-F01 · 编辑流程与分步发起运行
+caption UC-03～04 / FR-FLOW-01～02、05～06 / FR-AG-01～02 / FR-REQ-03～04 / FR-RUN-01～02
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+actor 用户 as U
+boundary "React 工作台" as UI
+participant "平台 API" as API
+participant "本机证明" as Local
+
+group 流程配置页
+  U -> UI : 排阶段、添加节点、选前置和子 Agent
+  U -> UI : 设置执行顺序、两条检查路线及末尾结束点
+  UI -> API : 保存流程草稿与期望版本
+  alt 结构或版本无效
+    API --> UI : 拒绝；返回对应阶段或节点的错误
+    UI --> U : 原地显示循环、顺序、分支或结束点错误
+  else 校验通过
+    API --> UI : 新版本可供启动选择
+  end
+end
+group 运行启动页
+  U -> UI : ① 确认新需求或选中已有需求
+  UI --> U : ② 未关联仓库仅新功能；已有仓库选四类
+  U -> UI : ③ 选择有权使用的已保存流程
+  alt 无需求阶段且描述为空
+    UI --> U : 补描述后方可启动
+  else 已满足输入条件
+    UI -> API : 申请限时挑战
+    API --> UI : 当前会话的挑战
+    UI -> Local : POST /proof
+    alt 本机证明可用
+      Local --> UI : 设备签名
+      UI -> API : 提交启动请求键、需求与流程版本、证明
+      API --> UI : 运行 ID 与 Git 准备状态，或拒绝原因
+    else 无设备、来源拒绝或挑战过期
+      UI --> U : 显示具体恢复指引
+    end
+  end
+end
+@enduml

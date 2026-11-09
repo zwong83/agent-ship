@@ -1,0 +1,41 @@
+@startuml
+title SD-F02 · 看板、聊天和人工恢复
+caption UC-05～08 / FR-RUN-03～05 / FR-AG-03～06 / FR-FLOW-03～04、07～09 / FR-CHAT-01～06 / FR-DEL-01～04
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+actor 用户 as U
+boundary "React 看板与聊天" as UI
+participant "运行与聊天 API" as API
+
+U -> UI : 打开某次运行
+UI -> API : 拉取授权快照与有界增量
+API --> UI : 阶段、角色、等待、失败、产物与动作
+UI --> U : 展示分支、结果与历史尝试
+opt 发起电脑离线
+  UI --> U : 等待发起电脑上线，保留同一运行
+end
+
+U -> UI : 进入聊天
+UI -> API : 当前会话及页面实例申请占用
+alt 获得操作权
+  API --> UI : 当前租约凭据及持久待答
+  UI --> U : 显示有权执行的操作
+  opt 普通互动或正式变更
+    U -> UI : 定向消息、回复、发起人取消或提交变更
+    UI -> API : 提交动作、请求键和当前凭据
+    API --> UI : 已接受待投递、已投递或待确认
+    UI --> U : 分别标明投递与变更状态
+  end
+  opt 人工恢复
+    U -> UI : 失败角色重试 / 原节点重查 / 额外一轮 / 停止
+    UI -> API : 提交具体对象、当前凭据及请求键
+    API --> UI : 返回实际尝试或待处理原因
+  end
+else 有权限但已被占用
+  API --> UI : 占用提示与有权查看的占用者
+else 无聊天权限
+  API --> UI : 访问拒绝
+end
+@enduml

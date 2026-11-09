@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-OWN-03 · 向注册用户转交并即时生效
+caption FR-OWN-03 / UC-02 / SA-P01 / UAT-19、29
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "现任主负责人" as A
+participant "平台 · 身份与配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 向另一名已注册用户提交转交
+S -> S : 原型直接更换负责人并移除原身份
+note over S #Orange : [SA-P01 当前边界] 现任角色、提交权限与资料边界需在共享平台复验
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 向另一名已注册用户提交转交
+S -> R : 核对配置主负责人和副负责人关系
+alt 发起者仍为现任主负责人且接任者合法
+  S -> S : 一次完成接任、旧身份移除及审计
+  S -> R : 保留配置主负责人和副负责人关系及可核对记录
+  S --> A : 接任者立即取得角色权限
+else 条件不满足或结果不可确认
+  S --> A : 越权或竞争转交失败时不产生半完成状态
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

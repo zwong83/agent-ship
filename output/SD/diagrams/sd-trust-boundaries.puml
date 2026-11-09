@@ -1,0 +1,30 @@
+@startuml
+title SD-SYS03 · 身份、数据和外部写入控制
+caption To-Be Proposed / NFR-01～04 / SD-B02、SD-I01～04、SD-M01 / 安全边界
+!pragma layout smetana
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+left to right direction
+actor "浏览器用户" as U
+rectangle "共享平台" as Platform {
+ [会话和来源校验] as S
+ [当前对象／动作授权] as A
+ [任务、聊天租约和审计] as L
+ database "PostgreSQL\n状态、证据与授权" as D
+ S --> A : 身份和请求上下文
+ A --> L : 当前权限／版本／目标
+ L --> D : 原子裁决和审计
+}
+rectangle "发起设备边界" as Device {
+ [回环证明] as P
+ [Java worker] as W
+ [受限执行上下文] as C
+ W --> C : 按获准任务执行
+}
+cloud "外部供应商\nGit／发布证据" as V
+U --> S : 同源请求
+U --> P : 只中转一次性挑战
+W --> L : 独立设备身份、绑定与租约
+W --> V : 目标与动作均获准
+note bottom of D : 访问、备份与日志的保留需批准。\n状态投影仅返回当前可见字段。
+@enduml

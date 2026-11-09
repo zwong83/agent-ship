@@ -1,0 +1,31 @@
+@startuml
+title SD-SYS01 · 现有原型运行与中间件路径
+caption As-Is / UC-01～08 / src/server.mjs、store.mjs、worker.mjs / 架构视图
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+box "发起电脑／回环" #F4F8F7
+actor "原生 JS 浏览器" as B
+participant "Node.js HTTP 平台" as P
+database "SQLite 单工作区记录" as D
+participant "Node.js 本机 worker" as W
+participant "Codex 适配" as C
+end box
+participant "Git／发布适配" as X
+B -> W : 请求基于时间戳的设备证明
+B -> P : 身份、选择、设备证明、请求 ID
+P -> D : 保存运行快照与首个任务（SA-P01、02、03）
+W -> P : 领取当前设备任务
+P -> D : 更新任务租约和尝试（SA-P04）
+alt 演练
+  W -> W : 模拟测试和发布（SA-P07）
+else 真实适配路径
+  W -> C : App Server 会话
+  W -> X : 条件满足时准备分支或发布
+  note over W,X #Orange : 适配代码存在，真实目标与端到端结果待验收
+end
+W -> P : 回报、问题或结果
+P -> D : 更新运行和聊天（SA-P05、08）
+B -> P : 轮询运行投影
+note over P,W #Orange : [SA-P06] 同机回环，发起电脑下线后平台不可由另一台电脑读取
+@enduml

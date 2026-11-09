@@ -1,0 +1,45 @@
+@startuml
+title SD-FR-DEL-01 · 产品定义产物与下游引用
+caption FR-DEL-01 / UC-05 / BR-03 / SA-P04、SA-P08 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 协调者回报 artifact 文本
+N -> N : 保存节点结果并向下游提供上游结果
+note over N #Orange
+  SA-P04、SA-P08 问题：原型产物是一般文本；目标需要可查看、可定位版本的产品定义。
+  证据 src/codex.mjs:21–34,37–59 / src/engine.mjs:99–118,208–221
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 回报产品定义节点的角色及协调结果
+group TX · 验收与版本化产物
+  A -> D : 检查当前尝试、同波次角色成功和需求修订
+  alt 产品产物缺失或证据不匹配
+    A -> D : 保存安全失败或等待原因
+  else 产物满足适用验收
+    A -> D : 保存产品定义的类型、来源和版本\n关联目标、功能范围与验收要点
+    A -> D : 完成节点，生成带上游引用的后续任务
+  end
+end
+opt 产物已验收
+  U -> A : getArtifact（有权）
+  A --> U : 可查产品定义、生成节点和使用版本
+  A --> W : 下游任务接收相同产物引用
+end
+note over A,D : 内容存储与保留见数据和中间件设计；授权与证据一致才可引用。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

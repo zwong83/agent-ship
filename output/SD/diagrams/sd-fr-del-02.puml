@@ -1,0 +1,44 @@
+@startuml
+title SD-FR-DEL-02 · 前后端代码证据与工作分支
+caption FR-DEL-02 / UC-05 / BR-04、BR-05 / SA-P03、SA-P08 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+participant "Git / 外部服务" as X
+
+== As-Is · 原型证据 ==
+W -> W : 前端或后端协调结果成功后提交代码
+W -> X : 推送当前运行工作分支
+note over N #Orange
+  SA-P03、SA-P08 问题：原型有真实 Git 写入适配；推送函数未返回可核对的提交来源，真实交付未验收。
+  证据 src/worker.mjs:95–104 / src/providers.mjs:78–92
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 领取前端或后端节点任务及适用产品定义
+A --> W : 提供运行仓库、工作分支和上游引用
+W -> W : 在该运行工作目录执行对应角色任务
+W -> A : authorizeExternalEffect 申请受控代码写入
+A -> D : TX 核对当前设备租约、工作分支和授权范围
+alt 无授权或目标分支冲突
+  A --> W : 禁止写入；阻塞并保留原因
+else 授权有效
+  W -> X : 在事务外写入获准的工作分支
+  W -> A : 回报仓库、分支、提交 SHA 和可定位路径
+  A -> D : TX 核对候选范围和节点波次\n各自产物分别与前端或后端节点绑定
+end
+U -> A : 查看节点关联代码
+A --> U : 可定位分支和实际提交；待核对结果不冒充交付
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

@@ -1,0 +1,40 @@
+@startuml
+title SD-FR-OWN-03 · 主负责人转交与访问收回
+caption FR-OWN-03 / UC-02 / UAT-19、29 / SA-P01 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs ownership transfer；test/agentship.test.mjs TA-01/02
+' Authority and operations: POST …/ownership，action=transfer；SD-B02、SD-D01、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 向另一名已注册用户转交
+  Old -> Old : 替换主负责人，移除原授权
+  Old --> U : 原主负责人仅收 transferred 标记
+  note over Old #Orange : [SA-P01] 转交会改变当前读取权；\n目标 Ack 的撤权后重放仍需验收
+end
+group To-Be · 拟议技术流程
+  U -> UI : 输入接任用户的用户名并确认
+  UI -> API : POST …/ownership，transfer、username、\n期望版本和请求键
+  API -> DB : 锁定对象，核对当前主负责人、\n接任资格、版本及命令收据
+  alt 有权且可转交
+    API -> DB : 原子变更所有者，撤销原角色授权，\n保存版本、审计与收据
+    API --> UI : 返回最小 OwnershipReceipt
+    UI --> U : 已转交，清除受限数据并返回列表
+  else 未授权、对象或用户无效、版本冲突
+    API --> UI : 安全拒绝；未执行转交
+  end
+  note over UI,API : 仅同一调用者同键同内容可重放成功收据；\n同键重放不能恢复原读取权限。
+end
+@enduml

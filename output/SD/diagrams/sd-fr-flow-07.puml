@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-FLOW-07 · 检查结论无效及重新检查
+caption FR-FLOW-07 / UC-06、UC-07 / BR-49 / SA-P05、SA-P07 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 回报非 pass/repair 的结果
+N -> N : 标记 missing 并等待 recheck
+note over N #Orange
+  SA-P05、SA-P07 问题：原型在当前运行对象标记缺失；需持久化原节点波次、授权命令和报告证据。
+  证据 src/engine.mjs:80–86,192–205,296–299
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 当前检查产物无有效结论
+group TX · 阻塞并可见
+  A -> D : 记录 unresolved 和原因，保持双路线等待
+end
+A --> U : 待人工处理，展示可用的「重新检查」
+U -> A : applyRunAction recheck，携带租约和请求键
+alt 不是当前持有页 / 波次已变 / 已结束
+  A --> U : 拒绝；已受理重复请求按原收据返回
+else 有效人工命令
+  A -> D : TX 创建同一原检查节点的新波次\n旧报告留存，未改变运行 ID
+  W -> A : 领取该波次角色任务并回报
+  alt 新波次结论有效
+    A -> D : 只激活对应路线
+  else 仍无有效结论
+    A -> D : 回到待人工，等待新的有效命令
+  end
+end
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

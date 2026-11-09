@@ -1,0 +1,49 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+left to right direction
+title SD-BE-10 当前 Java 模块与耦合
+caption As-Is · UC-03～08 · 连线表示当前类调用或持久化依赖
+
+package "Spring Boot 平台" {
+  package "platform.config" {
+    [ConfigController] as ConfigController
+    [ConfigService] as ConfigService
+    [ConfigStore / WorkflowStore] as ConfigStore
+    ConfigController --> ConfigService
+    ConfigService --> ConfigStore
+  }
+  package "platform.run" {
+    [RunService] as Start
+    [RunReadModel / RunAttemptHistory] as Read
+  }
+  [DeviceService] as Device
+  package "platform.git" #FFF1DE {
+    [GitPlan / GitPreparationView] as GitPlan
+    [GitJobService] as Job
+    [AgentJobTasks / NodeScheduler\nRepairCycle] as Schedule
+    [RunOperatorService / RunChatActions\nRunChatView / AgentInbox] as Chat
+    [ArtifactArchiveService] as Archive
+    [GitStore\n锁、租约、回执与 JDBC] as Store
+    Job --> Schedule
+    Chat --> Schedule
+    Job --> Store
+    Schedule --> Store
+    Chat --> Store
+    Archive --> Store
+  }
+}
+database PostgreSQL as Pg
+Start --> Device : 消费同机证明
+Start --> GitPlan : 规划与授权
+Read --> GitPlan : Git 投影
+Read --> Archive : 归档投影
+ConfigStore --> Pg
+Store --> Pg
+note bottom of Store
+  A01 多项业务共用 Git 包
+  A02 JDBC 和锁通过 GitStore 暴露
+  A03 看板复用写入模块的内部类型
+end note
+@enduml

@@ -1,0 +1,122 @@
+@startuml
+!pragma layout smetana
+title SD-D03 设备、聊天、产物与外部证据
+top to bottom direction
+hide circle
+skinparam linetype ortho
+skinparam classFontSize 14
+skinparam classBackgroundColor #F3F8FA
+skinparam classBorderColor #335D73
+skinparam ArrowColor #456778
+
+entity "account_session" as Session {
+  * account_id / session_id
+}
+entity "device_pairing / device_challenge" as Proof {
+  * id : UUID
+  --
+  * account_id / session_id
+  * expires_at / consumed_at
+}
+entity "device" as Device {
+  * id : UUID <<PK>>
+  --
+  * account_id / mode
+  * token_digest / proof_public_key
+}
+entity "run" as Run {
+  * id : UUID <<PK>>
+  --
+  * initiator_id / device_id
+}
+entity "run_permission" as Permission {
+  * run_id, account_id, capability : PK
+}
+entity "chat_lease" as Chat {
+  * run_id : PK
+  --
+  * epoch : 世代
+  holder_account / session / tab
+  heartbeat_until / grace_until
+}
+entity "chat_message / requirement_change" as ChatHistory {
+  * run_id : FK
+  --
+  accepted_ordinal / source_event_id
+  in_reply_to_inbox_id : 普通回复关联
+  execution_id / based_on_requirement_version : BRD 提案
+}
+entity "agent_question" as Question {
+  * id : UUID <<PK>>
+  --
+  * run_id / task_id / attempt_id
+  * session_ref / source_event_id
+}
+entity "question_resolution" as Resolution {
+  * question_id : PK
+  --
+  * actor_id / action
+}
+entity "agent_inbox" as Inbox {
+  * id : UUID <<PK>>
+  --
+  * run_id / task_id / session_ref
+  question_id : 唯一
+  * delivery_state
+}
+entity "artifact" as Artifact {
+  * id : UUID <<PK>>
+  --
+  * run, node execution, attempt
+  * requirement_revision / mode
+  commit_id / content_digest
+  candidate_ref / test_outcome
+}
+entity "publication_gate / publication_check_evidence" as Gate {
+  * gate_id / run_id
+  --
+  * candidate_commit / target_ref
+  * artifact_version
+  test_evidence_id : 已通过报告
+  * check_node_id / wave
+}
+entity "external_operation" as Operation {
+  * id : UUID <<PK>>
+  --
+  * operation_key : 唯一
+  * requirement_id / mode
+  run_id / publication_gate_id
+}
+entity "operation_evidence" as Evidence {
+  * id : UUID <<PK>>
+  --
+  * operation_id : FK
+  * outcome / observed_at
+}
+entity "audit_event / command_receipt" as Audit {
+  * request correlation
+  --
+  actor account or device
+}
+Session ||--o{ Proof
+Session |o--o{ Chat
+Device ||--o{ Run : 原发起设备
+Run ||--o{ Permission
+Run ||--o| Chat
+Run ||--o{ ChatHistory
+Run ||--o{ Question
+Question ||--o| Resolution
+Resolution |o--o| Inbox : 一次性投递
+Run ||--o{ Inbox
+ChatHistory o..o| Inbox : 定向投递／回复引用
+Run ||--o{ Artifact
+Run ||--o{ Gate
+Gate |o--o{ Operation
+Run |o--o{ Operation
+Operation ||--o{ Evidence
+Run |o..o{ Audit : 审计范围
+legend bottom
+  分组节点只展示本图关心的字段。
+  建仓操作可按需求共享，其他外部操作保留运行归属。
+endlegend
+@enduml

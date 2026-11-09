@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-FLOW-08 · 各检查独立修复、同节点复查
+caption FR-FLOW-08 / UC-07 / SA-P07 / UAT-45、46、47、49
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "运行调度者" as A
+participant "平台 · 交付与验收" as S
+collections "逻辑业务记录" as R
+participant "本机修复与检查" as E
+== As-Is · 本地原型观察 ==
+A -> S : 本轮结论仍需修复
+S -> S : 原型按检查节点计数并重新运行原检查
+note over S #Orange : [SA-P07 当前边界] 复查及真实发布须绑定同一候选工件
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 本轮结论仍需修复
+S -> R : 核对独立检查计数、修复和复查输入
+alt 该检查尚有自动次数
+  S -> S : 登记该检查下一轮，修复可跨阶段\n用新产物复查原节点
+  S -> E : 取得修复结果和原检查结论
+  S -> R : 保留独立检查计数、修复和复查输入及可核对记录
+  S --> A : 通过时继续，否则按剩余次数判断
+else 条件不满足或结果不可确认
+  S --> A : 到上限且仍需修复时仅阻塞受影响路线\n无关路线照常判定
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

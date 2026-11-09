@@ -1,0 +1,48 @@
+@startuml
+title SD-FR-RUN-01 · 选择需求、工作类型与流程
+caption FR-RUN-01 / UC-04 / BR-13～15 / SA-P03 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+
+== As-Is · 原型证据 ==
+U -> N : 选需求、工作类型和现有流程
+N -> N : 校验主负责人、仓库绑定和工作类型
+note over N #Orange
+  SA-P03 问题：启动筛选与旧流程使用权集中于原型对象判断；未接共享契约。
+  证据 src/server.mjs:185–212 / web/app.mjs:221–231
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : 选中实际需求 ID
+A -> D : 查现时权限、仓库关联及需求版本
+alt 无关联仓库
+  A --> U : 仅允许「新功能」
+else 已关联仓库
+  A --> U : 显示四类，由用户选定
+end
+U -> A : 搜索可使用流程（四类共用同一接口）
+A -> D : 按当前授权投影已保存流程及版本
+A --> U : 有权选项或无可用流程
+U -> A : startRun 需求/流程版本、类型、请求键及设备证明
+group TX · 发起校验与写入
+  A -> D : 核对主负责人、版本、描述、同机证明和收据
+  alt 有效
+    A -> D : 消费挑战，写运行快照与首个 Git 任务
+    A --> U : 已启动或返回同键原运行
+  else 未明确选择 / 越权 / 状态已变
+    A --> U : 拒绝；没有 Git 写入
+  end
+end
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

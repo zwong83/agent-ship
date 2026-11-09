@@ -1,0 +1,31 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-04B · 仓库、默认分支与四类 Git 路径
+start
+if (需求已关联仓库?) then (是)
+  :沿用需求仓库;
+else (否)
+  :固定新功能，建仓并写回同一需求;
+endif
+:读取仓库设置的默认分支;
+if (紧急修复?) then (是)
+  :默认分支 → hotfix;
+else (否)
+  if (缺少 dev?) then (是)
+    :默认分支 → dev;
+  endif
+  :dev → feature / refactor / fix;
+endif
+if (仓库及分支已核对?) then (是)
+  :记录仓库、基准与工作分支;
+  :开放依赖 Git 的任务;
+else (否)
+  :显示失败或待核对原因;
+  :核对原请求，已确认步骤继续复用;
+endif
+stop
+@enduml

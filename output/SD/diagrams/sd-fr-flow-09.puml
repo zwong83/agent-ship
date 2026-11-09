@@ -1,0 +1,48 @@
+@startuml
+title SD-FR-FLOW-09 · 修复上限后的额外一轮或停止
+caption FR-FLOW-09 / UC-06、UC-07 / BR-48 / SA-P05、SA-P07 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+U -> N : 在达到上限时提交 repair 或 stop
+N -> N : 继续一轮或设置 stopped
+note over N #Orange
+  SA-P05、SA-P07 问题：原型可操作，但拟议共享事务须处理竞态、过期聊天页和已发出的外部动作。
+  证据 src/engine.mjs:72–78,186–205,300–306
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : applyRunAction 再修一轮或停止
+group TX · 授权与状态裁决
+  A -> D : 验证当前聊天页租约、请求键、原检查及上限状态
+  alt 过期 / 越权 / 已有有效处理
+    A --> U : 拒绝或返回原收据，状态不重复变化
+  else 再修一轮
+    A -> D : 创建仅一轮人工修复；自动计数保持
+    A --> U : 本轮人工修复已受理
+  else 停止本次运行
+    A -> D : 标记 stopped，关闭后续派发
+    A --> U : 已停止；仍保留外部事实核对入口
+  end
+end
+opt 人工修复已受理，前一事务已提交
+  A --> W : 领取修复；完成后重跑原检查
+  W -> A : 提交复查结果
+  A -> D : TX 仍需修复则该路线再次等待，或按通过路线继续
+end
+note over A,D : 后续 worker 回报不能使已停止运行重启。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

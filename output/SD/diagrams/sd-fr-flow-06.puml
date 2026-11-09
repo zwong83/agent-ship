@@ -1,0 +1,48 @@
+@startuml
+title SD-FR-FLOW-06 · 固定检查结果与单路激活
+caption FR-FLOW-06 / UC-03、UC-07 / BR-45、BR-46 / SA-P07 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+U -> N : 保存通过和需修复路线
+N -> N : 校验双入口；按结果选择路线
+note over N #Orange
+  SA-P07 问题：原型使用运行对象内的结果与路线标志；目标需把每次结论和路线选择作为独立事实。
+  证据 src/model.mjs:110–119,145–173 / src/engine.mjs:80–97,120–122
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : 保存检查节点及两条结果路线
+alt 缺失任一路线 / 入口不合法
+  A --> U : 拒绝封存并标出错误
+else 两条均有效
+  A -> D : TX 封存结果枚举、路线及版本
+end
+W -> A : 回报当前检查波次的结果和证据
+group TX · 受理结论及路由
+  A -> D : 校验当前波次、尝试及结果证据
+  alt pass
+    A -> D : 仅激活本次通过路线
+  else repair
+    A -> D : 仅激活本次修复路线，按配置核对修复额度
+  else 无法得出有效结论
+    A -> D : 记录 unresolved；两条路线均等待
+  end
+end
+A --> U : 显示本波次选路或待人工
+note over A,D : 修复后的新波次可激活通过路线，旧结论留存。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-OWN-02 · 撤权与旧页面保存
+caption FR-OWN-02 / UC-02 / UAT-18 / SA-P01 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs ownership / PATCH removed guard；test/agentship.test.mjs TA-01/02
+' Authority and operations: POST …/ownership；PATCH …/{objectId}；SD-B02、SD-D01、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 副负责人打开编辑页
+  Old -> Old : 主负责人移除成员，保留被移除标识
+  U -> Old : 从旧页面保存
+  Old --> U : 403 已被移除，配置未改
+  note over Old #Orange : [SA-P01] 已有本机顺序回归；拟议\n数据库竞态与授权投影清除待验
+end
+group To-Be · 拟议技术流程
+  U -> UI : 旧页面持有草稿和原版本
+  API -> DB : 移除事务校验主负责人，提交撤权与新版本
+  U -> UI : 提交旧页草稿
+  UI -> API : PATCH …/{objectId}，期望版本、请求键
+  API -> DB : 与撤权使用同一对象写入边界
+  alt 撤权已提交
+    DB --> API : 原编辑者的权限已撤销
+    API --> UI : 403，按契约给撤权原因
+    UI --> U : 清除受限投影，仅在本页保留自填草稿
+  else 编辑先提交且当时有权
+    DB --> API : 成功版本在先，后续撤权仍生效
+    API --> UI : 200 受理；后续查询服从当前权限
+  else 有权但期望版本过期
+    API --> UI : 409，刷新比较后重提
+  end
+  note over API,DB : 同键重试先核对当前访问权。
+end
+@enduml

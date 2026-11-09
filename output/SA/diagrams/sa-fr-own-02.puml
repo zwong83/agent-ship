@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-OWN-02 · 撤权与旧页面保存
+caption FR-OWN-02 / UC-02 / SA-P01 / UAT-18
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "曾有编辑权的副负责人" as A
+participant "平台 · 身份与配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 提交先前打开的配置编辑
+S -> S : 原型保存请求重新查当前角色，已被移除者获拒绝提示
+note over S #Orange : [SA-P01 当前边界] 现任角色、提交权限与资料边界需在共享平台复验
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 提交先前打开的配置编辑
+S -> R : 核对当前角色、配置版本和撤权记录
+alt 当前编辑权和预期版本仍有效
+  S -> S : 提交当前版本的编辑及记录
+  S -> R : 保留当前角色、配置版本和撤权记录及可核对记录
+  S --> A : 保存成功或准确的撤权提示
+else 条件不满足或结果不可确认
+  S --> A : 已撤权或版本失效时拒绝，旧页不得写回
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+title SA-FR-CHAT-06 · 正式变更确认与需求修订
+caption FR-CHAT-06 / UC-06 / SA-P05 / UAT-05
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "运行发起人" as A
+participant "平台 · 运行协作" as S
+collections "逻辑业务记录" as R
+participant "本机任务" as E
+== As-Is · 本地原型观察 ==
+A -> S : 提出正式变更并提交确认
+S -> S : 原型在确认后更新当前运行描述；原型权限口径仅为历史
+note over S #Orange : [SA-P05 当前边界] 两名用户、定向投递和持久操作需联合验证
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 提出正式变更并提交确认
+S -> R : 核对变更提案、原修订及生效修订
+alt BRD 节点执行中，发起人确认有效提案
+  S -> S : 同步更新原需求和本次运行，保留旧修订与审计
+  S -> E : 向后续适用任务提供生效修订
+  S -> R : 保留变更提案、原修订及生效修订及可核对记录
+  S --> A : 未开始节点使用新版本\n执行中节点按原版本完成，结果标记旧版本\n已完成节点默认保留
+  opt 发起人选择重跑受影响节点
+    S -> E : 记录新的执行尝试
+  end
+else 条件不满足或结果不可确认
+  S --> A : 待确认或越权时继续沿用原内容
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

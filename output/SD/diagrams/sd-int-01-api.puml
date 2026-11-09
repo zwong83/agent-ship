@@ -1,0 +1,38 @@
+@startuml
+title SD-I01 · 同源 API、版本与写入收据
+caption UC-01～06、08 / API v1 / NFR-PRD-01～04
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+boundary "React 浏览器" as UI
+participant "Spring Boot API" as API
+database "PostgreSQL" as DB
+
+alt 查询
+  UI -> API : 会话 + 资源标识或增量游标
+  API -> DB : 按当前授权查询投影
+  alt 游标有效
+    API --> UI : 受限分页结果或运行增量
+  else 游标过期
+    API --> UI : 请求重新读取授权快照
+  end
+else 配置或运行命令
+  UI -> API : 会话、来源、CSRF、命令与适用请求键
+  API -> DB : 核对当前权限、对象版本和命令收据
+  alt 无权限或期望版本冲突
+    API --> UI : 安全错误；不返回受限内容
+  else 已受理且请求摘要相同
+    API --> UI : 返回同一受理结果
+  else 同键不同内容
+    API --> UI : 冲突；不执行第二次
+  else 新的有效命令
+    API -> DB : 同一事务内提交状态、收据与审计
+    API --> UI : 返回受理结果及当前版本
+  end
+end
+note over UI,API
+  网络超时后沿用同一请求键。
+  字段、权限或错误语义的破坏性变化升级协议版本。
+end note
+@enduml

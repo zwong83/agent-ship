@@ -1,0 +1,34 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-09 中间件与运行依赖
+caption UC-01～UC-08 · 共享入口与生产运维待审批
+
+actor "React 浏览器" as UI
+node "获准共享环境（Proposed）" {
+  [既有 HTTPS 入口\n证书与转发边界待定] as Ingress
+  [Spring Boot / MVC\nSpring Security 与业务授权] as App
+  [JDBC / HikariCP\n业务访问与短事务] as JDBC
+  [Flyway\n发布前数据库迁移] as Migration
+  [Actuator / Micrometer\n健康、指标与脱敏日志] as Obs
+  database "PostgreSQL\n业务、任务、租约、收件箱、审计" as PG
+  Ingress --> App
+  App --> JDBC
+  JDBC --> PG
+  Migration --> PG
+  App --> Obs
+}
+node "运行发起电脑" {
+  [Java Worker] as Worker
+  folder "按运行隔离的本机目录\n检查点与待确认回报" as Disk
+  [Codex App Server] as Codex
+  Worker --> Disk
+  Worker --> Codex : stdio
+}
+cloud "Git 托管和发布适配器\n供应商、授权与目标待确认" as Git
+UI --> Ingress : 同源 HTTPS
+UI --> Worker : 回环设备证明
+Worker --> Ingress : 主动领取、续租、回报
+Worker --> Git : 获授权外部动作
+@enduml

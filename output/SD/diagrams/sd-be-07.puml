@@ -1,0 +1,45 @@
+@startuml
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-07 聊天与执行任务的租约隔离
+caption UC-06、UC-08 · FR-CHAT-01～06、FR-AG-05、FR-RUN-04
+
+actor "获授权浏览器" as Web
+participant "平台用例" as API
+database "PostgreSQL" as DB
+participant "绑定 Worker" as Worker
+
+group 聊天控制与人工指令
+  Web -> API : 进入聊天 / 续约 / 离开
+  API -> DB : 核验实时授权，锁定该运行占用行
+  alt 可授予，或当前页凭据匹配
+    API -> DB : 获取新世代、续租或释放\n断网保留检测起 5 分钟
+    API --> Web : 返回占用状态
+  else 另一页占用或世代失效
+    API --> Web : 返回允许显示的占用信息或拒绝
+  end
+  Web -> API : 回复、取消、重试或确认变更
+  API -> DB : 同事务检查授权、当前页租约及目标状态
+  alt 指令可执行
+    API -> DB : 保存一次有效状态变化、收据与审计\n定向问题收件箱或新的需求修订
+  else 重放、过期或越权
+    API --> Web : 已受理收据或安全错误
+  end
+end
+group 设备领取与回报
+  Worker -> API : 当前租约与可用槽位
+  API -> DB : 续有效租约或 SKIP LOCKED 领取\n按设备过滤，写截止时间与新世代
+  Worker -> API : 回报尝试、世代、序号和请求键
+  API -> DB : 锁运行与任务，核验栅栏与连续序号
+  alt 当前有效回报且序号连续
+    API -> DB : 提交结果、证据与后续派发
+  else 当前世代缺少前一事件
+    API --> Worker : 报告冲突，先补发
+  else 旧世代或已受理重复事件
+    API --> Worker : 拒绝旧回报或返回原收据
+  end
+end
+note over Web,Worker
+  聊天操作权改变时，执行设备绑定保持不变。
+end note
+@enduml

@@ -1,0 +1,45 @@
+@startuml
+title SD-FR-CHAT-04 · 双用户和双标签页互斥
+caption FR-CHAT-04 / UC-06 / UAT-23、24、26 / SA-P05 / 所有者 SD-F02，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs currentLock / chat；web/app.mjs release；历史演练仅同账号多标签页
+' Authority and operations: POST /api/runs/{runId}/chat；GET …/chat；SD-B05、SD-D03、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 主负责人两页同时进入聊天
+  Old -> Old : 以用户和页标识判断；仅持有页可操作
+  Old --> U : 后进入页看到占用
+  note over Old #Orange : [SA-P05] 原型仅主负责人可聊天；\n两个独立获权账号和目标浏览器关闭未验
+end
+group To-Be · 拟议技术流程
+  U -> UI : 两个获权用户或同账号两页竞争
+  UI -> API : A、B 分别 POST …/chat acquire，独立 tabId
+  API -> DB : 授权后对同一运行原子获取租约
+  API --> UI : 胜者得世代与凭据；败者 409 CHAT_OCCUPIED
+  UI --> U : 仅胜者显示可操作；败者提示占用者
+  alt 胜者显式离开或正常关闭且信号已送达
+    UI -> API : release，当前凭据；关闭路径带 CSRF
+    API -> DB : 条件释放，保留世代水位
+    API --> UI : 200 Ack；允许另一有权页获取
+  else 败者关闭
+    UI -> UI : 无持有凭据，不提交释放
+  else 旧页迟到释放
+    UI -> API : release，旧世代
+    API -> DB : 条件不匹配；保持新租约
+  end
+  note over UI,API : 未送达的关闭按检测断线处理（FR-CHAT-05）；\n独立第二用户授权待 SA-D06。
+end
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-FLOW-03 · 阶段屏障、同阶段并行与顺序
+caption FR-FLOW-03 / UC-05 / BR-16、BR-41、BR-43 / SA-P04 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+N -> N : 取最早未完成阶段、活跃和就绪节点
+N -> N : 找共同已完成上游或按顺序派发
+note over N #Orange
+  SA-P04 问题：原型已有调度规则；共享平台需使就绪判断、事件与派发在并发下同一提交。
+  证据 src/engine.mjs:124–160,163–205
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : reportWorkerEvent 提交当前尝试结果
+group TX · 受理与下一轮调度
+  A -> D : 锁运行，校验事件栅栏并加载快照
+  alt 前一阶段仍有应执行工作
+    A -> A : 仅在当前阶段判断依赖和路线
+  else 前一阶段应执行节点全部完成
+    A -> A : 开放下一阶段并重算就绪集合
+  end
+  alt 就绪节点互不依赖且共享已完成上游
+    A -> D : 写同阶段可并行任务
+  else 无共同上游
+    A -> D : 按配置顺序写当前可执行项；其余等待
+  end
+  A -> D : 更新运行投影并保存收据
+end
+A --> U : 看板显示并行、顺序或依赖阻塞
+note over A,D : 未激活路线不计入应执行集合。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

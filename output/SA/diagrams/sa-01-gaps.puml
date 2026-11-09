@@ -1,0 +1,19 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title SA-01 · 现状缺口与目标方案
+!pragma layout smetana
+left to right direction
+rectangle "[SA-P06] 平台与执行同机\n发起电脑下线时回环平台不可达" as G1 #FFF1E5
+rectangle "[SA-P05 / SA-P07] 历史验证集中在演练\n双用户与真实供应商证据待做" as G2 #FFF1E5
+rectangle "[SA-P08] 原型单一工作区\n并发规则尚未在目标库验证" as G3 #FFF1E5
+rectangle "独立共享平台保存运行\n原电脑执行及续跑" as T1 #E5F3ED
+rectangle "两个授权账号 + 两台电脑\n分别收集真实 Codex/Git/发布证据" as T2 #E5F3ED
+rectangle "独立持久化业务状态\n角色、任务和请求结果可核对" as T3 #E5F3ED
+G1 --> T1 : 跨设备查看
+G2 --> T2 : 完成验收覆盖
+G3 --> T3 : 并发与审计
+@enduml

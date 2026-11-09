@@ -1,0 +1,18 @@
+@startuml
+title SA-I01 · 逻辑集成、信任与所有权
+caption UC-04、05、06、08 / BR-02、07、10、27～32、46 / To-Be Proposed
+!pragma layout smetana
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+left to right direction
+actor "浏览器用户" as U
+rectangle "共享平台\n当前权限、运行与持久状态" as S
+rectangle "发起电脑\n受限任务与本机会话" as D
+cloud "Git 托管\n仓库、分支和代码结果" as G
+cloud "发布环境\n外部结果" as P
+U --> S : 当前权限下读写
+U --> D : 启动时验证同机
+D <--> S : 领取、问答、回执和核对证据
+D --> G : 获准的仓库和分支动作
+D --> P : 满足放行条件的外部动作
+@enduml

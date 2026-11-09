@@ -1,0 +1,45 @@
+@startuml
+title SD-FR-REQ-04 · 主负责人发起权与提交保护
+caption FR-REQ-04 / UC-04 / UAT-07、30 / SA-P03 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs startRun；web/app.mjs renderObjects；test/agentship.test.mjs TA-04
+' Authority and operations: POST /api/runs；SD-B02～04、SD-D01～02、SD-I01～02
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 主或副负责人尝试启动
+  Old -> Old : 检查当前需求 owner，再检查设备证明
+  Old --> U : 主负责人满足条件才发起；副负责人 403
+  note over Old #Orange : [SA-P03] 本机验证覆盖授权拒绝；跨会话\n挑战、原子消费和外部副作用待验
+end
+group To-Be · 拟议技术流程
+  U -> UI : 在启动页确认需求和流程
+  UI -> API : POST /api/runs，版本、证明及请求键
+  API -> DB : 校验会话与命令收据
+  alt 已受理的同键同请求
+    API --> UI : 当前仍有权读取时返回原运行
+  else 新请求
+    API -> DB : 核对主负责人、流程使用权、\n期望版本与对应设备挑战
+    alt 副负责人或已转交
+      API --> UI : 安全拒绝；未写运行或 Git 意图
+    else 版本、描述或设备不通过
+      API --> UI : 显示原因；重新选择或证明
+    else 有效新启动
+      API -> DB : 原子消费挑战并提交运行、快照、\nGit 准备任务及收据
+      API --> UI : 201，异步显示准备中
+    end
+  end
+end
+@enduml

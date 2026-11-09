@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-RUN-04 · 同机执行、另一设备查看和原机续跑
+caption FR-RUN-04 / UC-08 / SA-P06 / UAT-22、27、EXT-02
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "原设备 A 与有权查看的设备 B" as A
+participant "平台 · 设备恢复" as S
+collections "逻辑业务记录" as R
+participant "本机执行" as E
+== As-Is · 本地原型观察 ==
+A -> S : 原机掉线，其他浏览器查进度，原机重连
+S -> S : 原型可配对和更新本机执行记录；回环平台随原机不可达
+note over S #Orange : [SA-P06 当前边界] 原平台随原机关机，另一台电脑无法访问其回环地址
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 原机掉线，其他浏览器查进度，原机重连
+S -> R : 核对设备绑定、租约、检查点和运行状态
+alt 恢复的设备身份等于运行绑定且本机能力可用
+  S -> S : 优先恢复可用原会话，否则从最近保存点继续\n保留同一次运行与成功结果
+  S -> E : 由原设备领取或恢复
+  S -> R : 保留设备绑定、租约、检查点和运行状态及可核对记录
+  S --> A : 另一浏览器可持续查看同一运行
+else 条件不满足或结果不可确认
+  S --> A : 其他设备不能领取；旧尝试不能改写状态
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

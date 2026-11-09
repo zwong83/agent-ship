@@ -1,0 +1,7119 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AgentShip platform, worker and local bridge API",
+    "version": "1.0.0-draft.13",
+    "description": "Draft.13 adds live chat lease context, collaboration actions, attempt history and scoped artifact archives. Draft.12 adds check history, repair control targets and lease-bound repair actions. Draft.11 adds explicit Agent dispatch opt-in, check candidate and node execution projections. Draft.10 adds Git preparation step evidence, scoped external dispatch/reconcile decisions and worker checkpoint evidence. Proposed API v1 for BRD v0.57 and PRD v0.8 on the React and Java design baseline. Draft.9 adds pending gitPlan and pinned selectedRoles to run projections. Draft.8 adds workflowVersion to flow configuration projections so sealed graph versions remain distinct from optimistic configuration versions. Draft.7 account and owner/deputy access rules and draft.4 worker and run contracts carry forward. The historical Node.js prototype uses a different interface. Readiness and open policy items are tracked in the System Design Index."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Same-origin platform. Local verification binds to loopback only."
+    }
+  ],
+  "tags": [
+    {
+      "name": "session"
+    },
+    {
+      "name": "config"
+    },
+    {
+      "name": "runs"
+    },
+    {
+      "name": "chat"
+    },
+    {
+      "name": "device"
+    },
+    {
+      "name": "worker"
+    },
+    {
+      "name": "local-bridge"
+    }
+  ],
+  "paths": {
+    "/api/me": {
+      "get": {
+        "operationId": "getSession",
+        "tags": [
+          "session"
+        ],
+        "description": "Read current browser identity or a null user.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/api/me/contact": {
+      "get": {
+        "operationId": "getMyContact",
+        "tags": [
+          "session"
+        ],
+        "description": "Read the email and phone of the authenticated session account. No target-account selector. Do not reuse this schema for login, session, member, or chat projections. Responses must not be cached.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current account's contact details.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelfContact"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/api/register": {
+      "post": {
+        "operationId": "register",
+        "tags": [
+          "session"
+        ],
+        "description": "Validate matching passwords and the case-insensitive username key. Both email and phone must be verified. Acceptance acknowledges registration and the required channels without issuing a browser session. An account remains pending until both channels are verified. Email uniqueness ignores case and phones are normalized with a country code before uniqueness checking. Registration passwords are 15 to 128 characters, allow spaces and symbols, and must match exactly. Development uses local simulated email and phone delivery. Pending registrations expire 24 hours after acceptance. Expired identifiers can be registered again. Do not expose codes or provider secrets in responses.",
+        "security": [],
+        "responses": {
+          "202": {
+            "description": "Registration accepted for verification without a business session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registration"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register/verify": {
+      "post": {
+        "operationId": "verifyRegistrationContact",
+        "tags": [
+          "session"
+        ],
+        "description": "Verify one channel using proof scoped to this registration and channel. Check proof and registration expiration. Both successful channels atomically activate the account. Verification never issues a business session. Wrong, expired, or mismatched proof receives a generic rejection. Rate-limit by registration and origin.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationVerification"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted channel proof. A repeat of valid proof for the same channel leaves the existing verification unchanged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationVerificationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "operationId": "login",
+        "tags": [
+          "session"
+        ],
+        "description": "Authenticate by normalized username or email and password. On success, issue the browser session cookie. Pending accounts are ineligible until both contacts are verified. Wrong credentials and ineligible accounts receive the same generic authentication response.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "post": {
+        "operationId": "logout",
+        "tags": [
+          "session"
+        ],
+        "description": "Invalidate session and its chat leases, then clear the browser cookie.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ack"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "tags": [
+          "config"
+        ],
+        "description": "List projects visible to the caller.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Search"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ]
+      }
+    },
+    "/api/catalog": {
+      "get": {
+        "operationId": "listAvailableAgents",
+        "tags": [
+          "config"
+        ],
+        "description": "List configured Agent candidates for the flow editor. A role template without an owned configuration is not an executable candidate. An existing flowId requires current edit permission. Without flowId, require permission to create a flow. Require current primary or unrevoked deputy ownership of each Agent configuration. Standalone grants are outside the first-development profile. Search and pagination apply after authorization; saving a flow revalidates every referenced Agent under current permissions. Return an opaque next cursor scoped to caller and filters. Order by normalized display name then immutable Agent ID.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCatalog"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FlowContext"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/BoundedPageSize"
+          }
+        ]
+      }
+    },
+    "/api/objects/{kind}": {
+      "get": {
+        "operationId": "listObjects",
+        "tags": [
+          "config"
+        ],
+        "description": "Return results under current permissions and the declared intent. Requirement purpose=view includes visible deputy entries with allowedActions lacking start. Requirement purpose=start lists only requirements the caller can start. For flows purpose=use, require requirementId and start permission on that requirement, then return only saved flows for which the caller is the current owner or an unrevoked deputy. The same flow list serves all work types. For agents purpose=use, use the context-aware catalog endpoint. The start and save commands recheck authorization and version; a list entry is not a durable grant.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigKind"
+          },
+          {
+            "$ref": "#/components/parameters/ProjectFilter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          },
+          {
+            "$ref": "#/components/parameters/ConfigPurpose"
+          },
+          {
+            "$ref": "#/components/parameters/RequirementContext"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createObject",
+        "tags": [
+          "config"
+        ],
+        "description": "Create a configuration. The creator becomes its owner. Flow creation validates all selected Agents under current use permissions. In the development profile, formal publication nodes are unavailable.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigKind"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigCreate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/objects/{kind}/{objectId}": {
+      "get": {
+        "operationId": "getObject",
+        "tags": [
+          "config"
+        ],
+        "description": "Read a configuration with current permissions.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigKind"
+          },
+          {
+            "$ref": "#/components/parameters/ObjectId"
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "updateObject",
+        "tags": [
+          "config"
+        ],
+        "description": "Recheck current edit permissions and expected version. A flow edit also checks current use permission for every selected Agent. In the development profile, formal publication nodes are unavailable. An edit by a removed deputy returns ACCESS_REVOKED only when prior edit authority on this object can be established.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigKind"
+          },
+          {
+            "$ref": "#/components/parameters/ObjectId"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/objects/{kind}/{objectId}/ownership": {
+      "post": {
+        "operationId": "changeOwnership",
+        "tags": [
+          "config"
+        ],
+        "description": "Only the current owner can change deputies or transfer. Unknown or ineligible username returns 404 MEMBER_UNAVAILABLE. Add and transfer resolve one exact normalized username after object and actor authorization. An ineligible or unknown username produces the same MEMBER_UNAVAILABLE response. Remove uses the ID of an existing deputy from the authorized member projection. Mutation checks the expected version. An authenticated original actor may replay a successful transfer with the same operation, object, key and canonical digest after losing ownership and receive only the prior minimal receipt. A changed digest, different actor or expired receipt never replays a transfer. A fresh read or write uses current authorization.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Minimal ownership receipt, including permitted identical replays.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigKind"
+          },
+          {
+            "$ref": "#/components/parameters/ObjectId"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnershipChange"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "operationId": "listDevices",
+        "tags": [
+          "device"
+        ],
+        "description": "List the caller's registered devices and their last observed status.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/api/devices/pair": {
+      "post": {
+        "operationId": "createPairingCode",
+        "tags": [
+          "device"
+        ],
+        "description": "Issue a short-lived, one-time pairing code. If delivery is uncertain, request a fresh code. Secrets are not persisted in command receipts.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingCode"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ]
+      }
+    },
+    "/api/devices/challenge": {
+      "post": {
+        "operationId": "createDeviceChallenge",
+        "tags": [
+          "device"
+        ],
+        "description": "Issue a short-lived start challenge bound to the browser session and platform origin. Rate limit issuance and validate each challenge exactly once.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceChallenge"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ]
+      }
+    },
+    "/api/runs": {
+      "get": {
+        "operationId": "listRuns",
+        "tags": [
+          "runs"
+        ],
+        "description": "List authorized runs, including device presence and the run's own status.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectFilter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ]
+      },
+      "post": {
+        "operationId": "startRun",
+        "tags": [
+          "runs"
+        ],
+        "description": "Recheck requirement start and workflow use permissions under current grants and the submitted versions, then consume device proof, snapshot the selected flow and roles, and queue Git preparation. A flow with formal publication is unavailable in the development profile. An unlinked requirement requires feature work type and a GitHub account or organization in githubNamespace; the new repository is public. A linked requirement uses its existing repository, and githubNamespace must be omitted.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStartReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunStart"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}": {
+      "get": {
+        "operationId": "getRun",
+        "tags": [
+          "runs"
+        ],
+        "description": "Read an authorized run snapshot and server-evaluated action permissions. Display names come from immutable selected Agent versions. Nodes expose their pinned input revision once started and whether that input is older than the current run revision. Use the attempt history resource for previous attempts.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          }
+        ]
+      }
+    },
+    "/api/runs/{runId}/events": {
+      "get": {
+        "operationId": "listRunEvents",
+        "tags": [
+          "runs"
+        ],
+        "description": "Read a coalesced notification for the current run version. A changed version returns a hint to fetch run details. This endpoint does not replay each intermediate transition or return private chat content.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEvents"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ]
+      }
+    },
+    "/api/runs/{runId}/attempts": {
+      "get": {
+        "operationId": "listRunAttempts",
+        "tags": [
+          "runs"
+        ],
+        "description": "Read paged task attempts, including prior attempts, for a currently authorized run. Role labels use the frozen Agent version. Sort by task ID and attempt number in ascending order. Cursors bind caller, run and filters, and use exclusive keyset continuation. Refresh from the first page for a new scan; a page does not freeze attempt state. No chat bodies, provider secrets or raw logs are returned.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAttemptPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/HistoryNodeFilter"
+          },
+          {
+            "$ref": "#/components/parameters/HistoryTaskFilter"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/BoundedPageSize"
+          }
+        ]
+      }
+    },
+    "/api/runs/{runId}/artifacts": {
+      "get": {
+        "operationId": "listArtifacts",
+        "tags": [
+          "runs"
+        ],
+        "description": "List scoped artifact references.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ]
+      }
+    },
+    "/api/runs/{runId}/artifacts/{artifactId}": {
+      "get": {
+        "operationId": "getArtifact",
+        "tags": [
+          "runs"
+        ],
+        "description": "Resolve a scoped artifact and a permitted content reference.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Artifact"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/ArtifactId"
+          }
+        ]
+      }
+    },
+    "/api/runs/{runId}/chat": {
+      "get": {
+        "operationId": "getChat",
+        "tags": [
+          "chat"
+        ],
+        "description": "Return paged chat content and current node and wave targets to the entitled page holding the active lease. A chat-only guest can use this endpoint without run-board access. Recheck permission and lease on every read, including continuation. Cursor order is immutable platform acceptance order; ordinary text is not copied into run notifications or artifacts.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatView"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/ChatLease"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "tabId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "epoch",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "updateChatLease",
+        "tags": [
+          "chat"
+        ],
+        "description": "Acquire, renew or release the exclusive page lease for the run initiator or a current entitled guest. This entry point does not require run-board, project or requirement read permission. A current requirement deputy cannot acquire, renew or operate the lease. Logout or permission revocation invalidates access immediately. Only authorized contenders see an occupied result. For a page-close release only, CSRF token may be supplied in the body.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ChatLease"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Ack"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Browser session anti-CSRF token, also sent on page-close keepalive release."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ChatAcquire"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ChatOwnedCommand"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/chat/access": {
+      "get": {
+        "operationId": "getChatAccess",
+        "tags": [
+          "chat"
+        ],
+        "description": "Read current granted chat users for the run initiator. Only minimal identity projection is returned. No lease is required.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatAccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          }
+        ]
+      },
+      "post": {
+        "operationId": "changeChatAccess",
+        "tags": [
+          "chat"
+        ],
+        "description": "Only the authenticated run initiator may grant or revoke chat access for this run. These commands do not require a chat lease. Grant resolves an exact username under current authorization; unknown and ineligible names return 404 MEMBER_UNAVAILABLE. A current requirement deputy is ineligible even if a prior grant exists. Revoke invalidates the guest lease and authorization atomically and applies to open pages and new reads or writes immediately. Grant and revoke do not create project, requirement, or run-board permissions.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatAccessChange"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/actions": {
+      "post": {
+        "operationId": "applyRunAction",
+        "tags": [
+          "chat"
+        ],
+        "description": "Recheck authorization specific to the action, active page lease and action state. Entitled chat-only guests can send messages and answer open questions without run-board access. Other commands enforce their own actor conditions. Message uses an explicit current node and wave; omitting targetRoleId selects its coordinator, while an explicit target resolves only within that wave. Unavailable or invalid targets return 409 CHAT_TARGET_UNAVAILABLE without fallback. Reply and cancel use the original question, and only the initiator can cancel. BRD change proposal and confirmation require the active BRD node and both expected revisions. Only the run initiator confirms; confirmation atomically updates the source requirement and run revision. Started waves retain pinned inputs. Skip is a recorded disposition for a failed selected Agent and does not waive the final artifact condition. External recovery needs an approved grant. Formal publication approval is reserved and returns 409 ACTION_NOT_ALLOWED in the development release. Downstream rules for node rerun are outside current implementation scope.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ack"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunAction"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/worker/pair": {
+      "post": {
+        "operationId": "pairWorker",
+        "tags": [
+          "worker"
+        ],
+        "description": "Exchange a valid single-use pairing code for device credentials.",
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCredentials"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairDevice"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/worker/poll": {
+      "post": {
+        "operationId": "pollWorker",
+        "tags": [
+          "worker"
+        ],
+        "description": "Renew valid active task leases, claim new tasks for this device, and receive inbox deliveries.",
+        "security": [
+          {
+            "deviceBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerPollResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkerPoll"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/worker/jobs/{taskId}/event": {
+      "post": {
+        "operationId": "reportWorkerEvent",
+        "tags": [
+          "worker"
+        ],
+        "description": "Report a typed event for the current device, task, attempt and lease epoch. After deduplication and fencing, accept only the next contiguous sequence in this epoch; a gap returns 409 EVENT_SEQUENCE_GAP. A previously accepted identical event returns its original receipt. A message is nonterminal and verifies the session bound to the current attempt. If inReplyToInboxId is supplied, verify its task and session before storing the message. Platform derives sender and recipient, writes the event and chat projection atomically, and publishes only a content-free run notification.",
+        "security": [
+          {
+            "deviceBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ack"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TaskId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkerEvent"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "operationId": "getLocalDeviceStatus",
+        "tags": [
+          "local-bridge"
+        ],
+        "description": "Loopback companion status for the exact paired Origin. Never returns device credentials or signing keys.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PlatformOrigin"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalDeviceStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          }
+        }
+      },
+      "servers": [
+        {
+          "url": "http://127.0.0.1:4781",
+          "description": "Loopback companion."
+        }
+      ]
+    },
+    "/proof": {
+      "post": {
+        "operationId": "signDeviceChallenge",
+        "tags": [
+          "local-bridge"
+        ],
+        "description": "Loopback-only proof. Restrict Origin to paired platform. Sign this challenge without exposing device credentials.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceProof"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceChallenge"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PlatformOrigin"
+          }
+        ]
+      },
+      "servers": [
+        {
+          "url": "http://127.0.0.1:4781",
+          "description": "Proposed loopback companion proof endpoint."
+        }
+      ]
+    },
+    "/api/worker/jobs/{taskId}/authorize-external": {
+      "post": {
+        "operationId": "authorizeExternalEffect",
+        "tags": [
+          "worker"
+        ],
+        "description": "Record an external operation intent and recheck current lease, destination, authorization and the affected route pause under the run lock before a mutating external effect. A paused route cannot receive a new write authorization. Other eligible routes continue. A prior operation may be reconciled without a new write. Formal publication dispatch is reserved and returns 409 ACTION_NOT_ALLOWED in the development profile. The body and path task IDs must agree.",
+        "security": [
+          {
+            "deviceBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TaskId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalAuthorizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Short-lived authorization scoped to the requested external effect.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalAuthorization"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/repair-control": {
+      "get": {
+        "operationId": "getRepairControlTargets",
+        "description": "Read check targets in the current active route. Requires chat access. Actions separately require the current session and tab lease.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current actionable checks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "targets"
+                  ],
+                  "properties": {
+                    "targets": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RepairControlTarget"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "404": {
+            "description": "Run unavailable"
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/archives": {
+      "post": {
+        "operationId": "approveArtifactArchive",
+        "tags": [
+          "runs"
+        ],
+        "description": "Approve one exact final artifact snapshot for a create-only tag in the bound requirement repository. Only the initiator who remains the current requirement owner may approve.",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactArchive"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveApproval"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RunId"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ]
+      }
+    },
+    "/api/worker/archive/poll": {
+      "post": {
+        "operationId": "pollArtifactArchive",
+        "tags": [
+          "worker"
+        ],
+        "description": "Claim archive work on its original device. A pinned export commit is read-only reconciliation.",
+        "security": [
+          {
+            "deviceBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchivePollResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/api/worker/archive/authorize": {
+      "post": {
+        "operationId": "authorizeArtifactArchive",
+        "tags": [
+          "worker"
+        ],
+        "description": "Persist an exact export commit before issuing one short write authorization. Further requests only reconcile.",
+        "security": [
+          {
+            "deviceBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveAuthorization"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveAuthorizationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/worker/archive/result": {
+      "post": {
+        "operationId": "reportArtifactArchive",
+        "tags": [
+          "worker"
+        ],
+        "description": "Verify current lease and exact tag/readback commit, or preserve a known failure or unknown result.",
+        "security": [
+          {
+            "deviceBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ack"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveResult"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "browserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "agentship_session"
+      },
+      "deviceBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque"
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Opaque command key. Scope is caller and operation. Reuse only for an identical request."
+      },
+      "CsrfToken": {
+        "name": "X-CSRF-Token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Browser session anti-CSRF token."
+      },
+      "ChatLease": {
+        "name": "X-Chat-Lease",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Opaque credential for this page's current lease. Never persist or log."
+      },
+      "ConfigKind": {
+        "name": "kind",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "requirements",
+            "flows",
+            "agents"
+          ]
+        }
+      },
+      "ObjectId": {
+        "name": "objectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "RunId": {
+        "name": "runId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "ArtifactId": {
+        "name": "artifactId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "TaskId": {
+        "name": "taskId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "HistoryTaskFilter": {
+        "name": "taskId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Restrict history to the given task in the run."
+      },
+      "HistoryNodeFilter": {
+        "name": "nodeId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Restrict history to all recorded waves of the given node in the run."
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Opaque cursor scoped to the caller and filters."
+      },
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "description": "Requested number of results, capped by platform configuration."
+      },
+      "BoundedPageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        },
+        "description": "Page size for Agent choices and attempt history. Values outside the range are invalid."
+      },
+      "ProjectFilter": {
+        "name": "projectId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Filter to this visible project."
+      },
+      "Search": {
+        "name": "q",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Search authorized results."
+      },
+      "ConfigPurpose": {
+        "name": "purpose",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "view",
+            "edit",
+            "use",
+            "start"
+          ],
+          "default": "view"
+        },
+        "description": "Filter by intent; defaults to view. start applies to requirements. use applies to flows with requirementId. Use /api/catalog for Agents in a flow editor. Unsupported kind and purpose pairs return INVALID_REQUEST."
+      },
+      "RequirementContext": {
+        "name": "requirementId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Required for a flow use query. It binds the picker to a requirement the caller can start."
+      },
+      "FlowContext": {
+        "name": "flowId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Existing flow being edited. Omit only when creating a flow."
+      },
+      "PlatformOrigin": {
+        "name": "Origin",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        },
+        "description": "Exact paired platform origin. Required by the local bridge."
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_REQUEST",
+                  "UNAUTHENTICATED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "IDENTIFIER_UNAVAILABLE",
+                  "NAME_UNAVAILABLE",
+                  "REQUIREMENT_EXISTS",
+                  "ACCESS_REVOKED",
+                  "STALE_VERSION",
+                  "IDEMPOTENCY_CONFLICT",
+                  "INVALID_FLOW",
+                  "DEPENDENCY_CYCLE",
+                  "MISSING_DESCRIPTION",
+                  "PAIRING_INVALID",
+                  "DEVICE_PROOF_INVALID",
+                  "DEVICE_OFFLINE",
+                  "CLIENT_INCOMPATIBLE",
+                  "CHAT_OCCUPIED",
+                  "CHAT_LEASE_LOST",
+                  "QUESTION_RESOLVED",
+                  "ACTION_NOT_ALLOWED",
+                  "STALE_TASK_LEASE",
+                  "CURSOR_EXPIRED",
+                  "TOO_MANY_REQUESTS",
+                  "TEMPORARILY_UNAVAILABLE",
+                  "INTERNAL_ERROR",
+                  "MEMBER_UNAVAILABLE",
+                  "CHAT_TARGET_UNAVAILABLE",
+                  "EVENT_SEQUENCE_GAP"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "requestId": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "details": {
+                "type": "object",
+                "properties": {
+                  "fieldErrors": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "reason"
+                      ]
+                    }
+                  },
+                  "existingRequirementId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "holderDisplayName": {
+                    "type": "string"
+                  },
+                  "currentVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "retryAfterSeconds": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "retryable"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "Ack": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "receiptId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "accepted"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "username"
+        ],
+        "additionalProperties": false
+      },
+      "SelfContact": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^[+][1-9][0-9]{1,14}$"
+          }
+        },
+        "required": [
+          "email",
+          "phone"
+        ],
+        "additionalProperties": false
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "csrfToken": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "user",
+          "csrfToken"
+        ]
+      },
+      "Registration": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_-]{1,100}$",
+            "description": "Exact ASCII username. The platform normalizes letters to lowercase for identity matching."
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Include the country code. The server normalizes the number before uniqueness checking."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The normalized email uniqueness key ignores case."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 15,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "confirmPassword": {
+            "type": "string",
+            "minLength": 15,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "name",
+          "username",
+          "phone",
+          "email",
+          "password",
+          "confirmPassword"
+        ]
+      },
+      "RegistrationReceipt": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "const": "verification_required"
+          },
+          "requiredChannels": {
+            "const": [
+              "email",
+              "phone"
+            ]
+          },
+          "registrationRef": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque proof scope for this registration. It confers no business access."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exactly 24 hours after registration acceptance."
+          }
+        },
+        "required": [
+          "status",
+          "requiredChannels",
+          "registrationRef",
+          "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "RegistrationVerification": {
+        "type": "object",
+        "properties": {
+          "registrationRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channel": {
+            "enum": [
+              "email",
+              "phone"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "registrationRef",
+          "channel",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "RegistrationVerificationResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "verification_required",
+              "active"
+            ]
+          },
+          "verifiedChannels": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "email",
+                "phone"
+              ]
+            },
+            "uniqueItems": true,
+            "minItems": 1,
+            "maxItems": 2
+          }
+        },
+        "required": [
+          "status",
+          "verifiedChannels"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "active"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "verifiedChannels": {
+                  "minItems": 2
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "verifiedChannels": {
+                  "maxItems": 1
+                }
+              }
+            }
+          }
+        ],
+        "additionalProperties": false
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Email or exact username. ASCII username matching ignores letter case."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ]
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ProjectPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "Repository": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repositoryId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "defaultBranch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "repositoryId",
+          "displayName"
+        ]
+      },
+      "GitContext": {
+        "type": "object",
+        "properties": {
+          "repository": {
+            "$ref": "#/components/schemas/Repository"
+          },
+          "baseBranch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workBranch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseCommit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "headCommit": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "repository",
+          "baseBranch",
+          "workBranch",
+          "baseCommit"
+        ]
+      },
+      "RequirementData": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "projectId",
+          "description"
+        ]
+      },
+      "AgentData": {
+        "type": "object",
+        "properties": {
+          "roleKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "skillRef": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "roleKey",
+          "description"
+        ]
+      },
+      "AgentChoice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable",
+              "unknown"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "availability"
+        ]
+      },
+      "AgentCatalog": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentChoice"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "FlowStage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowNode"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "nodes"
+        ]
+      },
+      "FlowNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "work",
+              "check",
+              "publish",
+              "end"
+            ]
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "requirement",
+              "product",
+              "frontend",
+              "backend",
+              "test",
+              "repair",
+              "other"
+            ]
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "coordinatorId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "agentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "agentOrder": {
+            "type": "string",
+            "enum": [
+              "parallel",
+              "serial"
+            ]
+          },
+          "checkRoutes": {
+            "$ref": "#/components/schemas/CheckRoutes"
+          },
+          "route": {
+            "$ref": "#/components/schemas/RouteMembership"
+          },
+          "publication": {
+            "$ref": "#/components/schemas/PublicationTarget"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "dependencies"
+        ]
+      },
+      "CheckRoutes": {
+        "type": "object",
+        "properties": {
+          "passNodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "repairNodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automaticRepairLimit": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "passNodeId",
+          "repairNodeId",
+          "automaticRepairLimit"
+        ]
+      },
+      "RouteMembership": {
+        "type": "object",
+        "properties": {
+          "checkNodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "repair"
+            ]
+          }
+        },
+        "required": [
+          "checkNodeId",
+          "outcome"
+        ]
+      },
+      "PublicationTarget": {
+        "type": "object",
+        "description": "Reserved for the later formal publication profile. The first development release does not allow configuring or starting this target.",
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workflowRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "targetId"
+        ]
+      },
+      "WorkflowData": {
+        "type": "object",
+        "properties": {
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowStage"
+            }
+          }
+        },
+        "required": [
+          "stages"
+        ]
+      },
+      "ConfigCreate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementData"
+              },
+              {
+                "$ref": "#/components/schemas/AgentData"
+              },
+              {
+                "$ref": "#/components/schemas/WorkflowData"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "data"
+        ]
+      },
+      "ConfigUpdate": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementData"
+              },
+              {
+                "$ref": "#/components/schemas/AgentData"
+              },
+              {
+                "$ref": "#/components/schemas/WorkflowData"
+              }
+            ]
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "name",
+          "data"
+        ]
+      },
+      "ConfigSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "requirements",
+              "flows",
+              "agents"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Optimistic configuration version used by expectedVersion. Graph and ownership edits both advance this value."
+          },
+          "workflowVersion": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "Present on flows. Latest sealed graph version for RunStart.workflowVersion. Null on legacy metadata-only flows. Advances only on successful graph saves; ownership edits do not change it."
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "repository": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Repository"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "view",
+                "edit",
+                "manage_members",
+                "use",
+                "start"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "version",
+          "allowedActions"
+        ]
+      },
+      "ConfigDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConfigSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "owner": {
+                "$ref": "#/components/schemas/User"
+              },
+              "deputies": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/User"
+                }
+              },
+              "data": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/RequirementData"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AgentData"
+                  },
+                  {
+                    "$ref": "#/components/schemas/WorkflowData"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "owner",
+              "deputies",
+              "data"
+            ]
+          }
+        ]
+      },
+      "ConfigPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigSummary"
+            }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "OwnershipChange": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "add_deputy",
+                  "transfer"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]{1,100}$",
+                "description": "Exact ASCII username. The platform normalizes letters to lowercase for identity matching."
+              },
+              "expectedVersion": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "action",
+              "username",
+              "expectedVersion"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "const": "remove_deputy"
+              },
+              "userId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedVersion": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "action",
+              "userId",
+              "expectedVersion"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "OwnershipReceipt": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "const": true
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "receiptId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "accepted",
+          "duplicate",
+          "receiptId"
+        ],
+        "additionalProperties": false,
+        "description": "Opaque receipt. It carries no configuration, owner, candidate account or member data."
+      },
+      "PairingCode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "code",
+          "expiresAt"
+        ]
+      },
+      "PairDevice": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "codex"
+            ]
+          },
+          "protocolVersion": {
+            "type": "string",
+            "enum": [
+              "1"
+            ]
+          },
+          "proofPublicKey": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "description": "Ed25519 public key, SPKI DER encoded as unpadded Base64URL."
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "mode",
+          "protocolVersion",
+          "proofPublicKey"
+        ]
+      },
+      "DeviceCredentials": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Returned only on successful pairing. Store locally and exclude from logs."
+          },
+          "protocolVersion": {
+            "type": "string",
+            "enum": [
+              "1"
+            ]
+          }
+        },
+        "required": [
+          "deviceId",
+          "token",
+          "protocolVersion"
+        ]
+      },
+      "DeviceStatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "codex"
+            ]
+          },
+          "connectivity": {
+            "type": "string",
+            "enum": [
+              "online",
+              "offline"
+            ]
+          },
+          "codexStatus": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable",
+              "unknown",
+              "not_required"
+            ]
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mode",
+          "connectivity",
+          "codexStatus"
+        ]
+      },
+      "DeviceList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceStatus"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "DeviceChallenge": {
+        "type": "object",
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nonce": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "description": "Single-use cryptographically random nonce, unpadded Base64URL."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "challengeId",
+          "nonce",
+          "expiresAt"
+        ]
+      },
+      "DeviceProof": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "signature": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "description": "Ed25519 signature over the canonical SD-I02 challenge message, unpadded Base64URL."
+          }
+        },
+        "required": [
+          "deviceId",
+          "challengeId",
+          "signature"
+        ]
+      },
+      "RunStart": {
+        "type": "object",
+        "properties": {
+          "requirementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requirementVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "workType": {
+            "type": "string",
+            "enum": [
+              "feature",
+              "refactor",
+              "hotfix",
+              "fix"
+            ]
+          },
+          "deviceProof": {
+            "$ref": "#/components/schemas/DeviceProof"
+          },
+          "githubNamespace": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Required only when the requirement has no linked repository. GitHub account or organization name."
+          }
+        },
+        "required": [
+          "requirementId",
+          "requirementVersion",
+          "workflowId",
+          "workflowVersion",
+          "workType",
+          "deviceProof"
+        ]
+      },
+      "RunStartReceipt": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "preparing"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "runId",
+          "state",
+          "version"
+        ]
+      },
+      "RunSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requirementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requirementName": {
+            "type": "string"
+          },
+          "workType": {
+            "type": "string",
+            "enum": [
+              "feature",
+              "refactor",
+              "hotfix",
+              "fix"
+            ]
+          },
+          "workflowId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "waiting",
+              "needs_attention",
+              "failed",
+              "completed",
+              "stopped"
+            ]
+          },
+          "deviceStatus": {
+            "$ref": "#/components/schemas/DeviceStatus"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "codex"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "requirementId",
+          "requirementName",
+          "workType",
+          "workflowId",
+          "workflowVersion",
+          "state",
+          "deviceStatus",
+          "mode",
+          "version"
+        ]
+      },
+      "GitPlan": {
+        "type": "object",
+        "description": "A pending plan only, not evidence that a repository or branch exists. Actual default branch is discovered by Git preparation; never guessed as main or master.",
+        "properties": {
+          "provider": {
+            "const": "github"
+          },
+          "repositoryName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "createRepository": {
+            "type": "boolean"
+          },
+          "defaultBranch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "baseSource": {
+            "enum": [
+              "dev",
+              "repository_default"
+            ]
+          },
+          "baseBranch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ensureDev": {
+            "type": "boolean",
+            "description": "Check dev exists and create it from the verified repository default branch if missing."
+          },
+          "workBranch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "visibility": {
+            "enum": [
+              "public",
+              null
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "repositoryName",
+          "createRepository",
+          "defaultBranch",
+          "baseSource",
+          "baseBranch",
+          "ensureDev",
+          "workBranch",
+          "visibility"
+        ]
+      },
+      "SelectedRole": {
+        "type": "object",
+        "description": "Role pinned by the selected workflow version. Does not imply a task has been dispatched.",
+        "properties": {
+          "roleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "agentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agentVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "kind": {
+            "enum": [
+              "coordinator",
+              "agent"
+            ]
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sequence": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "Serial child order; null for coordinator or parallel children."
+          }
+        },
+        "required": [
+          "roleId",
+          "agentId",
+          "agentVersion",
+          "kind",
+          "displayName",
+          "sequence"
+        ]
+      },
+      "LocalDeviceStatus": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "enum": [
+              "demo",
+              "codex"
+            ]
+          },
+          "connectivity": {
+            "enum": [
+              "online",
+              "offline"
+            ]
+          },
+          "codexStatus": {
+            "enum": [
+              "available",
+              "unavailable",
+              "unknown",
+              "not_required"
+            ]
+          }
+        },
+        "required": [
+          "deviceId",
+          "name",
+          "mode",
+          "connectivity",
+          "codexStatus"
+        ]
+      },
+      "RunPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "TaskState": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "leased",
+          "running",
+          "waiting_reply",
+          "succeeded",
+          "failed",
+          "canceled",
+          "needs_attention"
+        ]
+      },
+      "TaskView": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TaskState"
+          },
+          "attemptNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "git",
+              "agent",
+              "coordinator",
+              "publish",
+              "reconcile"
+            ]
+          },
+          "roleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "roleDisplayName": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Immutable Agent version display name. Never resolved against the current catalog."
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "skipped"
+            ],
+            "description": "Present when an authorized operator has skipped this failed role. Render the current role as skipped and retain failed as the attempt state. Omitted otherwise."
+          }
+        },
+        "required": [
+          "taskId",
+          "state",
+          "attemptNumber",
+          "kind"
+        ],
+        "if": {
+          "properties": {
+            "kind": {
+              "enum": [
+                "agent",
+                "coordinator"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        "then": {
+          "required": [
+            "roleId",
+            "roleDisplayName"
+          ]
+        },
+        "dependentSchemas": {
+          "disposition": {
+            "properties": {
+              "state": {
+                "const": "failed"
+              },
+              "kind": {
+                "enum": [
+                  "agent",
+                  "coordinator"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "TaskAttemptSummary": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "git",
+              "agent",
+              "coordinator",
+              "publish",
+              "reconcile"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/TaskState"
+          },
+          "inputRequirementRevision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "basedOnOlderRequirementRevision": {
+            "type": "boolean"
+          },
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "roleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roleDisplayName": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Display name from the selected immutable Agent version."
+          },
+          "reasonCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "skipped"
+            ],
+            "description": "Present when the operator skipped this failed Agent attempt. It records the disposition separately from the failed attempt state. Omitted when no disposition was recorded."
+          },
+          "artifactIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "A short, safe failure explanation."
+          },
+          "operatorActions": {
+            "type": "array",
+            "description": "Accepted retry and skip actions recorded against this exact attempt in acceptance order.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "enum": [
+                    "retry",
+                    "skip"
+                  ]
+                },
+                "operatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "operatorDisplayName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "operatedAt",
+                "operatorDisplayName"
+              ]
+            }
+          }
+        },
+        "required": [
+          "taskId",
+          "attemptId",
+          "attemptNumber",
+          "kind",
+          "state",
+          "inputRequirementRevision",
+          "basedOnOlderRequirementRevision",
+          "artifactIds"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "agent",
+                    "coordinator"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "nodeId",
+                "wave",
+                "roleId",
+                "roleDisplayName"
+              ]
+            }
+          },
+          {
+            "dependentRequired": {
+              "nodeId": [
+                "wave"
+              ],
+              "wave": [
+                "nodeId"
+              ]
+            }
+          }
+        ],
+        "dependentSchemas": {
+          "disposition": {
+            "properties": {
+              "state": {
+                "const": "failed"
+              },
+              "kind": {
+                "enum": [
+                  "agent",
+                  "coordinator"
+                ]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "taskId": "00000000-0000-4000-8000-000000000001",
+            "attemptId": "00000000-0000-4000-8000-000000000002",
+            "attemptNumber": 1,
+            "kind": "agent",
+            "state": "failed",
+            "inputRequirementRevision": 1,
+            "basedOnOlderRequirementRevision": false,
+            "nodeId": "00000000-0000-4000-8000-000000000003",
+            "wave": 1,
+            "roleId": "00000000-0000-4000-8000-000000000004",
+            "roleDisplayName": "Review Agent",
+            "disposition": "skipped",
+            "artifactIds": []
+          }
+        ]
+      },
+      "TaskAttemptPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskAttemptSummary"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "NodeView": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "work",
+              "check",
+              "publish",
+              "end"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "blocked",
+              "ready",
+              "running",
+              "waiting_reply",
+              "needs_attention",
+              "failed",
+              "complete",
+              "skipped",
+              "stopped"
+            ]
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskView"
+            }
+          },
+          "selectedRoles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelectedRole"
+            }
+          },
+          "artifactIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "check": {
+            "$ref": "#/components/schemas/CheckStatus"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "inputRequirementRevision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null until the node wave starts; immutable for that wave thereafter."
+          },
+          "basedOnOlderRequirementRevision": {
+            "type": "boolean",
+            "description": "True when the pinned input revision is below the current run revision. False for an unstarted node."
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactRef"
+            },
+            "description": "Final node outputs from its coordinator. Local Git refs identify an immutable device-local result."
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "agentOrder": {
+            "enum": [
+              "parallel",
+              "serial"
+            ]
+          }
+        },
+        "required": [
+          "nodeId",
+          "wave",
+          "name",
+          "type",
+          "state",
+          "tasks",
+          "artifactIds",
+          "inputRequirementRevision",
+          "basedOnOlderRequirementRevision"
+        ]
+      },
+      "StageView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NodeView"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "nodes"
+        ]
+      },
+      "CheckStatus": {
+        "type": "object",
+        "properties": {
+          "originalCheckNodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "checkWave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "automaticRepairCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "automaticRepairLimit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "manualRepairCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "pass",
+              "repair",
+              "unresolved",
+              "limit_reached",
+              "stopped"
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckHistoryEntry"
+            }
+          }
+        },
+        "required": [
+          "originalCheckNodeId",
+          "checkWave",
+          "automaticRepairCount",
+          "automaticRepairLimit",
+          "manualRepairCount",
+          "status"
+        ]
+      },
+      "RunDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RunSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "initiatorId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requirementRevision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "stages": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StageView"
+                }
+              },
+              "allowedActions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "eventsCursor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "git": {
+                "$ref": "#/components/schemas/GitContext"
+              },
+              "gitPlan": {
+                "$ref": "#/components/schemas/GitPlan"
+              },
+              "blockerCode": {
+                "type": "string"
+              },
+              "blocker": {
+                "type": "string"
+              },
+              "sourceRequirementVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Source configuration version recorded with the current run revision. Compare with the live source version at write time."
+              },
+              "gitPreparation": {
+                "$ref": "#/components/schemas/GitPreparation"
+              }
+            },
+            "required": [
+              "initiatorId",
+              "requirementRevision",
+              "stages",
+              "allowedActions",
+              "eventsCursor",
+              "sourceRequirementVersion"
+            ]
+          }
+        ]
+      },
+      "RunEvent": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "runVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "run_changed",
+              "node_changed",
+              "task_changed",
+              "device_changed",
+              "artifact_changed",
+              "chat_changed"
+            ]
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "sequence",
+          "runVersion",
+          "kind",
+          "time"
+        ]
+      },
+      "RunEvents": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunEvent"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "ArtifactRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "product",
+              "code",
+              "test",
+              "publication",
+              "other"
+            ]
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requirementRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "codex"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "repositoryId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workBranch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentDigest": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidateRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "testOutcome": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "unresolved"
+            ]
+          },
+          "publicationTargetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "providerResultId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "archive": {
+            "$ref": "#/components/schemas/ArtifactArchive"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "runId",
+          "nodeId",
+          "wave",
+          "attemptId",
+          "requirementRevision",
+          "mode",
+          "createdAt"
+        ]
+      },
+      "Artifact": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/ArtifactRef"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "reference",
+          "title"
+        ]
+      },
+      "ArtifactPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactRef"
+            }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "ChatLease": {
+        "type": "object",
+        "properties": {
+          "tabId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "credential": {
+            "type": "string",
+            "minLength": 1
+          },
+          "heartbeatDueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "graceSeconds": {
+            "type": "integer",
+            "const": 300
+          }
+        },
+        "required": [
+          "tabId",
+          "epoch",
+          "credential",
+          "heartbeatDueAt",
+          "graceSeconds"
+        ]
+      },
+      "ChatAcquire": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "acquire"
+          },
+          "tabId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "action",
+          "tabId"
+        ]
+      },
+      "ChatOwnedCommand": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "heartbeat",
+              "release"
+            ]
+          },
+          "tabId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "leaseCredential": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          },
+          "csrfToken": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true,
+            "description": "Reserved for legacy release transports. The current browser sends X-CSRF-Token on release."
+          }
+        },
+        "required": [
+          "action",
+          "tabId",
+          "epoch",
+          "leaseCredential"
+        ]
+      },
+      "ChatAccess": {
+        "type": "object",
+        "properties": {
+          "guests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        },
+        "required": [
+          "guests"
+        ]
+      },
+      "ChatAccessChange": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "const": "grant"
+              },
+              "username": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_-]{1,100}$",
+                "description": "Exact ASCII username. The platform normalizes letters to lowercase for identity matching."
+              }
+            },
+            "required": [
+              "action",
+              "username"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "const": "revoke"
+              },
+              "userId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "action",
+              "userId"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "ChatMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message",
+              "handoff",
+              "system"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "senderLabel": {
+            "type": "string",
+            "description": "Agent display label from the frozen version when the sender is an Agent."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "user_to_agent",
+              "agent_to_user",
+              "agent_to_agent",
+              "system"
+            ]
+          },
+          "senderRoleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetRoleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "inReplyToMessageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deliveryState": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "delivered",
+              "unknown"
+            ],
+            "description": "Present for a message delivered through the local Agent inbox."
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "text",
+          "createdAt",
+          "direction"
+        ],
+        "dependentRequired": {
+          "nodeId": [
+            "wave"
+          ],
+          "wave": [
+            "nodeId"
+          ]
+        }
+      },
+      "AgentQuestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "answered",
+              "canceled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deliveryState": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "delivered",
+              "unknown"
+            ]
+          },
+          "roleDisplayName": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "canReply": {
+            "type": "boolean"
+          },
+          "canCancel": {
+            "type": "boolean"
+          },
+          "answer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "roleId",
+          "taskId",
+          "text",
+          "state",
+          "createdAt"
+        ]
+      },
+      "RequirementChange": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "rejected"
+            ]
+          },
+          "basedOnRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "confirmedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "basedOnSourceRequirementVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "canConfirm": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "basedOnRevision",
+          "summary",
+          "nodeId",
+          "wave",
+          "basedOnSourceRequirementVersion"
+        ]
+      },
+      "ChatView": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentQuestion"
+            }
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequirementChange"
+            }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatNodeTarget"
+            }
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "failedRoles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatFailedRole"
+            }
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatActiveRequirement"
+            }
+          },
+          "rerunTargets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatRerunTarget"
+            }
+          },
+          "deviceOnline": {
+            "type": "boolean"
+          },
+          "runState": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "waiting",
+              "needs_attention",
+              "failed",
+              "completed",
+              "stopped"
+            ]
+          }
+        },
+        "required": [
+          "messages",
+          "questions",
+          "changes",
+          "nextCursor",
+          "targets",
+          "allowedActions"
+        ]
+      },
+      "ChatNodeTarget": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nodeName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "coordinatorRoleId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "roleId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "roleDisplayName": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "availability": {
+                  "type": "string",
+                  "enum": [
+                    "ready",
+                    "unavailable"
+                  ]
+                }
+              },
+              "required": [
+                "roleId",
+                "roleDisplayName",
+                "availability"
+              ]
+            }
+          }
+        },
+        "required": [
+          "nodeId",
+          "wave",
+          "nodeName",
+          "coordinatorRoleId",
+          "roles"
+        ],
+        "description": "Current node and wave with its selected roles. Null coordinator indicates the default target is unavailable."
+      },
+      "RunAction": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "message",
+              "reply",
+              "cancel-question",
+              "retry",
+              "skip",
+              "recheck",
+              "repair",
+              "stop",
+              "propose-change",
+              "confirm-change",
+              "describe",
+              "retry-git",
+              "approve-publication",
+              "reconcile-external",
+              "rerun"
+            ]
+          },
+          "tabId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "leaseCredential": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Question, task, check node or proposal identifier, according to action. For message use targetRoleId."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "expectedRequirementRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "targetRoleId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional for message. Omit to select the coordinator; explicit selection is scoped to the supplied node and wave."
+          },
+          "nodeId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Current flow node for message or active BRD requirement action."
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Current wave of nodeId."
+          },
+          "expectedSourceRequirementVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "proposedRequirement": {
+            "$ref": "#/components/schemas/RequirementChangeInput"
+          },
+          "expectedAttemptNumber": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "action",
+          "tabId",
+          "epoch",
+          "leaseCredential"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "message"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "nodeId",
+                "wave",
+                "text"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "targetId"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "reply"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "targetId",
+                "text"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "nodeId"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "wave"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "targetRoleId"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "cancel-question",
+                    "retry",
+                    "skip",
+                    "recheck",
+                    "repair",
+                    "retry-git",
+                    "approve-publication",
+                    "reconcile-external"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "targetId"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "propose-change"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "nodeId",
+                "wave",
+                "proposedRequirement",
+                "expectedRequirementRevision",
+                "expectedSourceRequirementVersion"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "describe"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "nodeId",
+                "wave",
+                "text",
+                "expectedRequirementRevision",
+                "expectedSourceRequirementVersion"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "confirm-change"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "nodeId",
+                "wave",
+                "targetId",
+                "expectedRequirementRevision",
+                "expectedSourceRequirementVersion"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "repair",
+                    "recheck",
+                    "stop"
+                  ]
+                }
+              },
+              "required": [
+                "action"
+              ]
+            },
+            "then": {
+              "required": [
+                "targetId",
+                "wave"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "rerun"
+                }
+              },
+              "required": [
+                "action"
+              ]
+            },
+            "then": {
+              "required": [
+                "nodeId",
+                "wave"
+              ]
+            }
+          }
+        ],
+        "additionalProperties": false
+      },
+      "RequirementChangeInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "JobLeaseKey": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "taskId",
+          "attemptId",
+          "epoch"
+        ]
+      },
+      "WorkerPoll": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "string",
+            "enum": [
+              "1"
+            ]
+          },
+          "availableSlots": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "active": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobLeaseKey"
+            },
+            "maxItems": 32
+          },
+          "codexStatus": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable",
+              "unknown",
+              "not_required"
+            ]
+          },
+          "acceptsAgentJobs": {
+            "type": "boolean",
+            "default": false,
+            "description": "Opt-in to role jobs for the bound device. Omitted and false keep Git-only behavior."
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "availableSlots",
+          "active",
+          "codexStatus"
+        ]
+      },
+      "Checkpoint": {
+        "type": "object",
+        "properties": {
+          "threadId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "turnId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "providerRequestId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "providerOperationKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workspaceRevision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deliveredInboxIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "external": {
+            "$ref": "#/components/schemas/ExternalEvidence"
+          },
+          "unknownInboxIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "JobInput": {
+        "type": "object",
+        "properties": {
+          "workType": {
+            "type": "string",
+            "enum": [
+              "feature",
+              "refactor",
+              "hotfix",
+              "fix"
+            ]
+          },
+          "requirementRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "requirementName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requirementDescription": {
+            "type": "string"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "roleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roleInstruction": {
+            "type": "string"
+          },
+          "skillRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "node": {
+            "$ref": "#/components/schemas/FlowNode"
+          },
+          "upstreamArtifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactRef"
+            }
+          },
+          "siblingArtifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactRef"
+            }
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requirementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "repository": {
+            "$ref": "#/components/schemas/Repository"
+          },
+          "git": {
+            "$ref": "#/components/schemas/GitContext"
+          },
+          "externalOperationKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authorizedExternalActions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "githubNamespace": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Snapshotted account or organization for an unlinked requirement. Present only for public repository creation."
+          },
+          "gitPlan": {
+            "$ref": "#/components/schemas/GitPlan"
+          },
+          "gitOperations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitOperation"
+            }
+          },
+          "roleDisplayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "checkCandidate": {
+            "type": "object",
+            "required": [
+              "commit",
+              "version"
+            ],
+            "properties": {
+              "commit": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "required": [
+          "workType",
+          "requirementRevision",
+          "requirementName",
+          "workflowVersion",
+          "upstreamArtifacts"
+        ]
+      },
+      "JobDispatch": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/JobLeaseKey"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nodeId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "wave": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "git",
+                  "agent",
+                  "coordinator",
+                  "publish",
+                  "reconcile"
+                ]
+              },
+              "deadlineAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "input": {
+                "$ref": "#/components/schemas/JobInput"
+              },
+              "checkpoint": {
+                "$ref": "#/components/schemas/Checkpoint"
+              }
+            },
+            "required": [
+              "runId",
+              "kind",
+              "deadlineAt",
+              "input"
+            ]
+          }
+        ]
+      },
+      "InboxItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "message",
+              "handoff",
+              "answer",
+              "continue_without_answer"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "questionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requirementRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Revision pinned by the node wave. A confirmed change does not rewrite messages for a started wave."
+          },
+          "chatMessageId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Platform chat message corresponding to an ordinary user delivery."
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "sessionRef",
+          "kind",
+          "text",
+          "createdAt"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "message"
+                  ]
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "chatMessageId"
+              ]
+            }
+          }
+        ]
+      },
+      "WorkerPollResult": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobDispatch"
+            }
+          },
+          "renewed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "epoch": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "deadlineAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "taskId",
+                "epoch",
+                "deadlineAt"
+              ]
+            }
+          },
+          "inbox": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxItem"
+            }
+          },
+          "pollAfterMillis": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "jobs",
+          "renewed",
+          "inbox",
+          "pollAfterMillis"
+        ]
+      },
+      "QuestionEvent": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sessionRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "text",
+          "sessionRef"
+        ]
+      },
+      "CheckReport": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "repair",
+              "unresolved"
+            ],
+            "description": "Unresolved maps to needs_attention, and is never a selectable workflow route."
+          },
+          "testedCommit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "testedArtifactVersion": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact immutable candidate reference checked by this wave, distinct from the report artifact."
+          },
+          "reportArtifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reasonCode": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "if": {
+          "properties": {
+            "outcome": {
+              "enum": [
+                "pass",
+                "repair"
+              ]
+            }
+          },
+          "required": [
+            "outcome"
+          ]
+        },
+        "then": {
+          "required": [
+            "testedCommit",
+            "testedArtifactVersion"
+          ]
+        }
+      },
+      "Handoff": {
+        "type": "object",
+        "properties": {
+          "targetRoleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "targetRoleId",
+          "text"
+        ]
+      },
+      "ArtifactClaim": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "product",
+              "code",
+              "test",
+              "publication",
+              "other"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentDigest": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidateRef": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact immutable candidate tested by this report, such as a build digest or a canonical code revision reference."
+          },
+          "testOutcome": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "unresolved"
+            ]
+          },
+          "workBranch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repositoryId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "sourceRef"
+        ],
+        "if": {
+          "properties": {
+            "kind": {
+              "const": "test"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        "then": {
+          "required": [
+            "commit",
+            "candidateRef",
+            "testOutcome"
+          ]
+        }
+      },
+      "ExternalEvidence": {
+        "type": "object",
+        "properties": {
+          "operationKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "repository",
+              "branch",
+              "publication"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "confirmed_success",
+              "confirmed_failure",
+              "unknown"
+            ]
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "providerResultId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifactVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repository": {
+            "$ref": "#/components/schemas/Repository"
+          },
+          "git": {
+            "$ref": "#/components/schemas/GitContext"
+          }
+        },
+        "required": [
+          "operationKey",
+          "kind",
+          "outcome",
+          "observedAt"
+        ]
+      },
+      "CompleteEvent": {
+        "type": "object",
+        "properties": {
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactClaim"
+            }
+          },
+          "check": {
+            "$ref": "#/components/schemas/CheckReport"
+          },
+          "handoffs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Handoff"
+            }
+          },
+          "external": {
+            "$ref": "#/components/schemas/ExternalEvidence"
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "FailureEvent": {
+        "type": "object",
+        "properties": {
+          "reasonCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "external": {
+            "$ref": "#/components/schemas/ExternalEvidence"
+          }
+        },
+        "required": [
+          "reasonCode",
+          "message",
+          "retryable"
+        ]
+      },
+      "WorkerEvent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "progress"
+              },
+              "attemptId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "epoch": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "result": {
+                "$ref": "#/components/schemas/Checkpoint"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Contiguous event sequence starting at 1 for each task attempt and lease epoch."
+              }
+            },
+            "required": [
+              "type",
+              "attemptId",
+              "epoch",
+              "result",
+              "sequence"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "question"
+              },
+              "attemptId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "epoch": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "result": {
+                "$ref": "#/components/schemas/QuestionEvent"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Contiguous event sequence starting at 1 for each task attempt and lease epoch."
+              }
+            },
+            "required": [
+              "type",
+              "attemptId",
+              "epoch",
+              "result",
+              "sequence"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "message"
+              },
+              "attemptId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "epoch": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "result": {
+                "$ref": "#/components/schemas/AgentMessageEvent"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Contiguous event sequence starting at 1 for each task attempt and lease epoch."
+              }
+            },
+            "required": [
+              "type",
+              "attemptId",
+              "epoch",
+              "result",
+              "sequence"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "complete"
+              },
+              "attemptId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "epoch": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "result": {
+                "$ref": "#/components/schemas/CompleteEvent"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Contiguous event sequence starting at 1 for each task attempt and lease epoch."
+              }
+            },
+            "required": [
+              "type",
+              "attemptId",
+              "epoch",
+              "result",
+              "sequence"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "failure"
+              },
+              "attemptId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "epoch": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "result": {
+                "$ref": "#/components/schemas/FailureEvent"
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Contiguous event sequence starting at 1 for each task attempt and lease epoch."
+              }
+            },
+            "required": [
+              "type",
+              "attemptId",
+              "epoch",
+              "result",
+              "sequence"
+            ]
+          }
+        ]
+      },
+      "AgentMessageEvent": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "sessionRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "inReplyToInboxId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional correlation to an inbox message already associated with this task and session."
+          }
+        },
+        "required": [
+          "text",
+          "sessionRef"
+        ],
+        "additionalProperties": false
+      },
+      "ExternalAuthorizationRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/JobLeaseKey"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operationKey",
+              "effect"
+            ],
+            "properties": {
+              "operationKey": {
+                "type": "string",
+                "minLength": 1
+              },
+              "effect": {
+                "type": "string",
+                "enum": [
+                  "create_repository",
+                  "create_base_branch",
+                  "create_work_branch",
+                  "push_code",
+                  "dispatch_publication"
+                ]
+              },
+              "targetId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifactVersion": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        ]
+      },
+      "ExternalAuthorization": {
+        "type": "object",
+        "required": [
+          "operationKey",
+          "effect",
+          "expiresAt",
+          "decision"
+        ],
+        "properties": {
+          "operationKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "create_repository",
+              "create_base_branch",
+              "create_work_branch",
+              "push_code",
+              "dispatch_publication"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decision": {
+            "enum": [
+              "dispatch",
+              "reconcile",
+              "already_succeeded"
+            ],
+            "description": "Only dispatch authorizes a new mutation until expiresAt. Other decisions permit reading and reconciling the existing provider result only."
+          }
+        }
+      },
+      "GitOperation": {
+        "type": "object",
+        "required": [
+          "operationKey",
+          "effect",
+          "targetId",
+          "state"
+        ],
+        "properties": {
+          "operationKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect": {
+            "enum": [
+              "create_repository",
+              "create_base_branch",
+              "create_work_branch"
+            ]
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "enum": [
+              "intended",
+              "dispatching",
+              "unknown",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "providerResultId": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GitPreparation": {
+        "type": "object",
+        "required": [
+          "state",
+          "mode",
+          "taskId",
+          "attemptNumber",
+          "steps"
+        ],
+        "properties": {
+          "state": {
+            "enum": [
+              "queued",
+              "preparing",
+              "ready",
+              "needs_attention"
+            ]
+          },
+          "mode": {
+            "enum": [
+              "demo",
+              "codex"
+            ]
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitOperation"
+            }
+          }
+        }
+      },
+      "CheckHistoryEntry": {
+        "type": "object",
+        "required": [
+          "wave",
+          "outcome"
+        ],
+        "properties": {
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "outcome": {
+            "enum": [
+              "pending",
+              "pass",
+              "repair",
+              "unresolved"
+            ]
+          },
+          "testedCommit": {
+            "type": "string"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "repairRound": {
+            "type": "object",
+            "required": [
+              "number",
+              "kind",
+              "state"
+            ],
+            "properties": {
+              "number": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "kind": {
+                "enum": [
+                  "automatic",
+                  "manual"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "queued",
+                  "running",
+                  "complete",
+                  "failed",
+                  "stopped"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "RepairControlTarget": {
+        "type": "object",
+        "required": [
+          "nodeId",
+          "name",
+          "wave",
+          "status",
+          "automaticRepairCount",
+          "automaticRepairLimit",
+          "manualRepairCount",
+          "actions"
+        ],
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "enum": [
+              "limit_reached",
+              "unresolved"
+            ]
+          },
+          "automaticRepairCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "automaticRepairLimit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "manualRepairCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "repair",
+                "recheck",
+                "stop"
+              ]
+            }
+          }
+        }
+      },
+      "ChatFailedRole": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "roleDisplayName": {
+            "type": "string"
+          },
+          "attemptNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "retry",
+                "skip"
+              ]
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "nodeId",
+          "wave",
+          "roleDisplayName",
+          "attemptNumber",
+          "actions"
+        ]
+      },
+      "ChatActiveRequirement": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "canConfirm": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nodeId",
+          "wave",
+          "title",
+          "description",
+          "revision",
+          "sourceVersion",
+          "canConfirm"
+        ]
+      },
+      "ChatRerunTarget": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nodeName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "nodeId",
+          "wave",
+          "nodeName"
+        ]
+      },
+      "ArtifactArchive": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "enum": [
+              "queued",
+              "leased",
+              "succeeded",
+              "unknown",
+              "failed"
+            ]
+          },
+          "ref": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "The owner may approve again after a known failure before an external write was authorized."
+          },
+          "retryApprovalAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Original approval time identifying the eligible failed record."
+          }
+        },
+        "required": [
+          "state",
+          "ref"
+        ]
+      },
+      "ArchiveApproval": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedCommit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "publicApproved": {
+            "const": true
+          },
+          "retryApprovalAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Supply the exact value from the failed record to request a fresh approval. Omit for the first approval."
+          }
+        },
+        "required": [
+          "artifactId",
+          "expectedCommit",
+          "publicApproved"
+        ]
+      },
+      "ArchiveJob": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "deadlineAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mode": {
+            "enum": [
+              "demo",
+              "codex"
+            ]
+          },
+          "repositoryName": {
+            "type": "string"
+          },
+          "repositoryId": {
+            "type": "string"
+          },
+          "requirementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "baseCommit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "sourceCommit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "sourceRef": {
+            "type": "string"
+          },
+          "contentDigest": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "exportCommit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          }
+        },
+        "required": [
+          "artifactId",
+          "runId",
+          "epoch",
+          "deadlineAt",
+          "approvedAt",
+          "mode",
+          "repositoryName",
+          "repositoryId",
+          "requirementId",
+          "baseCommit",
+          "sourceCommit",
+          "sourceRef",
+          "contentDigest",
+          "ref"
+        ]
+      },
+      "ArchivePollResult": {
+        "type": "object",
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/ArchiveJob"
+          }
+        }
+      },
+      "ArchiveAuthorizationRequest": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "exportCommit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          }
+        },
+        "required": [
+          "artifactId",
+          "epoch",
+          "exportCommit"
+        ]
+      },
+      "ArchiveAuthorization": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "enum": [
+              "dispatch",
+              "reconcile"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "ArchiveResult": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "state": {
+            "enum": [
+              "succeeded",
+              "unknown",
+              "failed"
+            ]
+          },
+          "ref": {
+            "type": "string"
+          },
+          "observedCommit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "reasonCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifactId",
+          "epoch",
+          "state"
+        ]
+      }
+    },
+    "responses": {
+      "Error400": {
+        "description": "Invalid input, proof, graph, or missing description.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error401": {
+        "description": "Missing, invalid, or expired identity.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error403": {
+        "description": "Current actor is forbidden for this action.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error404": {
+        "description": "Object absent or invisible to this caller.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error409": {
+        "description": "Conflict with current version, ownership, lease, or idempotency receipt.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error410": {
+        "description": "Incremental cursor expired. Fetch a fresh authorized snapshot.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error429": {
+        "description": "Rate limited.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error500": {
+        "description": "Unexpected failure. The request ID supports investigation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Error503": {
+        "description": "Temporarily unavailable. Reuse the same idempotency key on a retry.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      }
+    }
+  }
+}

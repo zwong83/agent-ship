@@ -1,0 +1,31 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-03 · 流程保存与版本选择
+start
+:填写阶段、节点、前置和已选角色;
+:配置先后关系与检查分支;
+if (末尾有唯一结束标记?) then (是)
+else (否)
+  :提示缺少或错放结束节点;
+  stop
+endif
+if (自依赖／循环／跨阶段逆序?) then (存在)
+  :拒绝保存并指出冲突;
+  stop
+endif
+if (检查分支缺任一路线?) then (是)
+  :拒绝保存并指出缺失路线;
+  stop
+endif
+:保存可复查的流程版本;
+fork
+  :已启动运行沿用原快照;
+fork again
+  :新运行选择获授权的保存版本;
+end fork
+stop
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-CHAT-04 · 两人／两标签页竞争与退出
+caption FR-CHAT-04 / UC-06 / SA-P05 / UAT-23、24、26、32
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "两个有权用户或同账号两个页" as A
+participant "平台 · 运行协作" as S
+collections "逻辑业务记录" as R
+participant "浏览器连接" as E
+== As-Is · 本地原型观察 ==
+A -> S : 竞争进入聊天、正常关闭或退出
+S -> S : 原型已测同账号多页；第二名独立授权者验收待做
+note over S #Orange : [SA-P05 当前边界] 两名用户、定向投递和持久操作需联合验证
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 竞争进入聊天、正常关闭或退出
+S -> R : 核对当前聊天占用与页面身份
+alt 当前账号获聊天授权且可取得唯一占用
+  S -> S : 一次授予一个页面；正常退出后立即释放
+  S -> E : 观察当前页进入、退出或重连
+  S -> R : 保留当前聊天占用与页面身份及可核对记录
+  S --> A : 竞争者见占用提示，其他有权页可重新申请
+else 条件不满足或结果不可确认
+  S --> A : 第二个页面不能操作，旧页释放不影响新占用
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-REQ-04 · 主负责人启动权限
+caption FR-REQ-04 / UC-04 / SA-P03 / UAT-30、52
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "需求主负责人或副负责人" as A
+participant "平台 · 运行发起" as S
+collections "逻辑业务记录" as R
+participant "发起设备" as E
+== As-Is · 本地原型观察 ==
+A -> S : 提交运行发起请求
+S -> S : 原型启动在读取需求时再次验证主负责人身份
+note over S #Orange : [SA-P03 当前边界] 启动校验与外部准备须有同一运行证据
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 提交运行发起请求
+S -> R : 核对需求当前角色和启动意图
+alt 提交时用户是当前需求主负责人且设备证明有效
+  S -> S : 固化身份、设备、运行与所选流程
+  S -> E : 核对原发起设备与操作关联
+  S -> R : 保留需求当前角色和启动意图及可核对记录
+  S --> A : 发起获准
+else 条件不满足或结果不可确认
+  S --> A : 副负责人和旧负责人提交拒绝，不准备 Git
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

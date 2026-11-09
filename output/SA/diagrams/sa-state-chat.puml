@@ -1,0 +1,21 @@
+@startuml
+title SA-ST02 · 聊天操作权和待答问题
+caption UC-06 / BR-28～31、36～37、51 / To-Be Proposed
+!pragma layout smetana
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+state "聊天操作权" as L {
+ [*] --> Available
+ Available --> Held : 授权用户的一个标签页取得
+ Held --> Available : 正常离开通知送达或权限失效
+ Held --> Grace : 平台检测断网
+ Grace --> Held : 原页在五分钟内恢复
+ Grace --> Available : 五分钟届满
+}
+state "Agent 问题" as Q {
+ [*] --> Pending
+ Pending --> Answered : 获权操作者回复
+ Pending --> Cancelled : 发起人有权取消
+}
+note bottom of Q : 关闭网页或设备离线不终结问题。\n仅原发问会话消费已受理的结果。
+@enduml

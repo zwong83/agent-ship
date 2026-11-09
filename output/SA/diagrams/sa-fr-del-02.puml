@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-DEL-02 · 前后端代码和工作分支证据
+caption FR-DEL-02 / UC-05 / SA-P04 / UAT-01、09
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "前端与后端角色及协调 Agent" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+participant "Git 托管" as E
+== As-Is · 本地原型观察 ==
+A -> S : 分别回报前端、后端代码产物
+S -> S : 原型有本机执行和 Git 写入适配；真实交付未验收
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 分别回报前端、后端代码产物
+S -> R : 核对仓库、工作分支、提交及代码引用
+alt 各自来源与本次仓库、工作分支和提交一致
+  S -> S : 保存两个节点的可核对代码来源
+  S -> E : 核对仓库、分支与实际结果
+  S -> R : 保留仓库、工作分支、提交及代码引用及可核对记录
+  S --> A : 测试可以定位实际代码版本
+else 条件不满足或结果不可确认
+  S --> A : 证据错误或缺失时不把代码声明为已交付
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-FLOW-07 · 缺失检查结论与重新检查
+caption FR-FLOW-07 / UC-07 / SA-P07 / UAT-50
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "当前聊天操作者" as A
+participant "平台 · 交付与验收" as S
+collections "逻辑业务记录" as R
+participant "本机检查" as E
+== As-Is · 本地原型观察 ==
+A -> S : 检查缺少有效结论，操作者点击重新检查
+S -> S : 原型以 missing 检查状态阻塞并支持重新检查
+note over S #Orange : [SA-P07 当前边界] 复查及真实发布须绑定同一候选工件
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 检查缺少有效结论，操作者点击重新检查
+S -> R : 核对无效检查结论和原检查波次
+alt 仍是当前操作者且原节点处于可重查状态
+  S -> S : 保留无效记录，原检查新建波次
+  S -> E : 向原检查交接当前候选产物
+  S -> R : 保留无效检查结论和原检查波次及可核对记录
+  S --> A : 有效结果开放对应路线
+else 条件不满足或结果不可确认
+  S --> A : 越权或状态变化拒绝；再次无效时继续等待
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

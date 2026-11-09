@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-REQ-02 · 需求全局唯一、同名选择或安全提示
+caption FR-REQ-02 / UC-02 / SA-P01 / UAT-54
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "需求创建者" as A
+participant "平台 · 身份与配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 提交新需求名称
+S -> S : 原型在工作区中查找同名并按主负责人提示
+note over S #Orange : [SA-P01 当前边界] 现任角色、提交权限与资料边界需在共享平台复验
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 提交新需求名称
+S -> R : 核对全局需求名称和可见性
+alt 名称规范化后未占用
+  S -> S : 在全局唯一约束下创建新需求
+  S -> R : 保留全局需求名称和可见性及可核对记录
+  S --> A : 取得新需求标识
+else 条件不满足或结果不可确认
+  S --> A : 同名时，仅有选用权者获原引用，其余仅提示名称不可用
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-REQ-01 · 需求私有、分享和可见范围
+caption FR-REQ-01 / UC-02 / SA-P01 / UAT-07、28、29
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "项目用户、主负责人或副负责人" as A
+participant "平台 · 身份与配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 打开列表、搜索、下拉或直达需求
+S -> S : 原型通过对象 owner 与成员范围过滤需求
+note over S #Orange : [SA-P01 当前边界] 现任角色、提交权限与资料边界需在共享平台复验
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 打开列表、搜索、下拉或直达需求
+S -> R : 核对需求及当前访问关系
+alt 当前身份有读取范围
+  S -> S : 按现时角色取授权投影
+  R --> S : 返回授权投影
+  S --> A : 展示有权需求，副负责人可编辑其分配项
+else 条件不满足或结果不可确认
+  S --> A : 无权或原角色已失效时隐藏内容及引用
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

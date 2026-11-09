@@ -1,0 +1,26 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-01 · 注册、登录与资料访问
+actor "访客／用户" as U
+participant "业务入口" as Web
+participant "账号与访问规则" as A
+U -> Web : 提交注册信息和两次密码
+Web -> A : 校验格式、重复标识和密码一致
+alt 合规且未重复
+  A --> Web : 创建账号，按激活规则后续处理
+else 校验失败
+  A --> Web : 安全反馈，保持原账号状态
+end
+U -> Web : 邮箱或用户名 + 密码
+Web -> A : 核验账号与密码
+alt 有效身份
+  A --> Web : 允许进入有权业务页面
+else 未登录／凭据错误
+  A --> Web : 返回登录入口或错误
+end
+note over A : 联系方式按权限提供\n密码和确认密码不进入业务记录
+@enduml

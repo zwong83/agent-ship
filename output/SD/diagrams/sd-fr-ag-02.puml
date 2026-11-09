@@ -1,0 +1,44 @@
+@startuml
+title SD-FR-AG-02 · 子 Agent 的有序或默认并行执行
+caption FR-AG-02 / UC-05 / BR-27、BR-35 / SA-P04 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+N -> N : 按 serial 每次派发一个；默认派发所有候选
+N --> W : 提供角色、节点范围及上游上下文
+note over N #Orange
+  SA-P04 问题：原型规则集中在进程内；共享执行要把就绪判断、工作范围和派发事务分开落实。
+  证据 src/engine.mjs:54–69,208–227
+end note
+
+== To-Be · 拟议技术方案 ==
+A -> A : 由已受理结果或运行快照发现节点就绪
+group TX · 按配置确定可派发子任务
+  A -> D : 读取节点、所选角色和顺序快照
+  A -> A : 按协调分工构造角色职责及输入范围
+  alt 已配置先后
+    A -> D : 仅标记当前次序可派发；前项未完成时后项等待
+  else 未配置顺序
+    A -> D : 为所有独立所选角色建立可并行任务
+  end
+end
+W -> A : pollWorker 报告当前可用槽位
+A --> W : 按有效范围及本机容量返回任务
+W -> A : 按各自尝试回报；触发后续就绪重算
+A --> U : 看板呈现各角色范围与执行先后
+note over A,W : 阶段级节点并行规则与本节点子任务顺序独立。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

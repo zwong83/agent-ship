@@ -1,0 +1,25 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-08 · 原机离线、看板与完成条件
+participant "原发起电脑 A" as A
+participant "共享平台" as P
+actor "有权浏览器 B" as B
+A -> P : 运行 R 的进度和结果
+... 原电脑关机 ...
+B -> P : 查看运行 R
+P --> B : 等待发起电脑上线（R 保持）
+B -> P : 尝试用其他设备领取 R 的任务
+P --> B : 拒绝替代执行
+A -> P : 同一设备身份恢复，CLI 可用
+P --> A : 从已核对进度继续 R
+A -> P : 回报剩余路线和产物
+alt 所有实际路线已完成
+  P --> B : 到达结束节点，R 已完成
+else 仍有任务或未知外部结果
+  P --> B : 显示当前状态与待处理原因
+end
+@enduml

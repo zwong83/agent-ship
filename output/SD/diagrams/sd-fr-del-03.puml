@@ -1,0 +1,43 @@
+@startuml
+title SD-FR-DEL-03 · 测试报告绑定实际被测版本
+caption FR-DEL-03 / UC-05、UC-07 / BR-06 / SA-P07、SA-P08 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 协调结果可含 artifact 和 verdict
+N -> N : 保存节点结果；演练可生成 pass/repair
+note over N #Orange
+  SA-P07、SA-P08 问题：原型结论与一般产物共存，未见独立的被测工件版本及失败测试凭证模型。
+  证据 src/codex.mjs:21–42 / src/engine.mjs:99–117 / src/providers.mjs:153–165
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 领取测试节点及确切被测工件引用
+A --> W : 固定提交、不可变工件版本、需求修订
+W -> W : 运行适用测试并保存报告
+W -> A : 回报结果、失败细节和报告引用
+group TX · 被测对象与报告验收
+  A -> D : 核对尝试、当前候选版本与报告来源
+  alt 通过且与当前候选一致
+    A -> D : 写通过测试证据供适用放行核对
+  else 失败或被测对象不匹配
+    A -> D : 写失败报告或证据不一致原因；未通过放行
+  end
+end
+A --> U : 按授权查看结论、失败详情和被测代码
+note over A,D : 具体必测项和报告政策见 SA-D02，演练证据与真实结果分开。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

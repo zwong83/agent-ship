@@ -1,0 +1,42 @@
+@startuml
+title SD-FR-AG-01 · 选定多个子 Agent 与角色版本
+caption FR-AG-01 / UC-03、UC-05 / BR-09、BR-27 / SA-P02、SA-P04 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+U -> N : 选择协调者和多个角色
+N -> N : 按可用角色校验并复制到运行
+note over N #Orange
+  SA-P02、SA-P04 问题：原型可选多角色；共享平台须在配置、启动和派发之间保留可授权的角色版本。
+  证据 src/model.mjs:99–109,145–151 / src/server.mjs:203–211 / src/engine.mjs:54–69
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : listAvailableAgents 查询可用目录
+A -> D : 按现时权限与可用性投影角色
+A --> U : 返回可选协调者与子 Agent
+U -> A : 保存所选角色（含至少三项的验收例）
+alt 角色不可用、无权或版本冲突
+  A --> U : 指明配置问题，旧版本保持
+else 校验通过
+  A -> D : TX 写所选角色及角色版本，封存流程
+  U -> A : 重开配置或启动运行
+  A -> D : 复核可用权限；固定本次已选版本
+  A --> W : 仅派发本节点实际选中的角色
+end
+note over A,D : 可用目录其他角色不产生运行任务；协调者单独执行的规则见 SA-D05。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

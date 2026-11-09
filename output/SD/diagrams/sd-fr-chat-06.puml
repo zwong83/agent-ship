@@ -1,0 +1,42 @@
+@startuml
+title SD-FR-CHAT-06 · 正式变更提案、确认与修订
+caption FR-CHAT-06 / UC-06 / UAT-05 / SA-P05、SA-P08 / 所有者 SD-F02，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/engine.mjs propose-change / confirm-change；test/agentship.test.mjs TA-06 状态断言
+' Authority and operations: POST /api/runs/{runId}/actions；GET …/chat 与运行快照；SD-B04、SD-D02～03、SD-I01、SD-I03
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 提出变更
+  Old -> Old : 待确认时保留原需求；确认后改运行描述
+  note over Old #Orange : [SA-P05、SA-P08] 原型向活跃任务追加描述；\n正式权限、修订和在途/已完成任务边界待定
+end
+group To-Be · 拟议技术流程
+  U -> UI : 在活动 BRD 节点提交正式需求变更
+  UI -> API : POST …/actions propose-change，结构化需求内容、\n节点和波次、期望运行修订、原需求版本、租约及请求键
+  API -> DB : 写入待确认提案与收据；原修订仍生效
+  API --> UI : Ack；重读聊天显示待确认
+  U -> UI : 发起人确认提案
+  UI -> API : POST …/actions confirm-change，提案 ID、\n节点和波次、期望运行修订、原需求版本、租约及请求键
+  API -> DB : TX-CHANGE 核对发起人、活动 BRD 节点、\n当前操作权、原需求版本及运行修订
+  alt 资格与版本有效
+    API -> DB : 原需求与运行修订同事务更新，\n保存审计和收据
+    API --> UI : Ack；刷新生效修订和确认信息
+  else 越权、已处理、版本冲突或租约丢失
+    API --> UI : 安全拒绝；沿用已生效修订
+  end
+  note over API,DB : 同键不生成第二个修订。\n首次领取时固定节点输入修订。\n仍在排队的节点首次领取采用新修订。\n在途节点按原修订完成，结果标记旧版本。\n已完成节点默认保留。\n发起人可另行选择重跑受影响节点。
+end
+@enduml

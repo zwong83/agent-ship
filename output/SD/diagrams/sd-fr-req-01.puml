@@ -1,0 +1,44 @@
+@startuml
+title SD-FR-REQ-01 · 需求可见性、详情与授权刷新
+caption FR-REQ-01 / UC-02、04 / UAT-07、28、29 / SA-P01 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs canAccess / objectFor；web/app.mjs renderDemandChoice；test/agentship.test.mjs TA-01/02
+' Authority and operations: GET /api/objects/requirements；GET …/{objectId}；SD-B02、SD-D01、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 读取需求列表或直接打开详情
+  Old -> Old : owner / deputy 按当前权限过滤
+  Old --> U : 授权投影或通用不存在
+  note over Old #Orange : [SA-P01] 原型的启动选择在客户端再次只筛主负责人，\n与副负责人可见、提交时拒绝的路径需对齐
+end
+group To-Be · 拟议技术流程
+  U -> UI : 打开需求列表、搜索、启动下拉或旧链接
+  UI -> API : GET /api/objects/requirements 或详情
+  API -> DB : 当前会话与 owner/deputy 授权过滤
+  alt 有可见对象
+    API --> UI : 200 分页投影与 allowedActions
+    UI --> U : 显示已获权需求及实际可用动作
+  else 无匹配或访问已撤回
+    API --> UI : 空列表或直接链接通用不可访问
+    UI --> U : 清除旧投影；按结果提示
+  end
+  opt 添加副负责人或转交生效
+    API -> DB : 提交授权关系后立即影响查询
+    UI -> API : 下一次查询或受限请求重新授权
+  end
+  note over UI,API : 启动选择的可见范围与\n实际发起许可分别判断。
+end
+@enduml

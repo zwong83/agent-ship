@@ -1,0 +1,25 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-02 · 配置所有权、共享与撤权
+actor "创建者／现任主负责人" as O
+actor "副负责人／接任者" as C
+participant "配置与授权" as P
+O -> P : 创建 Agent、流程或需求
+P --> O : 创建者成为主负责人
+O -> P : 添加副负责人
+C -> P : 查找、查看或编辑被分配对象
+P --> C : 按当下权限展示，名单操作仍受限
+O -> P : 移除副负责人或提交转交
+P -> P : 立即更新当前所有权
+C -> P : 从之前打开的页面提交
+alt 已被移除
+  P --> C : 拒绝并提示已被移除
+else 已接任
+  P --> C : 取得主负责人权限
+end
+note over O,P : 同名需求全局唯一。可选择原记录时提示选用，\n其他用户只收到名称不可用。
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-RUN-04 · 原设备绑定、跨设备查看与续跑
+caption FR-RUN-04 / UC-06、UC-08 / BR-29、BR-32 / SA-P06 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+U -> N : 从发起电脑取得回环证明后启动
+W -> N : 同机领取与保存回报
+N --> U : 看板和执行都依赖发起电脑
+note over N #Orange
+  SA-P06 问题：原型 API 和 worker 仅回环使用；发起机关闭时另一电脑不能查看原运行。
+  证据 src/server.mjs:185–212,248–272,507 / src/worker.mjs:75–84,170–194
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> W : 回环取得签名设备证明
+U -> A : 发起并绑定设备
+A -> D : TX 固化运行 ID、设备、快照和任务
+W -> A : pollWorker 领取本设备任务并续租
+A -> D : TX 写尝试、世代和到期时间
+... 发起电脑关机 ...
+U -> A : 从另一台电脑查询同一运行
+A --> U : 等待发起电脑上线；已知进度与待答可查
+W -> A : 原设备身份重连
+alt 身份、Codex 与检查点可验证
+  A -> D : 保留运行 ID 和已成功结果\n发放可用任务的有效世代
+  A --> W : 优先恢复原会话，不可用则回最近保存点\n核对暂存结果及可续步骤
+else 不同设备 / 证据不可确认
+  A --> W : 拒绝接管，或原机运行保持待核对
+end
+note over W,A : 旧世代回报不推进；重复有效收据按原结果重放。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

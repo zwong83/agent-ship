@@ -1,0 +1,43 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title SA-03 · 从需求到开发环境交付
+start
+:登录并确定需求;
+:确认工作类型、流程和发起电脑;
+if (启动条件齐备?) then (是)
+  :保存运行和流程快照;
+else (否)
+  :指出缺项或权限原因;
+  stop
+endif
+:准备仓库与工作分支;
+while (Git 证据未确认?) is (是)
+  :保留本次运行，显示待核对原因;
+  :核对原请求，等待适用恢复;
+endwhile (否)
+:按阶段推进，补齐需求和产品定义;
+:开发前后端并记录代码产物;
+:执行适用测试和检查;
+while (适用测试或检查未满足?) is (是)
+  if (本轮可以修复?) then (是)
+    :修复并用新产物复查原检查;
+  else (否)
+    :受影响路线等待重查或修复，无关路线可继续;
+    if (达到修复上限且有权操作者停止?) then (是)
+      :运行已停止;
+      stop
+    endif
+  endif
+endwhile (否)
+ :核对开发环境的实际交付与仓库产物;
+while (交付证据待核对或实际路线未完成?) is (是)
+  :保留运行，显示待核对或剩余工作;
+  :按原请求核对或继续实际路线;
+endwhile (否)
+:到达结束节点，运行已完成;
+stop
+@enduml

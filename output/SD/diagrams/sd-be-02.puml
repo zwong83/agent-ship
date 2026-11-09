@@ -1,0 +1,49 @@
+@startuml
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-02 账号与三类配置权限
+caption UC-01、UC-02 · FR-ACC、FR-OWN、FR-REQ-01/02/04
+
+actor "用户" as User
+participant "身份与安全入口" as Auth
+participant "配置用例" as Config
+database "PostgreSQL" as DB
+
+group 注册与登录
+  User -> Auth : 注册资料 / 用户名或邮箱与密码
+  alt 注册
+    Auth -> Auth : 校验两次密码与账号规则
+    Auth -> DB : 事务写账号与口令摘要\n唯一约束处理并发注册
+    DB --> Auth : 创建或标识冲突
+    Auth --> User : 注册结果
+  else 登录
+    Auth -> DB : 查询适用登录标识和口令摘要
+    Auth -> Auth : 核验、限流、签发或拒绝会话
+    Auth --> User : 登录结果
+  end
+end
+group 已登录的配置访问
+  User -> Config : 读列表、详情、搜索，或写配置
+  Config -> Auth : 核验会话及写操作来源
+  alt 读取
+    Config -> DB : 按当前对象授权投影\n筛除无权对象和敏感字段
+  else 新建
+    Config -> DB : 写对象、创建者为主负责人\n并发需求名称由唯一约束裁决
+    DB --> Config : 成功或同名
+    Config -> Config : 有权选择才返回已有需求引用
+  else 保存、撤权、转交
+    Config -> DB : 开启事务并锁定对象行
+    alt 当前授权与版本有效
+      Config -> DB : 保存内容或更新成员\n转交同时撤销原主负责人身份
+      Config -> DB : 提交版本变更与审计
+    else 被撤权或版本冲突
+      Config -> DB : 回滚
+      Config --> User : 有权获知的拒绝或冲突提示
+    end
+  end
+end
+note over Config,DB
+  启动、聊天及敏感动作另检查各自权限。
+  历史快照不授予当前访问权。
+end note
+@enduml

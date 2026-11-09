@@ -1,0 +1,49 @@
+@startuml
+title SD-FR-RUN-05 · Git 异常恢复与外部事实核对
+caption FR-RUN-05 / UC-04、UC-08 / BR-11 / SA-P03、SA-P08 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+participant "Git / 外部服务" as X
+
+== As-Is · 原型证据 ==
+U -> N : 对失败 Git 任务请求 retry-git
+N -> N : 保留旧失败记录，增加尝试
+W -> X : 再核对仓库和分支
+note over N #Orange
+  SA-P03、SA-P08 问题：原型能重试和留旧失败；已发出但结果未知的记录仍需显式核对边界。
+  证据 src/engine.mjs:269–287 / src/providers.mjs:42–75
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : applyRunAction 请求核对或恢复
+A -> D : 校验当前授权、状态及请求收据
+alt 越权 / 对象已变
+  A --> U : 拒绝，保留现有记录
+else 符合恢复条件
+  A -> D : TX 读取原操作意图并记录核对任务
+  W -> X : 按原供应商请求或目标查询实际状态
+  W -> A : 回报可核对证据
+  alt 唯一确认成功
+    A -> D : TX 关联原操作与事实；沿用已完成步骤
+  else 可证未发生或供应商可靠去重
+    A -> D : 按相同操作键保留新尝试，另核对执行授权
+  else 不能确认
+    A -> D : 持续待核对，阻塞依赖；保存原证据
+  end
+  A --> U : 可见原结果、新尝试及可用操作
+end
+note over U,A : 维护者恢复范围及人工处置为拟议，见 SA-D02。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

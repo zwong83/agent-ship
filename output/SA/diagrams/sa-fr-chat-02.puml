@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-CHAT-02 · 单角色等待与定向回复
+caption FR-CHAT-02 / UC-06 / SA-P05 / UAT-21、33、EXT-02
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "发问 Agent 和当前操作者" as A
+participant "平台 · 运行协作" as S
+collections "逻辑业务记录" as R
+participant "本机 Agent" as E
+== As-Is · 本地原型观察 ==
+A -> S : 一个 Agent 发问，操作者提交回答
+S -> S : 原型记录提问并恢复对应失败或等待任务
+note over S #Orange : [SA-P05 当前边界] 两名用户、定向投递和持久操作需联合验证
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 一个 Agent 发问，操作者提交回答
+S -> R : 核对持久问题、答复和会话
+alt 该问题仍待答且页操作权有效
+  S -> S : 一次确认答复并定向投递给发问会话
+  S -> E : 以已选角色、任务或会话传递
+  S -> R : 保留持久问题、答复和会话及可核对记录
+  S --> A : 发问者继续，其他独立任务不等待
+else 条件不满足或结果不可确认
+  S --> A : 过期或重复回答不投递第二次
+end
+legend right
+  [Contract] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

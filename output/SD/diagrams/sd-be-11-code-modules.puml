@@ -1,0 +1,44 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+top to bottom direction
+title SD-BE-11 目标代码模块和依赖
+caption To-Be · Proposed · UC-01～08 · 模块间箭头只指向公开应用入口
+
+package "Spring Boot 平台" {
+  [入口与跨模块用例\nworkbench] as Workbench
+  [交付归档\narchive] as Archive
+  [运行\nruntime] as Runtime
+  [配置目录\ncatalog] as Catalog
+  [设备\ndevice] as Device
+  [身份\nidentity] as Identity
+  Workbench --> Identity : 激活与注销
+  Workbench --> Catalog : 初始化个人项目
+  Workbench --> Runtime : 释放会话占用 / 看板
+  Workbench --> Archive : 归档视图
+  Archive --> Runtime : 完成产物与运行锁
+  Archive --> Device : 执行设备
+  Archive --> Identity : 当前会话
+  Runtime --> Catalog : 版本、当前权限、BRD 修订
+  Runtime --> Device : 同机证明与认证
+  Runtime --> Identity : 会话与授权账号
+  Catalog --> Identity : 查找可授权账号
+  Device --> Identity : 签发证明时校验会话
+}
+
+package "发起电脑" {
+  [Java Worker] as Worker
+}
+Worker ..> Device : 配对与在线状态
+Worker ..> Runtime : 任务领取与回报
+Worker ..> Archive : 归档领取与回报
+note right of Runtime
+  launch · execution · collaboration
+  gitprep · query
+end note
+legend bottom
+实线表示平台内依赖，虚线表示 HTTP 运行调用。
+各模块经自己的 JDBC 适配访问同一 PostgreSQL。
+endlegend
+@enduml

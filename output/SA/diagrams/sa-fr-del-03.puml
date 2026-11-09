@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-DEL-03 · 测试结论、失败详情和被测代码
+caption FR-DEL-03 / UC-07 / SA-P07 / UAT-01、03、45
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "测试节点和协调 Agent" as A
+participant "平台 · 交付与验收" as S
+collections "逻辑业务记录" as R
+participant "本机测试" as E
+== As-Is · 本地原型观察 ==
+A -> S : 针对本次交付候选执行适用测试
+S -> S : 原型演练生成模拟结论；真实测试证据待采集
+note over S #Orange : [SA-P07 当前边界] 复查及真实发布须绑定同一候选工件
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 针对本次交付候选执行适用测试
+S -> R : 核对测试报告、结论与候选产物
+alt 测试输入可确定且报告可核对
+  S -> S : 保存结论、失败详情及实际被测版本
+  S -> E : 取得所测产物的报告和结论
+  S -> R : 保留测试报告、结论与候选产物及可核对记录
+  S --> A : 项目可按权限查看测试证据
+else 条件不满足或结果不可确认
+  S --> A : 未知或失败证据不能当作发布通过
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

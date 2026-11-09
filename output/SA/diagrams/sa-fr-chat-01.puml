@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-CHAT-01 · 获授权运行聊天及定向会话
+caption FR-CHAT-01 / UC-06 / SA-P05 / UAT-05、22、32
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "有聊天授权的用户" as A
+participant "平台 · 运行协作" as S
+collections "逻辑业务记录" as R
+participant "本机 Agent" as E
+== As-Is · 本地原型观察 ==
+A -> S : 打开运行聊天并选择目标角色
+S -> S : 原型对现任负责人开放聊天，对同一运行实施页占用
+note over S #Orange : [SA-P05 当前边界] 两名用户、定向投递和持久操作需联合验证
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 打开运行聊天并选择目标角色
+S -> R : 核对发起人或其授予的聊天权及目标角色
+alt 当前运行访问和聊天权限有效，已取得本页操作权
+  S -> S : 取得当前页操作权后定向投递\n发起人撤权后停止访问和操作
+  S -> E : 以已选角色、任务或会话传递
+  S -> R : 保留运行会话、授权和目标角色及可核对记录
+  S --> A : 回看授权会话及其反馈
+else 条件不满足或结果不可确认
+  S --> A : 需求副负责人和未获权者拒绝且不泄漏会话
+end
+legend right
+  [Contract] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

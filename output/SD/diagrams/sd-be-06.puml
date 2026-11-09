@@ -1,0 +1,40 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-06 检查波次、修复与发布闸门
+caption UC-07 · FR-FLOW-06～09、FR-DEL-03/04
+
+state "检查当前提交或工件\n同一原检查定义" as Checking
+state "待人工：结论无效" as Invalid
+state "执行本轮修复\n记录自动或人工轮次" as Repairing
+state "受影响路线待人工\n无关任务仍可领取" as Limit
+state "激活通过路线" as Passed
+state "等待适用测试或放行" as Pending
+state "已登记发布意图\n按不可变产物发起" as Publish
+state "待核对外部结果" as Unknown
+state "记录发布成功及外部凭证" as Evidence
+state "记录明确失败与原因\n下游等待" as Failed
+state "已停止" as Stopped
+
+[*] --> Checking
+Checking --> Invalid : 缺少有效结论
+Invalid --> Checking : 当前操作者重新检查
+Checking --> Repairing : 需修复且本检查自动额度可用
+Checking --> Limit : 需修复且自动额度用尽
+Limit --> Repairing : 当前操作者允许额外一轮
+Limit --> Stopped : 当前操作者停止运行
+Repairing --> Checking : 修复产物就绪，新检查波次
+Checking --> Passed : 通过
+Passed --> [*] : 首期核对开发交付
+Passed --> Pending : 后续正式发布批次
+Pending --> Publish : 同一候选版本的复查、必测与放行通过
+Publish --> Unknown : 回报超时或结果不明
+Publish --> Evidence : 确认可核对的成功
+Publish --> Failed : 明确失败
+Unknown --> Evidence : 核对实际已成功
+Unknown --> Failed : 核对实际已失败
+Unknown --> Publish : 证实未发生或供应商可靠去重\n且获授权重试
+Evidence --> [*]
+Stopped --> [*]
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-CHAT-05 · 检测断网起五分钟宽限
+caption FR-CHAT-05 / UC-06 / SA-P05 / UAT-25、EXT-02
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "持有操作权的页面和竞争用户" as A
+participant "平台 · 运行协作" as S
+collections "逻辑业务记录" as R
+participant "浏览器连接" as E
+== As-Is · 本地原型观察 ==
+A -> S : 检测到持有页断网
+S -> S : 原型用最后心跳和宽限判断占用
+note over S #Orange : [SA-P05 当前边界] 两名用户、定向投递和持久操作需联合验证
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 检测到持有页断网
+S -> R : 核对最后连接、检测时刻及五分钟宽限
+alt 检测后未满五分钟且原页仍可恢复
+  S -> S : 保留占用，原页重连续用
+  S -> E : 观察当前页进入、退出或重连
+  S -> R : 保留最后连接、检测时刻及五分钟宽限及可核对记录
+  S --> A : 届满后有权者可重新申请
+else 条件不满足或结果不可确认
+  S --> A : 失效页迟到操作不得覆盖现持有者
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

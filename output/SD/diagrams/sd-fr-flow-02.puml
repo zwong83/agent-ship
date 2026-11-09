@@ -1,0 +1,44 @@
+@startuml
+title SD-FR-FLOW-02 · 依赖边、阶段逆序与循环校验
+caption FR-FLOW-02 / UC-03 / BR-17、BR-44 / SA-P02 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+
+== As-Is · 原型证据 ==
+U -> N : 提交流程依赖边
+N -> N : 检查阶段顺序并遍历检测循环
+N --> U : 拒绝无效依赖
+note over N #Orange
+  SA-P02 问题：原型在本机对象校验；共享版本需在保存边界重复验证结构完整性。
+  证据 src/model.mjs:152–187
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : 保存同阶段或跨阶段依赖
+A -> A : 定位目标及前置的流程版本和阶段
+alt 引用不存在 / 依赖更晚阶段
+  A --> U : 拒绝，返回依赖位置和顺序冲突
+else 引用有效
+  A -> A : 校验直接或间接环及无法满足的路线依赖
+  alt 存在循环
+    A --> U : 「有循环依赖」；旧版本保持
+  else 结构有效
+    group TX · 审核并封存
+      A -> D : 锁当前配置并校验期望版本\n写同版本依赖边；封存时再次核对图
+    end
+    A --> U : 返回可用版本，重开可查看两类依赖
+  end
+end
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

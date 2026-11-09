@@ -1,0 +1,45 @@
+@startuml
+title SD-FR-FLOW-01 · 具名阶段、节点与结束标记保存
+caption FR-FLOW-01 / UC-03 / BR-12、BR-38 / SA-P02 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+
+== As-Is · 原型证据 ==
+U -> N : 保存具名阶段与节点
+N -> N : normalizeFlow 校验末尾唯一结束节点
+N --> U : 保存或返回配置错误
+note over N #Orange
+  SA-P02 问题：原型按工作区 JSON 保存；没有拟议共享版本封存和结构约束。
+  证据 src/model.mjs:84–145 / src/server.mjs:125–155
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : createObject 或 updateObject 流程及版本
+A -> D : 查现时配置权限及可用角色范围
+A -> A : 校验具名阶段、多个节点和顺序
+alt 缺少唯一末尾结束标记 / 给结束节点选角色
+  A --> U : 拒绝保存，定位不合法节点
+else 符合结构规则
+  group TX · 草稿写入与封存
+    A -> D : 锁配置，复核权限及期望版本
+    alt 状态未变
+      A -> D : 写阶段和节点后封存不可变版本
+      A --> U : 返回新版本；重开可看到完整配置
+    else 撤权或版本冲突
+      A --> U : 不写入，返回安全冲突
+    end
+  end
+end
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

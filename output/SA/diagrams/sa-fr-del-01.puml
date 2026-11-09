@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-DEL-01 · 产品定义与后续引用
+caption FR-DEL-01 / UC-05 / SA-P04 / UAT-01、37
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "产品定义角色与协调 Agent" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+participant "本机 Agent" as E
+== As-Is · 本地原型观察 ==
+A -> S : 在产品定义节点交付产物
+S -> S : 原型将节点结果作为下游输入；真实产品产物未完成验收
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 在产品定义节点交付产物
+S -> R : 核对需求版本、产品定义及来源
+alt 适用需求已确定且产物可引用
+  S -> S : 记录目标、范围、验收要点及产物来源
+  S -> E : 以已选角色、任务或会话传递
+  S -> R : 保留需求版本、产品定义及来源及可核对记录
+  S --> A : 后续研发能定位同一产物
+else 条件不满足或结果不可确认
+  S --> A : 缺失最终产物时不开放下游
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

@@ -1,0 +1,44 @@
+@startuml
+title SD-FR-CHAT-05 · 断网宽限、恢复与租约失效
+caption FR-CHAT-05 / UC-06 / UAT-25 / SA-P05、SA-P06 / 所有者 SD-F02，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs currentLock；test/agentship.test.mjs TA-05/06/08 受控时钟
+' Authority and operations: POST /api/runs/{runId}/chat heartbeat/acquire；SD-B05、SD-D03、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 持有页停止心跳
+  Old -> Old : 从最后心跳按检测阈值 + 宽限判断
+  Old --> U : 历史时钟测试覆盖竞争阻挡与到期
+  note over Old #Orange : [SA-P05、SA-P06] 原型同账号受控时钟证据；\n目标需验证持有页重连及双用户边界
+end
+group To-Be · 拟议技术流程
+  U -> UI : 当前聊天页网络中断
+  UI -x API : 心跳未达
+  API -> DB : 服务器检测点起保留 300 秒
+  alt 宽限内原持有页恢复且授权有效
+    UI -> API : heartbeat，当前 tabId、世代和凭据
+    API -> DB : 验证原会话并续租
+    API --> UI : 恢复操作；重新获取待答及未完动作
+  else 宽限内其他有权页面竞争
+    API --> UI : 409 CHAT_OCCUPIED，未改变租约
+  else 宽限届满或原会话撤权
+    API -> DB : 原世代无效；允许新授权页竞争
+    API --> UI : 旧续约返回 CHAT_LEASE_LOST
+    UI --> U : 清除旧操作权，提示重新进入
+  end
+  note over UI,API : 原设备离线与浏览器断线独立。\n验收覆盖届满前、恰满和届满后。
+end
+@enduml

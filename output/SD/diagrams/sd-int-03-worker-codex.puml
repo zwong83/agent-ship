@@ -1,0 +1,43 @@
+@startuml
+title SD-I02、SD-I03 · 原设备任务、Codex 会话和续跑
+caption UC-05、06、08 / FR-AG-01～06 / FR-RUN-03～05 / FR-FLOW-04、07
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+participant "共享平台" as API
+participant "绑定设备 Java worker" as W
+database "本机检查点与回报暂存" as Local
+participant "Codex App Server" as Codex
+
+W -> API : 主动轮询，提交空闲槽位与持有租约
+API --> W : 续租或派发选中角色任务、输入版本和收件箱
+W -> Codex : 建立或恢复角色可寻址会话（stdio）
+Codex --> W : 会话 ID
+W -> Local : 首次会话先存映射及检查点
+W -> Codex : 执行角色任务或按投递 ID 转交
+Codex --> W : 进度、交接、问题、失败或产物
+W -> Local : 暂存回报及核对证据
+W -> API : 尝试、租约世代、事件序号、请求键
+alt 下一序号已受理或请求已受理
+  API --> W : 回执或原收据
+  W -> Local : 清理已确认的暂存
+else 当前世代的序号不连续
+  API --> W : 冲突，先重发缺失事件
+else 世代失效
+  API --> W : 拒绝旧回报
+end
+
+opt 原设备或 CLI 中断后重连
+  API -> API : 持久保留运行、问题与已完成结果
+  W -> API : 原设备身份重新连接
+  W -> Local : 读取检查点和待确认结果
+  alt 仍有有效租约或取得同一尝试新租约并完成核对
+    W -> Codex : 恢复原会话；仅执行未完成部分
+    W -> API : 核对本机证据后回报当前世代
+  else 会话或外部结果不可确认
+    W -> API : 暂停受影响尝试，等待核对
+  end
+end
+note over API,W : 其他设备不能领取；重复回报不再次推进
+@enduml

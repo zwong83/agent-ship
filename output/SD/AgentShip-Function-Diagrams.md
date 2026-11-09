@@ -1,0 +1,80 @@
+# AgentShip 功能图索引 v0.5
+
+先看现状、缺口和主流程，再按功能打开专属 SA/SD 图。每张专属图独立呈现现状与目标。细则回查 [SA](../SA/SA-AgentShip.md)、[SD](SD-AgentShip-index.md) 和 [BRD 到交付追溯](AgentShip-Traceability.md)。图形源文件与 SVG 同目录。
+
+## 总览
+
+| 视图 | 图 |
+|---|---|
+| 当前系统和运行逻辑 | [SA-00 现有系统](../SA/diagrams/sa-00-current.svg) · [SA-00A 现有运行](../SA/diagrams/sa-00a-current-run.svg) |
+| 问题、方案和交付主流程 | [SA-01 问题与方案](../SA/diagrams/sa-01-gaps.svg) · [SA-02 目标系统](../SA/diagrams/sa-02-target.svg) · [SA-02A 目标运行](../SA/diagrams/sa-02a-target-run.svg) · [SA-03 主流程](../SA/diagrams/sa-03-main.svg) |
+| 服务与部署边界、中间件拓扑 | [SD-BE-01](diagrams/sd-be-01.svg) · [SD-BE-09](diagrams/sd-be-09.svg) |
+| Java 代码模块与分层 | [当前模块](diagrams/sd-be-10-code-current.svg) · [目标模块](diagrams/sd-be-11-code-modules.svg) · [分层](diagrams/sd-be-12-code-layers.svg) · [事务归属](diagrams/sd-be-13-code-run.svg) |
+| 数据库关系和数据所有权 | [SD-D-01](diagrams/sd-data-01.svg) · [SD-D-02](diagrams/sd-data-02.svg) · [SD-D-03](diagrams/sd-data-03.svg) |
+
+## 逐功能定位
+
+| 功能／来源 | SA／问题 | SD 专属技术图／责任 | 支持视图 | 数据与中间件 | 验证 |
+|---|---|---|---|---|---|
+| [FR-ACC-01 注册校验、判重和资料保护](SD-AgentShip-Features.md#fr-acc-01) | [SA-FR-ACC-01](../SA/diagrams/sa-fr-acc-01.svg)／SA-P01 | [SD-FR-ACC-01](diagrams/sd-fr-acc-01.svg)／平台／身份和配置 | [SD-UI-01](diagrams/sd-ui-01-auth.svg) · [SD-BE-02](diagrams/sd-be-02.svg) · [SD-D-01](diagrams/sd-data-01.svg) | [DML-ACC-01](data/dml-catalog.md)／MW-01 MW-02 | UAT-12、15 |
+| [FR-ACC-02 邮箱或用户名登录与受限页面](SD-AgentShip-Features.md#fr-acc-02) | [SA-FR-ACC-02](../SA/diagrams/sa-fr-acc-02.svg)／SA-P01 | [SD-FR-ACC-02](diagrams/sd-fr-acc-02.svg)／平台／身份和配置 | [SD-UI-01](diagrams/sd-ui-01-auth.svg) · [SD-BE-02](diagrams/sd-be-02.svg) · [SD-I-01](diagrams/sd-int-01-api.svg) | [DML-ACC-02](data/dml-catalog.md)／MW-01 MW-02 | UAT-13、15 |
+| [FR-OWN-01 三类配置主副负责人、添加和移除](SD-AgentShip-Features.md#fr-own-01) | [SA-FR-OWN-01](../SA/diagrams/sa-fr-own-01.svg)／SA-P01 | [SD-FR-OWN-01](diagrams/sd-fr-own-01.svg)／平台／身份和配置 | [SD-UI-02](diagrams/sd-ui-02-ownership.svg) · [SD-BE-02](diagrams/sd-be-02.svg) · [SD-D-01](diagrams/sd-data-01.svg) | [DML-OWN-01](data/dml-catalog.md)／MW-01 MW-02 | UAT-14、28 |
+| [FR-OWN-02 撤权与旧页面保存](SD-AgentShip-Features.md#fr-own-02) | [SA-FR-OWN-02](../SA/diagrams/sa-fr-own-02.svg)／SA-P01 | [SD-FR-OWN-02](diagrams/sd-fr-own-02.svg)／平台／身份和配置 | [SD-UI-02](diagrams/sd-ui-02-ownership.svg) · [SD-BE-02](diagrams/sd-be-02.svg) · [SD-I-01](diagrams/sd-int-01-api.svg) | [DML-OWN-02](data/dml-catalog.md)／MW-01 MW-02 | UAT-18 |
+| [FR-OWN-03 向注册用户转交并即时生效](SD-AgentShip-Features.md#fr-own-03) | [SA-FR-OWN-03](../SA/diagrams/sa-fr-own-03.svg)／SA-P01 | [SD-FR-OWN-03](diagrams/sd-fr-own-03.svg)／平台／身份和配置 | [SD-UI-02](diagrams/sd-ui-02-ownership.svg) · [SD-BE-02](diagrams/sd-be-02.svg) · [SD-D-01](diagrams/sd-data-01.svg) | [DML-OWN-03](data/dml-catalog.md)／MW-01 MW-02 | UAT-19、29 |
+| [FR-REQ-01 需求私有、分享和可见范围](SD-AgentShip-Features.md#fr-req-01) | [SA-FR-REQ-01](../SA/diagrams/sa-fr-req-01.svg)／SA-P01 | [SD-FR-REQ-01](diagrams/sd-fr-req-01.svg)／平台／身份和配置 | [SD-UI-02](diagrams/sd-ui-02-ownership.svg) · [SD-BE-02](diagrams/sd-be-02.svg) · [SD-I-01](diagrams/sd-int-01-api.svg) | [DML-REQ-01](data/dml-catalog.md)／MW-01 MW-02 | UAT-07、28、29 |
+| [FR-REQ-02 需求全局唯一、同名选择或安全提示](SD-AgentShip-Features.md#fr-req-02) | [SA-FR-REQ-02](../SA/diagrams/sa-fr-req-02.svg)／SA-P01 | [SD-FR-REQ-02](diagrams/sd-fr-req-02.svg)／平台／身份和配置 | [SD-UI-02](diagrams/sd-ui-02-ownership.svg) · [SD-BE-02](diagrams/sd-be-02.svg) · [SD-D-01](diagrams/sd-data-01.svg) | [DML-REQ-02](data/dml-catalog.md)／MW-01 MW-02 | UAT-54 |
+| [FR-REQ-03 新建或选择需求、描述校验和补录](SD-AgentShip-Features.md#fr-req-03) | [SA-FR-REQ-03](../SA/diagrams/sa-fr-req-03.svg)／SA-P03 | [SD-FR-REQ-03](diagrams/sd-fr-req-03.svg)／平台／身份和配置 | [SD-UI-03](diagrams/sd-ui-03-flow-launch.svg) · [SD-BE-04](diagrams/sd-be-04.svg) · [SD-I-01](diagrams/sd-int-01-api.svg) | [DML-REQ-03](data/dml-catalog.md)／MW-01 MW-02 | UAT-10、51、53 |
+| [FR-REQ-04 主负责人启动权限](SD-AgentShip-Features.md#fr-req-04) | [SA-FR-REQ-04](../SA/diagrams/sa-fr-req-04.svg)／SA-P03 | [SD-FR-REQ-04](diagrams/sd-fr-req-04.svg)／平台／身份和配置，执行或证据边界见专属图 | [SD-BE-04](diagrams/sd-be-04.svg) · [SD-I-02](diagrams/sd-int-02-device-proof.svg) | [DML-REQ-04](data/dml-catalog.md)／MW-01 MW-02 MW-05 | UAT-30、52 |
+| [FR-RUN-01 工作类型和已有流程选择](SD-AgentShip-Features.md#fr-run-01) | [SA-FR-RUN-01](../SA/diagrams/sa-fr-run-01.svg)／SA-P03 | [SD-FR-RUN-01](diagrams/sd-fr-run-01.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-UI-03](diagrams/sd-ui-03-flow-launch.svg) · [SD-BE-04](diagrams/sd-be-04.svg) | [DML-RUN-01](data/dml-catalog.md)／MW-01 MW-02 MW-05 | UAT-01、09、10、16、52 |
+| [FR-FLOW-01 阶段、节点及唯一结束标记](SD-AgentShip-Features.md#fr-flow-01) | [SA-FR-FLOW-01](../SA/diagrams/sa-fr-flow-01.svg)／SA-P02 | [SD-FR-FLOW-01](diagrams/sd-fr-flow-01.svg)／平台／调度和证据 | [SD-UI-03](diagrams/sd-ui-03-flow-launch.svg) · [SD-BE-03](diagrams/sd-be-03.svg) | [DML-FLOW-01](data/dml-catalog.md)／MW-01 | UAT-08、35 |
+| [FR-FLOW-02 跨阶段依赖和循环校验](SD-AgentShip-Features.md#fr-flow-02) | [SA-FR-FLOW-02](../SA/diagrams/sa-fr-flow-02.svg)／SA-P02 | [SD-FR-FLOW-02](diagrams/sd-fr-flow-02.svg)／平台／调度和证据 | [SD-UI-03](diagrams/sd-ui-03-flow-launch.svg) · [SD-BE-03](diagrams/sd-be-03.svg) | [DML-FLOW-02](data/dml-catalog.md)／MW-01 | UAT-08、42 |
+| [FR-FLOW-03 阶段屏障、共同前置与顺序](SD-AgentShip-Features.md#fr-flow-03) | [SA-FR-FLOW-03](../SA/diagrams/sa-fr-flow-03.svg)／SA-P04 | [SD-FR-FLOW-03](diagrams/sd-fr-flow-03.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-05](diagrams/sd-be-05.svg) | [DML-FLOW-03](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-38、40、41 |
+| [FR-FLOW-04 并行路线汇合和完成判定](SD-AgentShip-Features.md#fr-flow-04) | [SA-FR-FLOW-04](../SA/diagrams/sa-fr-flow-04.svg)／SA-P04 | [SD-FR-FLOW-04](diagrams/sd-fr-flow-04.svg)／平台／调度和证据 | [SD-BE-05](diagrams/sd-be-05.svg) · [SD-UI-04](diagrams/sd-ui-04-run-chat.svg) | [DML-FLOW-04](data/dml-catalog.md)／MW-01 MW-03 | UAT-35、39 |
+| [FR-FLOW-05 流程修改与运行快照](SD-AgentShip-Features.md#fr-flow-05) | [SA-FR-FLOW-05](../SA/diagrams/sa-fr-flow-05.svg)／SA-P02 | [SD-FR-FLOW-05](diagrams/sd-fr-flow-05.svg)／平台／调度和证据 | [SD-BE-03](diagrams/sd-be-03.svg) · [SD-BE-04](diagrams/sd-be-04.svg) · [SD-D-02](diagrams/sd-data-02.svg) | [DML-FLOW-05](data/dml-catalog.md)／MW-01 | UAT-04、11 |
+| [FR-FLOW-06 检查双分支和实际路线选择](SD-AgentShip-Features.md#fr-flow-06) | [SA-FR-FLOW-06](../SA/diagrams/sa-fr-flow-06.svg)／SA-P07 | [SD-FR-FLOW-06](diagrams/sd-fr-flow-06.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-03](diagrams/sd-be-03.svg) · [SD-BE-06](diagrams/sd-be-06.svg) | [DML-FLOW-06](data/dml-catalog.md)／MW-01 MW-03 | UAT-43、44、50 |
+| [FR-FLOW-07 缺失检查结论与重新检查](SD-AgentShip-Features.md#fr-flow-07) | [SA-FR-FLOW-07](../SA/diagrams/sa-fr-flow-07.svg)／SA-P07 | [SD-FR-FLOW-07](diagrams/sd-fr-flow-07.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-06](diagrams/sd-be-06.svg) · [SD-I-04](diagrams/sd-int-04-chat-routing.svg) | [DML-FLOW-07](data/dml-catalog.md)／MW-01 MW-03 | UAT-50 |
+| [FR-FLOW-08 各检查独立修复、同节点复查](SD-AgentShip-Features.md#fr-flow-08) | [SA-FR-FLOW-08](../SA/diagrams/sa-fr-flow-08.svg)／SA-P07 | [SD-FR-FLOW-08](diagrams/sd-fr-flow-08.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-06](diagrams/sd-be-06.svg) · [SD-D-02](diagrams/sd-data-02.svg) | [DML-FLOW-08](data/dml-catalog.md)／MW-01 MW-03 | UAT-45、46、47、49 |
+| [FR-FLOW-09 达到上限后的额外一轮或停止](SD-AgentShip-Features.md#fr-flow-09) | [SA-FR-FLOW-09](../SA/diagrams/sa-fr-flow-09.svg)／SA-P07 | [SD-FR-FLOW-09](diagrams/sd-fr-flow-09.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-06](diagrams/sd-be-06.svg) · [SD-UI-04](diagrams/sd-ui-04-run-chat.svg) | [DML-FLOW-09](data/dml-catalog.md)／MW-01 MW-03 | UAT-48 |
+| [FR-AG-01 按需选协调者和三名以上子 Agent](SD-AgentShip-Features.md#fr-ag-01) | [SA-FR-AG-01](../SA/diagrams/sa-fr-ag-01.svg)／SA-P04 | [SD-FR-AG-01](diagrams/sd-fr-ag-01.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-UI-03](diagrams/sd-ui-03-flow-launch.svg) · [SD-BE-03](diagrams/sd-be-03.svg) · [SD-I-03](diagrams/sd-int-03-worker-codex.svg) | [DML-AG-01](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-04、20、EXT-01 |
+| [FR-AG-02 子 Agent 有序／默认并行](SD-AgentShip-Features.md#fr-ag-02) | [SA-FR-AG-02](../SA/diagrams/sa-fr-ag-02.svg)／SA-P04 | [SD-FR-AG-02](diagrams/sd-fr-ag-02.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-05](diagrams/sd-be-05.svg) · [SD-I-03](diagrams/sd-int-03-worker-codex.svg) | [DML-AG-02](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-20、31、EXT-01 |
+| [FR-AG-03 角色间交接和人与 Agent 双向通信](SD-AgentShip-Features.md#fr-ag-03) | [SA-FR-AG-03](../SA/diagrams/sa-fr-ag-03.svg)／SA-P04 | [SD-FR-AG-03](diagrams/sd-fr-ag-03.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-I-03](diagrams/sd-int-03-worker-codex.svg) · [SD-I-04](diagrams/sd-int-04-chat-routing.svg) | [DML-AG-03](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-05、20、21、22 |
+| [FR-AG-04 收齐成功结果并形成最终产物](SD-AgentShip-Features.md#fr-ag-04) | [SA-FR-AG-04](../SA/diagrams/sa-fr-ag-04.svg)／SA-P04 | [SD-FR-AG-04](diagrams/sd-fr-ag-04.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-05](diagrams/sd-be-05.svg) · [SD-D-02](diagrams/sd-data-02.svg) | [DML-AG-04](data/dml-catalog.md)／MW-01 MW-03 | UAT-37 |
+| [FR-AG-05 只重试失败子 Agent](SD-AgentShip-Features.md#fr-ag-05) | [SA-FR-AG-05](../SA/diagrams/sa-fr-ag-05.svg)／SA-P04 | [SD-FR-AG-05](diagrams/sd-fr-ag-05.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-05](diagrams/sd-be-05.svg) · [SD-I-03](diagrams/sd-int-03-worker-codex.svg) · [SD-UI-04](diagrams/sd-ui-04-run-chat.svg) | [DML-AG-05](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-36、EXT-02 |
+| [FR-AG-06 并发不足时排队或明确等待](SD-AgentShip-Features.md#fr-ag-06) | [SA-FR-AG-06](../SA/diagrams/sa-fr-ag-06.svg)／SA-P04 | [SD-FR-AG-06](diagrams/sd-fr-ag-06.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-05](diagrams/sd-be-05.svg) · [SD-I-03](diagrams/sd-int-03-worker-codex.svg) | [DML-AG-06](data/dml-catalog.md)／MW-01 MW-03 MW-05 | EXT-01 |
+| [FR-RUN-02 仓库关联、四类分支和缺失 dev](SD-AgentShip-Features.md#fr-run-02) | [SA-FR-RUN-02](../SA/diagrams/sa-fr-run-02.svg)／SA-P03 | [SD-FR-RUN-02](diagrams/sd-fr-run-02.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-04](diagrams/sd-be-04.svg) · [SD-I-05](diagrams/sd-int-05-git.svg) | [DML-RUN-02](data/dml-catalog.md)／MW-01 MW-03 MW-06 | UAT-01、02、09、16、17 |
+| [FR-RUN-03 看板、阻塞原因及产物追溯](SD-AgentShip-Features.md#fr-run-03) | [SA-FR-RUN-03](../SA/diagrams/sa-fr-run-03.svg)／SA-P08 | [SD-FR-RUN-03](diagrams/sd-fr-run-03.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-UI-04](diagrams/sd-ui-04-run-chat.svg) · [SD-BE-05](diagrams/sd-be-05.svg) · [SD-I-01](diagrams/sd-int-01-api.svg) | [DML-RUN-03](data/dml-catalog.md)／MW-01 MW-02 | UAT-01、06、11、27 |
+| [FR-RUN-04 同机执行、另一设备查看和原机续跑](SD-AgentShip-Features.md#fr-run-04) | [SA-FR-RUN-04](../SA/diagrams/sa-fr-run-04.svg)／SA-P06 | [SD-FR-RUN-04](diagrams/sd-fr-run-04.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-08](diagrams/sd-be-08.svg) · [SD-I-02](diagrams/sd-int-02-device-proof.svg) · [SD-I-03](diagrams/sd-int-03-worker-codex.svg) | [DML-RUN-04](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-22、27、EXT-02 |
+| [FR-RUN-05 有权恢复、保留历史及外部核对](SD-AgentShip-Features.md#fr-run-05) | [SA-FR-RUN-05](../SA/diagrams/sa-fr-run-05.svg)／SA-P08 | [SD-FR-RUN-05](diagrams/sd-fr-run-05.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-08](diagrams/sd-be-08.svg) · [SD-I-05](diagrams/sd-int-05-git.svg) · [SD-I-06](diagrams/sd-int-06-release.svg) | [DML-RUN-05](data/dml-catalog.md)／MW-01 MW-06 | UAT-02、06、EXT-03 |
+| [FR-CHAT-01 获授权运行聊天及定向会话](SD-AgentShip-Features.md#fr-chat-01) | [SA-FR-CHAT-01](../SA/diagrams/sa-fr-chat-01.svg)／SA-P05 | [SD-FR-CHAT-01](diagrams/sd-fr-chat-01.svg)／平台／运行协作，执行或证据边界见专属图 | [SD-I-03](diagrams/sd-int-03-worker-codex.svg) · [SD-I-04](diagrams/sd-int-04-chat-routing.svg) · [SD-UI-04](diagrams/sd-ui-04-run-chat.svg) | [DML-CHAT-01](data/dml-catalog.md)／MW-01 MW-02 MW-03 MW-05 | UAT-05、22、32 |
+| [FR-CHAT-02 单角色等待与定向回复](SD-AgentShip-Features.md#fr-chat-02) | [SA-FR-CHAT-02](../SA/diagrams/sa-fr-chat-02.svg)／SA-P05 | [SD-FR-CHAT-02](diagrams/sd-fr-chat-02.svg)／平台／运行协作，执行或证据边界见专属图 | [SD-I-03](diagrams/sd-int-03-worker-codex.svg) · [SD-I-04](diagrams/sd-int-04-chat-routing.svg) | [DML-CHAT-02](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-21、33、EXT-02 |
+| [FR-CHAT-03 持久问题、发起人取消及继续](SD-AgentShip-Features.md#fr-chat-03) | [SA-FR-CHAT-03](../SA/diagrams/sa-fr-chat-03.svg)／SA-P05 | [SD-FR-CHAT-03](diagrams/sd-fr-chat-03.svg)／平台／运行协作，执行或证据边界见专属图 | [SD-I-04](diagrams/sd-int-04-chat-routing.svg) · [SD-D-03](diagrams/sd-data-03.svg) | [DML-CHAT-03](data/dml-catalog.md)／MW-01 MW-03 | UAT-33、34、EXT-02 |
+| [FR-CHAT-04 两人／两标签页竞争与退出](SD-AgentShip-Features.md#fr-chat-04) | [SA-FR-CHAT-04](../SA/diagrams/sa-fr-chat-04.svg)／SA-P05 | [SD-FR-CHAT-04](diagrams/sd-fr-chat-04.svg)／平台／运行协作，执行或证据边界见专属图 | [SD-BE-07](diagrams/sd-be-07.svg) · [SD-I-04](diagrams/sd-int-04-chat-routing.svg) | [DML-CHAT-04](data/dml-catalog.md)／MW-01 MW-02 | UAT-23、24、26、32 |
+| [FR-CHAT-05 检测断网起五分钟宽限](SD-AgentShip-Features.md#fr-chat-05) | [SA-FR-CHAT-05](../SA/diagrams/sa-fr-chat-05.svg)／SA-P05 | [SD-FR-CHAT-05](diagrams/sd-fr-chat-05.svg)／平台／运行协作，执行或证据边界见专属图 | [SD-BE-07](diagrams/sd-be-07.svg) · [SD-I-04](diagrams/sd-int-04-chat-routing.svg) | [DML-CHAT-05](data/dml-catalog.md)／MW-01 MW-02 | UAT-25、EXT-02 |
+| [FR-CHAT-06 正式变更确认与需求修订](SD-AgentShip-Features.md#fr-chat-06) | [SA-FR-CHAT-06](../SA/diagrams/sa-fr-chat-06.svg)／SA-P05 | [SD-FR-CHAT-06](diagrams/sd-fr-chat-06.svg)／平台／运行协作，执行或证据边界见专属图 | [SD-BE-07](diagrams/sd-be-07.svg) · [SD-I-04](diagrams/sd-int-04-chat-routing.svg) · [SD-D-02](diagrams/sd-data-02.svg) | [DML-CHAT-06](data/dml-catalog.md)／MW-01 MW-03 | UAT-05 |
+| [FR-DEL-01 产品定义与后续引用](SD-AgentShip-Features.md#fr-del-01) | [SA-FR-DEL-01](../SA/diagrams/sa-fr-del-01.svg)／SA-P04 | [SD-FR-DEL-01](diagrams/sd-fr-del-01.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-05](diagrams/sd-be-05.svg) · [SD-I-06](diagrams/sd-int-06-release.svg) | [DML-DEL-01](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-01、37 |
+| [FR-DEL-02 前后端代码和工作分支证据](SD-AgentShip-Features.md#fr-del-02) | [SA-FR-DEL-02](../SA/diagrams/sa-fr-del-02.svg)／SA-P04 | [SD-FR-DEL-02](diagrams/sd-fr-del-02.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-05](diagrams/sd-be-05.svg) · [SD-I-05](diagrams/sd-int-05-git.svg) · [SD-I-06](diagrams/sd-int-06-release.svg) | [DML-DEL-02](data/dml-catalog.md)／MW-01 MW-06 | UAT-01、09 |
+| [FR-DEL-03 测试结论、失败详情和被测代码](SD-AgentShip-Features.md#fr-del-03) | [SA-FR-DEL-03](../SA/diagrams/sa-fr-del-03.svg)／SA-P07 | [SD-FR-DEL-03](diagrams/sd-fr-del-03.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-06](diagrams/sd-be-06.svg) · [SD-I-06](diagrams/sd-int-06-release.svg) | [DML-DEL-03](data/dml-catalog.md)／MW-01 MW-03 MW-05 | UAT-01、03、45 |
+| [FR-DEL-04 复查、发布放行与供应商证据（后续）](SD-AgentShip-Features.md#fr-del-04) | [SA-FR-DEL-04](../SA/diagrams/sa-fr-del-04.svg)／SA-P07 | [SD-FR-DEL-04](diagrams/sd-fr-del-04.svg)／平台／调度和证据，执行或证据边界见专属图 | [SD-BE-06](diagrams/sd-be-06.svg) · [SD-I-06](diagrams/sd-int-06-release.svg) · [SD-D-03](diagrams/sd-data-03.svg) | [DML-DEL-04](data/dml-catalog.md)／MW-01 MW-03 MW-06 | UAT-01、03、45、EXT-03 |
+
+## 代码模块归属
+
+下表将既有专属图映射到 [SD-B06](SD-AgentShip-backend.md#sd-b06-代码模块与分层) 的目标代码模块。编号对应上表的技术流程、数据、中间件和验证记录。归属为 Proposed。
+
+| 功能 | 主责 | 协作 |
+|---|---|---|
+| FR-ACC-01～02 | `identity` | `workbench` 组合账号激活、个人项目初始化及注销释放。 |
+| FR-OWN-01～03、FR-REQ-01～02、FR-FLOW-01～02、FR-FLOW-05 | `catalog` | `runtime.launch` 按已保存版本冻结运行输入。 |
+| FR-REQ-03～04、FR-RUN-01 | `runtime.launch` | `catalog` 校验需求、权限及版本，`device` 消费同机证明。`runtime.collaboration` 承接活动 BRD 节点补录。 |
+| FR-FLOW-03～04、FR-FLOW-06～09、FR-AG-01～02、FR-AG-04～06、FR-DEL-01、FR-DEL-03 | `runtime.execution` | `catalog` 保存静态路线及角色配置。Worker 执行已派发任务，平台判定结果与推进。 |
+| FR-AG-03、FR-CHAT-01～06 | `runtime.collaboration` | `runtime.execution` 接收角色回报并推进，`catalog` 更新原需求，Worker 恢复原线程。 |
+| FR-RUN-02 | `runtime.gitprep` | `catalog` 写需求仓库关联，Worker 执行 Git 并回报。 |
+| FR-RUN-03 | `runtime.query` | `workbench` 组合已授权的运行和归档投影。 |
+| FR-RUN-04、FR-RUN-05 | `runtime.execution` | `device` 校验原设备，`runtime.gitprep` 与 `archive` 核对各自的外部结果，Worker 恢复本机执行。 |
+| FR-DEL-02 | `runtime.execution` | `runtime.gitprep` 持有工作分支证据，`archive` 负责公开产物审批和标签核对。 |
+| FR-DEL-04 | `runtime.execution` 持有复查证据 | 正式发布属后续范围，届时明确发布责任。 |
+
+## 权威和就绪
+
+39 项都保留既有现状、问题及专属 To-Be。支持图负责组件、状态、数据和中间件，用户可见功能另见 [前端逐项路由与状态](SD-AgentShip-frontend.md)。
+
+[数据设计](SD-AgentShip-data.md) · [中间件](SD-AgentShip-middleware.md) · [OpenSpec 任务与验收](../../openspec/changes/deliver-agentship-mvp/tasks.md) · [阻塞项](SD-AgentShip-index.md#未决项与就绪判断)

@@ -1,0 +1,25 @@
+@startuml
+title SA-02A · 目标方案的一次运行
+caption UC-04、05、06、08 / BR-16、27～32、38 / To-Be Proposed
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "发起或查看的浏览器" as B
+participant "共享平台" as S
+collections "共享业务记录" as D
+participant "原电脑 A 的执行能力" as W
+B -> S : 选需求、工作类型和可用流程
+B -> W : 确认发起电脑
+B -> S : 提交启动
+S -> D : 固定运行身份、原电脑和流程
+W -> S : 领取本设备的已就绪任务
+S -> D : 记录执行尝试和状态
+W -> S : 回报角色提问或执行结果
+S -> D : 保留问题、证据和后续工作
+... 原电脑 A 关机 ...
+B -> S : 另一台电脑以有权身份查询同一运行
+S --> B : 等待发起电脑上线，保留进度及问题
+W -> S : 原设备重连，提供可核对的进度
+S --> W : 继续原运行的可恢复步骤
+@enduml

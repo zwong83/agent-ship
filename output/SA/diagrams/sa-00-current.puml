@@ -1,0 +1,26 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title SA-00 · 现状：本机原型
+!pragma layout smetana
+left to right direction
+actor "当前用户" as User
+rectangle "发起电脑 A" as Device {
+  [浏览器\n原生 JavaScript] as Web
+  [Node.js HTTP 平台\n127.0.0.1] as API
+  database "SQLite\n单行 JSON 工作区" as DB
+  [Node.js worker\n回环设备证明] as Worker
+  [Codex App Server\n独立角色会话适配] as Codex
+  Web --> API : 配置、看板、聊天
+  API --> DB : 事务读写
+  Worker --> API : 轮询领取、回报
+  Web --> Worker : 启动取设备证明
+  Worker --> Codex : 真实适配路径
+}
+cloud "Git / 发布\n真实链路待验收" as Vendor
+User --> Web
+Worker --> Vendor : 授权路径
+@enduml

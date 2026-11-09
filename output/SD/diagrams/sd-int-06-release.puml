@@ -1,0 +1,37 @@
+@startuml
+title SD-I04 · 测试、放行、发布与外部证据
+caption UC-05、07、08 / FR-DEL-01～04 / FR-FLOW-06～09 / FR-RUN-03、05
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+participant "平台交付 API" as API
+participant "发起电脑 worker" as W
+participant "测试 / 发布适配器" as Provider
+
+W -> API : 关联产品定义与前后端产物、提交和工作分支
+W -> Provider : 按模式对选定提交或工件执行测试
+W -> API : 保存被测版本、结论和失败详情
+opt 经过修复路线
+  API -> W : 轮询时派发原检查节点，输入修复后产物
+  W -> API : 记录原检查节点的复查结果
+end
+W -> API : 申请发布授权，带任务租约与目标
+alt 测试、复查、权限或适用放行未满足
+  API --> W : 保持等待并记录原因
+else 门槛满足且为演练
+  API --> W : 演练适配路径
+  W -> API : 带演练标识的模拟证据
+else 门槛满足且为真实模式
+  API -> API : 保存意图，签发短期授权
+  API --> W : 授权与稳定操作键
+  W -> Provider : 发布指定工件至目标
+  alt 核对成功
+    Provider --> W : 目标、工件、结果及可查询位置
+    W -> API : 持久保存可核验证据
+  else 明确失败或结果未知
+    W -> API : 分别记录失败或待核对状态
+    W -> Provider : 按原引用核对，获准后再继续
+  end
+end
+@enduml

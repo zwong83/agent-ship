@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-RUN-02 · 仓库关联、四类分支和缺失 dev
+caption FR-RUN-02 / UC-04 / SA-P03 / UAT-01、02、09、16、17
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "发起设备与 Git 服务" as A
+participant "平台 · 运行发起" as S
+collections "逻辑业务记录" as R
+participant "Git 托管" as E
+== As-Is · 本地原型观察 ==
+A -> S : 启动已通过校验并开始准备 Git
+S -> S : 原型包含分支计划、建仓和外部调用适配；真实仓库待实测
+note over S #Orange : [SA-P03 当前边界] 启动校验与外部准备须有同一运行证据
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 启动已通过校验并开始准备 Git
+S -> R : 核对仓库关联、默认分支、基准和工作分支
+alt 适配器、目标仓库及操作授权有效
+  S -> S : 沿用已有仓库，或在用户填写的 GitHub 命名空间建公开仓库\n从默认分支或 dev 派生工作分支
+  S -> E : 核对仓库、分支与实际结果
+  S -> R : 保留仓库关联、默认分支、基准和工作分支及可核对记录
+  S --> A : 记录已核对仓库和分支，开放研发
+else 条件不满足或结果不可确认
+  S --> A : 失败或未知时保留原运行，按原操作核对
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

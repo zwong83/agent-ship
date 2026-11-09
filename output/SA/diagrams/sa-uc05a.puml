@@ -1,0 +1,28 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-05A · 阶段与节点调度
+start
+:取当前可推进阶段的实际路线;
+if (前一阶段全部应执行节点完成?) then (是)
+else (否)
+  :当前阶段保持等待;
+  stop
+endif
+:筛出前置与产物均就绪的节点;
+if (互不依赖且共享已完成直接前置?) then (是)
+  :允许同阶段节点并行;
+else (否)
+  :按配置顺序推进无共同前置的节点;
+endif
+:收集成功结果及失败角色的人工跳过记录;
+if (最终产物可引用?) then (是)
+  :普通节点完成并开放依赖节点;
+else (否)
+  :记录阻塞，依赖节点等待;
+endif
+stop
+@enduml

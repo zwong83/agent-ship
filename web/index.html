@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AgentShip · 交付控制台</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.mjs" type="module"></script>
+</head>
+<body>
+  <div id="app"><main class="boot">正在打开 AgentShip…</main></div>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <dialog id="occupied" aria-labelledby="occupied-title">
+    <p class="eyebrow">会话占用</p>
+    <h2 id="occupied-title">聊天页正在使用</h2>
+    <p id="occupant"></p>
+    <form method="dialog"><button>知道了</button></form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,98 @@
+@startuml
+!pragma layout smetana
+title SD-D02 运行快照、任务租约、检查与修复
+top to bottom direction
+hide circle
+skinparam linetype ortho
+skinparam classFontSize 14
+skinparam classBackgroundColor #F3F8FA
+skinparam classBorderColor #335D73
+skinparam ArrowColor #456778
+
+entity "run" as Run {
+  * id : UUID <<PK>>
+  --
+  * requirement_id / workflow version
+  * initiator_id / device_id : 不可变
+  * current_revision / state_version
+  github_namespace : 未关联仓库启动时固定
+}
+entity "run_requirement_revision" as Revision {
+  * run_id, revision : PK
+  --
+  * requirement_version / recorded_by
+}
+entity "workflow_node / workflow_role" as FlowDef {
+  * workflow_id, version, node_id
+  --
+  * workflow_role 固化 Agent 版本
+}
+entity "node_execution" as Node {
+  * id : UUID <<PK>>
+  --
+  * run_id, node_id, wave : 唯一
+  * requirement_revision / state
+  started_at : 首次执行领取
+}
+entity "role_task" as Task {
+  * id : UUID <<PK>>
+  --
+  * run_id, device_id : 发起设备
+  execution_id : 关联节点波次
+  agent_id, agent_version : 选定角色
+  * current_attempt
+}
+entity "task_attempt" as Attempt {
+  * task_id, attempt_number : PK
+  --
+  * attempt_id : 唯一
+  lease_epoch, lease_deadline
+  * state, last_event_sequence
+  disposition : 失败后的人工跳过
+  disposed_by / disposed_at
+}
+entity "task_event" as Event {
+  * id : UUID <<PK>>
+  --
+  * task, attempt, epoch, sequence : 唯一
+  * request_key : 任务内唯一
+}
+entity "check_cycle" as Check {
+  * run_id, check_node_id : PK
+  --
+  * current_wave
+  * automatic_repair_count
+  * manual_repair_count
+  * state : limit_reached 阻塞受影响路线
+}
+entity "check_wave" as Wave {
+  * run_id, check_node_id, wave : PK
+  --
+  * outcome
+  checked_commit / checked_artifact_version
+  report_artifact_id : 测试报告
+}
+entity "repair_round" as Repair {
+  * run_id, check_node_id, round_number : PK
+  --
+  * triggering_wave : 每波一次
+  * kind : automatic / manual
+}
+Run ||--|{ Revision
+Run ||--o{ Node
+Revision ||--o{ Node : 首次成功领取后固定
+FlowDef ||--o{ Node : 节点定义
+Run ||--o{ Task
+Node |o--o{ Task
+FlowDef |o--o{ Task : 角色分配
+Task ||--|{ Attempt
+Attempt ||--o{ Event
+Run ||--o{ Check
+Check ||--|{ Wave
+Node ||--o| Wave : 原检查节点执行
+Wave ||--o| Repair
+legend bottom
+  当前修订、当前尝试和当前检查波次由聚合根指向。
+  修复上限按封存修复路线及硬依赖计算受影响范围。
+endlegend
+@enduml

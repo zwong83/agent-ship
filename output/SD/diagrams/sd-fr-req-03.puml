@@ -1,0 +1,51 @@
+@startuml
+title SD-FR-REQ-03 · 新建或选择需求及补齐描述
+caption FR-REQ-03 / UC-04 / UAT-01、08、10、51、53 / SA-P03 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: web/app.mjs renderDemandChoice / renderStart；src/server.mjs startRun / describe；test/agentship.test.mjs TA-04
+' Authority and operations: GET/POST /api/objects/requirements；PATCH …/{objectId}；POST /api/runs、…/actions；SD-B03、SD-D01～02、SD-I01～02
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 确认新需求或从搜索结果选已有需求
+  Old -> Old : 启动时核验描述，含需求节点可后补
+  note over Old #Orange : [SA-P03] 本机流程演练，证明用时间戳；\n版本化输入与重复发起未在目标环境验证
+end
+group To-Be · 拟议技术流程
+  U -> UI : 明确确认新建或选中已有 ID
+  UI -> API : 查询可见需求或创建记录
+  API --> UI : 需求 ID 和版本
+  U -> UI : 选类型、已保存流程并确认
+  alt 没有需求阶段且描述缺失
+    UI --> U : 先填写描述；未提交运行
+    UI -> API : 保存描述与期望版本后重新校验
+  else 启动输入齐备
+    UI -> API : POST /api/runs，选择版本、设备证明和请求键
+    API -> DB : 校验当前权限、版本和描述后写运行
+    API --> UI : 201 运行 ID；失效输入安全拒绝
+    opt 有需求阶段且描述留空
+      UI -> API : 到阶段后提交 describe + 期望需求修订
+      API -> DB : TX-DESC 锁需求、运行及当前需求节点，\n核对权限、双版本及请求键
+      alt 补录窗口仍有效
+        API -> DB : 原子保存需求与本次运行输入，\n写收据和审计，开放相应下游
+        API --> UI : 受理；刷新下游采用的修订
+      else 无权、版本冲突或节点已离开
+        API --> UI : 安全拒绝，无变更
+      end
+    end
+  end
+  note over UI,API : 搜索文字不等于选择；同键重放避免重复运行。
+end
+@enduml

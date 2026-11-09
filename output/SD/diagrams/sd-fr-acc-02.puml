@@ -1,0 +1,58 @@
+@startuml
+title SD-FR-ACC-02 · 登录、业务页守卫与登出
+caption FR-ACC-02 / UC-01 / UAT-13、15 / SA-P01 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs login / sessionFor；web/app.mjs renderAuth；test/agentship.test.mjs TA-01/02
+' Authority and operations: GET /api/me；POST /api/login、logout；SD-B02、SD-D01、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 用邮箱或用户名及密码登录
+  Old -> Old : 校验哈希并签发 Cookie；受限 API 校验会话
+  Old --> U : 已登录或通用失败
+  note over Old #Orange : [SA-P01] 现状只在回环验证；共享环境的\n安全 Cookie、CSRF 和会话级失效待核对
+end
+group To-Be · 拟议技术流程
+  U -> UI : 访问业务页
+  UI -> API : GET /api/me
+  API -> DB : 核对当前会话与到期时间
+  alt 无会话
+    API --> UI : user 为 null
+    UI --> U : 转到登录；保留安全的返回路径
+    U -> UI : 输入邮箱或用户名及密码
+    UI -> API : POST /api/login
+    alt 凭据错误 / 限流
+      API --> UI : 401 / 429 通用提示
+    else 验证通过
+      API -> DB : 提交新会话并记录结果
+      API --> UI : 200 + Cookie + 用户和 CSRF
+    end
+  else 会话有效
+    API --> UI : 200 授权会话摘要
+  end
+  opt 已登录并打开本人资料
+    UI -> API : GET /api/me/contact
+    API -> DB : 读取当前会话账号的邮箱和手机号
+    API --> UI : 本人联系方式，禁止缓存
+  end
+  alt 显式登出
+    UI -> API : POST /api/logout
+    API -> DB : 失效当前会话及其聊天租约
+  else 后续请求返回 401
+    API --> UI : 会话无效
+  end
+  UI --> U : 清除已失效会话的受限缓存并回登录
+end
+@enduml

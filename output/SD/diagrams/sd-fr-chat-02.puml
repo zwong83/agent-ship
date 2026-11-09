@@ -1,0 +1,47 @@
+@startuml
+title SD-FR-CHAT-02 · 发问、回复与定向投递
+caption FR-CHAT-02 / UC-06 / UAT-21 / SA-P05、SA-P06 / 所有者 SD-F02，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/engine.mjs receiveResult / reply；src/worker.mjs processJob；test/agentship.test.mjs TA-05/06/08 演练
+' Authority and operations: POST /api/worker/jobs/{taskId}/event、/api/runs/{runId}/actions；GET …/chat；SD-B04、SD-D03、SD-I01～03
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+participant "原设备 / Codex" as W
+end box
+
+group As-Is · 源码及注明的历史证据
+  Old -> Old : 演练角色 A 产生待答；独立角色 B 可执行
+  U -> Old : 回复指定问题
+  Old -> Old : 对原任务排队续行
+  note over Old #Orange : [SA-P05、SA-P06] 定向路径由演练验证；\n真机投递、丢失收据和原会话续跑待验
+end
+group To-Be · 拟议技术流程
+  W -> API : 上报 question，尝试、世代、序号与请求键
+  API -> DB : 核对任务租约，事务保存问题及发问会话
+  UI -> API : 持当前租约读取 ChatView
+  API --> UI : 显示发问角色、等待回复及回答框
+  note over API,W : 独立角色 B 保持可执行。
+  U -> UI : 选择问题并点击回复
+  UI -> API : POST …/actions reply，问题 ID、文本、\n当前聊天租约及请求键
+  API -> DB : 锁问题；待答→已回答，\n同一事务保存定向收件箱和收据
+  alt 首次接受或同键重放
+    API --> UI : Ack；刷新显示已接受、待投递
+    W -> API : 原设备轮询原任务消息
+    W -> W : 按投递 ID 去重，送原发问会话
+    W -> API : 回报投递检查点
+    API --> UI : 重新查询可见已投递或待核对
+  else 越权、租约失效或问题已被处理
+    API --> UI : 安全拒绝；不追加消息
+  end
+end
+@enduml

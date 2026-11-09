@@ -1,0 +1,20 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title SA-02 · 目标：共享平台与原机执行
+!pragma layout smetana
+left to right direction
+actor "有权限的用户" as User
+rectangle "浏览器 A 或 B" as Browser
+rectangle "共享平台\n权限、配置、任务、聊天、证据" as Platform #E5F3ED
+rectangle "原发起电脑 A\nCodex、工作区、执行检查点" as Device
+cloud "Git 托管与测试／发布环境" as Vendor
+User --> Browser
+Browser --> Platform : 业务操作与状态查询
+Browser --> Device : 发起时验证同机
+Platform <--> Device : 领取、答复、执行回报
+Device --> Vendor : 获授权的仓库与发布动作
+@enduml

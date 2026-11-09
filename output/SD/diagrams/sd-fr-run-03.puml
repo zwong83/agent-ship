@@ -1,0 +1,43 @@
+@startuml
+title SD-FR-RUN-03 · 看板投影与证据定位
+caption FR-RUN-03 / UC-05、UC-08 / BR-01、BR-08、BR-27、BR-39、NFR-02 / SA-P08 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+
+== As-Is · 原型证据 ==
+U -> N : 定期获取单次运行
+N -> N : 由本机工作区对象投影节点和角色
+note over N #Orange
+  SA-P08 问题：看板已有本机投影；发起机关闭即无法跨设备读取，同一存储缺少共享证据视图。
+  证据 src/server.mjs:215–272 / web/app.mjs:534–548
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : getRun + 适用的 listRunEvents
+A -> D : 按现时授权查运行、快照和事件版本
+alt 无当前访问权
+  A --> U : 安全拒绝，不返回任何产物或占用信息
+else 有权
+  A -> D : 投影阶段、节点、角色、尝试和阻塞原因
+  A --> U : 状态快照或有界的增量事件
+  alt 事件游标失效 / 断网重连
+    U -> A : 按契约重读完整有权快照
+  end
+  U -> A : listArtifacts 或 getArtifact
+  A -> D : 按运行授权查产物及可核对的来源
+  A --> U : 产品定义、代码、测试或发布证据\n区分待人工、失败、已停止和已完成
+end
+note over A,D : 读取不会推进运行；设备在线情况独立投影。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

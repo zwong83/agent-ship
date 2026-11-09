@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-FLOW-01 · 阶段、节点及唯一结束标记
+caption FR-FLOW-01 / UC-03 / SA-P02 / UAT-08、35
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "流程配置者" as A
+participant "平台 · 流程配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 保存具名阶段、节点和结束标记
+S -> S : 原型规范化具名阶段和节点，并校验唯一末尾结束点
+note over S #Orange : [SA-P02 当前边界] 原型快照和配置校验需以可追溯版本承接
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 保存具名阶段、节点和结束标记
+S -> R : 核对阶段、节点及保存版本
+alt 定义完整，只有一个末尾结束节点
+  S -> S : 发布可复查版本，结束节点只作标记
+  S -> R : 保留阶段、节点及保存版本及可核对记录
+  S --> A : 可重新打开或供后续运行选择
+else 条件不满足或结果不可确认
+  S --> A : 缺失或错放结束节点时拒绝保存
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

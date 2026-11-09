@@ -1,0 +1,42 @@
+@startuml
+title SD-F01 · 三类配置、负责人和撤权
+caption UC-02 / FR-OWN-01～03 / FR-REQ-01～02 / FR-AG-01
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+actor "当前用户" as U
+boundary "需求 / 流程 / Agent 配置页" as UI
+participant "配置 API" as API
+
+U -> UI : 搜索或打开配置
+UI -> API : 列表、详情、可用角色
+API --> UI : 授权投影、版本与可用动作
+alt 新建
+  U -> UI : 填表并保存
+  UI -> API : 创建
+  alt 新建成功
+    API --> UI : 新配置，创建者为主负责人
+  else 同名需求
+    API --> UI : 有权选择时给原需求入口；否则名称不可用
+  end
+else 编辑或管理负责人
+  alt 主负责人管理
+    U -> UI : 添加、移除副负责人或转交
+    UI -> API : 提交当前版本与请求键
+    API --> UI : 成功后刷新成员；转交立即生效
+  else 有权用户编辑内容
+    U -> UI : 提交草稿
+    UI -> API : 携带期望版本保存
+    alt 权限与版本有效
+      API --> UI : 已保存版本
+    else 编辑权已撤销
+      API --> UI : 拒绝；面向原编辑者的提示
+      UI -> UI : 清除受限投影；草稿仅留内存
+    else 版本冲突
+      API --> UI : 拒绝覆盖新版本
+      UI --> U : 保留草稿并提示刷新比较
+    end
+  end
+end
+@enduml

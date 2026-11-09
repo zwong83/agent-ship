@@ -1,0 +1,55 @@
+@startuml
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-13 一次运行的用例与事务归属
+caption To-Be · Proposed · UC-04～08 · TX 表示平台 PostgreSQL 本地事务
+
+actor 浏览器 as Browser
+participant "runtime.launch" as Launch
+participant "runtime.execution\n含 gitprep" as Execution
+participant "runtime.collaboration" as Chat
+participant "Java Worker" as Worker
+participant "archive" as Archive
+database PostgreSQL as Pg
+
+Browser -> Launch : 发起运行与同机证明
+group TX 1 · 启动
+  Launch -> Pg : 校验配置权限和版本，消费设备证明
+  Launch -> Pg : 冻结运行快照，写入首个 Git 任务和回执
+end
+Launch --> Browser : 运行标识
+Worker -> Execution : 轮询领取任务
+Execution -> Pg : TX 2 · 校验绑定设备，持久化租约
+Execution --> Worker : Git 任务
+Worker -> Execution : 请求 Git 写入许可
+Execution -> Pg : 按当前授权和租约记录外部操作意图
+Execution --> Worker : 执行许可或核对要求
+Worker -> Worker : 执行 Git 并保存结果
+Worker -> Execution : 回报 Git 结果
+Execution -> Pg : 核对证据并记账
+Worker -> Execution : 下次轮询初始化 Agent 节点并领取
+Execution --> Worker : 可执行角色任务
+opt Agent 发问
+  Worker -> Execution : 回报问题与会话
+  Execution -> Chat : 记录问题并将原任务置为待答
+  Chat -> Pg : 同一回报事务保存待答状态
+  Browser -> Chat : 网页回复或取消
+  Chat -> Pg : TX 3 · 当前操作者校验，问题终结与定向入队
+  Worker -> Execution : 原机上线后轮询
+  Execution --> Worker : 原尝试和会话的待投递消息
+end
+Worker -> Execution : 回报角色结果和证据
+group TX 4 · 接收回报与推进
+  Execution -> Pg : 校验设备、世代与回执，记录结果和产物
+  Execution -> Pg : 推进节点、安排后继或完成运行
+end
+opt 发起人批准可公开产物
+  Browser -> Archive : 提交明确审批
+  Archive -> Pg : TX 5 · 核对当前完成快照，保存审批
+  Worker -> Archive : 领取并请求固定写入意图
+  Archive -> Pg : 在独立事务写入许可，再答复 Worker
+  Worker -> Worker : 提交 Git 标签并读回
+  Worker -> Archive : 回报核对结果
+  Archive -> Pg : 核对世代与提交后更新归档
+end
+@enduml

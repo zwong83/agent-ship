@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-RUN-03 · 看板、阻塞原因及产物追溯
+caption FR-RUN-03 / UC-08 / SA-P08 / UAT-01、06、11、27
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "有查看权的项目参与者" as A
+participant "平台 · 运行证据与恢复" as S
+collections "逻辑业务记录" as R
+participant "共享状态" as E
+== As-Is · 本地原型观察 ==
+A -> S : 打开或刷新运行看板
+S -> S : 原型看板读取工作区运行及授权投影
+note over S #Orange : [SA-P08 当前边界] 跨机查看和外部结果核对超出原型实测
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 打开或刷新运行看板
+S -> R : 核对运行、阻塞、产物和操作历史
+alt 当前权限允许读取该运行
+  S -> S : 按运行及快照返回设备、角色、阻塞、证据及终态
+  S -> E : 取得运行可见的最新状态
+  R --> S : 返回授权投影
+  S --> A : 用户可定位原因与产物
+else 条件不满足或结果不可确认
+  S --> A : 过期响应不覆盖新状态；无权时不给内容
+end
+legend right
+  [Contract] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

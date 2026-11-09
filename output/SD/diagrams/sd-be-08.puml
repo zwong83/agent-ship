@@ -1,0 +1,36 @@
+@startuml
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-08 原设备续跑与外部结果核对
+caption UC-04、UC-08 · FR-RUN-03～05、NFR-PRD-03
+
+actor "另一台电脑的授权用户" as Viewer
+participant "共享平台" as API
+database "PostgreSQL" as DB
+participant "原设备 Worker" as Worker
+participant "Git 或发布供应商" as Provider
+
+Worker -> API : 心跳、任务事件或外部操作意图
+API -> DB : 保存任务世代、检查点、已接受证据
+Worker -x API : 设备关机或网络中断
+API -> DB : 按最后心跳判定设备离线
+Viewer -> API : 查询原运行
+API --> Viewer : 等待发起电脑上线\n可查已成功结果及等待状态
+Worker -> API : 原设备同一身份恢复
+API -> DB : 恢复检查点和持久收件箱\n按资格续租或发放新世代
+alt 只有本地任务需要续跑
+  Worker -> Worker : 核对会话和本机记录\n以当前租约继续可恢复部分
+else 外部动作可能已发生
+  Worker -> Provider : 按原请求 ID 或精确目标核对
+  alt 实际结果可唯一确认
+    Worker -> API : 上报原操作的已核对证据
+    API -> DB : 更新原操作，不重复写外部系统
+  else 可证未发生或可靠去重
+    Worker -> API : 按原操作键申请获授权重试
+  else 无法确认
+    Worker -> API : 标为结果未知
+    API -> DB : 保留待人工核对，依赖保持等待
+  end
+end
+API --> Viewer : 同一运行的最新可核对状态
+@enduml

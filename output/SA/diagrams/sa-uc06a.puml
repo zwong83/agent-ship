@@ -1,0 +1,27 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-06A · 聊天操作权与五分钟断网宽限
+actor "授权用户 A／标签页 1" as A
+actor "授权用户 B 或第二标签页" as B
+participant "运行聊天" as C
+A -> C : 进入运行聊天
+C --> A : 获得唯一操作权
+B -> C : 同时尝试进入
+C --> B : 显示占用者，拒绝操作
+alt 正常离开或关闭通知送达
+  A -> C : 释放当前页操作权
+  C --> B : 可立即重新申请
+else 检测到断网
+  C -> C : 自检测起保留 5 分钟
+  alt 期限内原页重连
+    A -> C : 恢复原占用
+  else 到期仍未重连
+    C --> B : 释放后可重新申请
+  end
+end
+note over C : 需求副负责人无聊天权。\n迟到的旧页操作不能影响新占用。
+@enduml

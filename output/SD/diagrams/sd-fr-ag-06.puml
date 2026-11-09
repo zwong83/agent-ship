@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-AG-06 · 本机容量不足时的任务等待
+caption FR-AG-06 / UC-05、UC-08 / BR-27、BR-35 / Proposed / SA-P04、SA-P06 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 报告容量减去运行任务数
+N --> W : 按本机上限返回可领取任务
+note over N #Orange
+  SA-P04、SA-P06 问题：原型已有领任务容量控制；首期真实容量及等待提示仍需验收。
+  证据 src/worker.mjs:48–51,116–125 / src/server.mjs:304–328
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : pollWorker 报告本机可用槽位和有效租约
+A -> D : 按绑定设备和就绪尝试查询候选
+alt 无可用槽位
+  A -> D : 其余角色保持待执行并区分等待资源
+  A --> U : 可区分等待资源和实际执行
+else 仍有可用槽位
+  A -> D : TX 限量锁取候选、发放租约世代
+  A --> W : 返回不超过可用槽位的任务
+  opt 候选多于已领取数量
+    A --> U : 显示超出容量的角色仍在等待
+  end
+end
+opt 某角色等待用户且释放本机可用槽位
+  W -> A : 报告可用容量变化
+  A -> D : 仅领取满足依赖的独立任务
+end
+note over A,D : 全局修复暂停或运行终态仍按调度规则裁决。并发参数见 SA-D05、SA-D08。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

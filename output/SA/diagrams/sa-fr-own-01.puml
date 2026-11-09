@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-OWN-01 · 三类配置主副负责人、添加和移除
+caption FR-OWN-01 / UC-02 / SA-P01 / UAT-14、28
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "创建者和当前主负责人" as A
+participant "平台 · 身份与配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 创建配置，或由主负责人增减副负责人
+S -> S : 原型在单个工作区记录中管理三类对象的成员
+note over S #Orange : [SA-P01 当前边界] 现任角色、提交权限与资料边界需在共享平台复验
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 创建配置，或由主负责人增减副负责人
+S -> R : 核对三类配置及负责人关系
+alt 创建者或现任主负责人资格有效
+  S -> S : 按用户名选人，保存角色关系及审计\n流程与 Agent 使用权只来自当前主、副负责人\n同时核对目标操作权限
+  S -> R : 保留三类配置及负责人关系及可核对记录
+  S --> A : 当前成员关系可查
+else 条件不满足或结果不可确认
+  S --> A : 非主负责人管理名单时拒绝且成员不变
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

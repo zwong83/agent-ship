@@ -1,0 +1,34 @@
+@startuml
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-03 流程校验与版本
+caption UC-03 · FR-FLOW-01/02/05/06、FR-AG-01/02
+
+start
+:接收配置、当前版本与操作者;
+if (当前可编辑且版本匹配？) then (是)
+else (否)
+  :拒绝写入并返回权限或版本提示;
+  stop
+endif
+:规范化阶段顺序、节点 ID 与依赖;
+if (结束标记唯一且在末尾，引用存在？) then (是)
+else (否)
+  :标记无效节点，拒绝保存;
+  stop
+endif
+if (依赖同阶段或更早，且依赖图无环？) then (是)
+else (否)
+  :报告跨阶段顺序冲突或循环;
+  stop
+endif
+if (已选角色有效，检查有两条路线？) then (是)
+else (否)
+  :报告无权角色、缺失分支或无法取得的依赖;
+  stop
+endif
+:在事务内复核授权与版本;
+:保存新的不可变流程版本;
+:旧运行保留启动版本\n后续运行可选新版本;
+stop
+@enduml

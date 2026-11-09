@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>AgentShip · 多 Agent 协作舰船</title>
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="#0c1b2b" stroke="#29465b"/>
+  <path d="M20 19v-5h24v5M32 10v11" stroke="#72bce7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="20" cy="19" r="2.6" fill="#72bce7"/>
+  <circle cx="32" cy="10" r="2.6" fill="#b7fae6"/>
+  <circle cx="44" cy="19" r="2.6" fill="#72bce7"/>
+  <path d="M23 23h18l4 11-13 4-13-4 4-11Z" fill="#bddfe8"/>
+  <path d="M25 27h14l1 4H24l1-4Z" fill="#16384b"/>
+  <path d="M12 35 32 41 52 35 46 48 32 55 18 48 12 35Z" fill="#71edcf"/>
+  <path d="M32 41v14l14-7 6-13-20 6Z" fill="#38bda8"/>
+  <path d="m13 54 5 2m28 0 5-2" stroke="#72bce7" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

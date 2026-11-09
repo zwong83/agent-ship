@@ -1,0 +1,23 @@
+@startuml
+title SA-ROLE02 · 运行、人工介入和发布角色
+caption UC-04～08 / BR-02～11、27～39、45～51 / To-Be Proposed
+!pragma layout smetana
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+left to right direction
+actor "需求主负责人" as Owner
+actor "有权操作者" as User
+actor "原发起设备" as Device
+actor "获授权维护／发布角色" as Ops
+rectangle "平台运行责任" {
+ usecase "发起与固化配置" as Start
+ usecase "查看、回复、单角色重试" as Intervene
+ usecase "执行、续跑、回报证据" as Execute
+ usecase "核对原请求及适用放行" as Reconcile
+}
+Owner --> Start
+User --> Intervene
+Device --> Execute
+Ops --> Reconcile
+note bottom of Intervene : 取消待答仅限发起人。\n其他聊天与放行资格仍需定案。
+@enduml

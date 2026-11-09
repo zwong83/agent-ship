@@ -1,0 +1,48 @@
+@startuml
+title SD-FR-ACC-01 · 注册与账户资料
+caption FR-ACC-01 / UC-01 / UAT-12、15 / SA-P01 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs register / publicUser；test/agentship.test.mjs TA-01/02
+' Authority and operations: POST /api/register；SD-B02、SD-D01、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 提交姓名、用户名、手机、邮箱及两次密码
+  Old -> Old : 校验格式、密码一致与重复，再保存哈希
+  Old --> U : 自动建立会话；公开摘要省略联系资料
+  note over Old #Orange : [SA-P01] 原型直接激活。目标改为双渠道完成后激活
+end
+group To-Be · 拟议技术流程
+  U -> UI : 填写注册资料
+  UI -> UI : 校验用户名规则和两次密码\n密码 15～128 字符，允许空格和符号
+  UI -> API : POST /api/register
+  alt 输入无效、限流或策略未满足
+    API --> UI : 400 / 429 安全错误
+    UI --> U : 聚焦错误；密码不持久化
+  else 注册输入通过
+    API -> DB : 事务内写账号和密码哈希，\n由唯一约束仲裁并发
+    alt 账号标识冲突
+      DB --> API : 唯一约束拒绝；回滚
+      API --> UI : 409 通用冲突
+    else 已提交
+      API --> UI : 202 RegistrationReceipt，待验证邮箱和手机号
+      UI --> U : 显示待验证、两个渠道和到期时间
+      U -> API : POST /api/register/verify，注册引用、渠道、验证码
+      API -> DB : 受信验证成功后保存对应渠道\n第二项成功时同事务激活
+    end
+  end
+  note over UI,API : 超时不自动重发密码；先查询当前会话。\n公开投影仅展示获准资料。
+end
+@enduml

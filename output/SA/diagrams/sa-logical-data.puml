@@ -1,0 +1,26 @@
+@startuml
+title SA-L01 · 概念数据与逻辑责任
+caption UC-01～08 / BRD §6 / To-Be Proposed
+!pragma layout smetana
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+hide methods
+class "账号与身份" as Identity
+class "项目与需求" as Req
+class "配置与版本" as Config
+class "一次运行及生效需求" as Run
+class "阶段节点、角色任务和尝试" as Tasks
+class "聊天问题与答复" as Chat
+class "发起设备" as Dev
+class "工件、检查与发布证据" as Evidence
+Identity "1" --> "*" Req : 当前负责人
+Identity "*" -- "*" Config : 配置角色关系
+Req "1" -- "*" Run : 需求的运行
+Run "*" --> "1" Config : 固定版本
+Run "*" --> "1" Dev : 绑定执行身份
+Run "1" -- "*" Tasks : 所选任务与历史
+Run "1" -- "*" Chat : 持久问答
+Tasks "1" -- "*" Evidence : 产物及证据来源
+Chat "*" --> "1" Tasks : 定向会话
+note bottom of Run : 平台记录共享运行、授权和状态。\n本机持有执行会话与恢复材料。
+@enduml

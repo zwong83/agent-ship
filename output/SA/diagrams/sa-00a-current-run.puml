@@ -1,0 +1,24 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+title SA-00A · 现有原型的一次运行
+actor "浏览器（发起电脑）" as B
+participant "Node.js 平台（回环）" as S
+database "SQLite 工作区记录" as D
+participant "本机 worker" as W
+
+B -> W : 获取本机设备证明
+B -> S : 需求、工作类型、流程、设备证明
+S -> D : 写入快照与首个任务（SA-P02／03）
+W -> S : 定期轮询本设备的任务
+S -> D : 在工作区内更新租约（SA-P04）
+S --> W : 返回领取的任务
+W -> S : 回报提问、失败或结果
+S -> D : 更新运行、问答和后续任务（SA-P05／07）
+B -> S : 轮询看板或提交聊天操作
+S --> B : 返回当前身份可见的状态与产物（SA-P01／08）
+... 发起电脑关机 ...
+note over B,S : 平台与执行程序一起停止，\n另一电脑无法用原回环地址查询（SA-P06）。
+@enduml

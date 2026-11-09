@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-RUN-01 · 工作类型和已有流程选择
+caption FR-RUN-01 / UC-04 / SA-P03 / UAT-01、09、10、16、52
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "需求主负责人" as A
+participant "平台 · 运行发起" as S
+collections "逻辑业务记录" as R
+participant "发起设备" as E
+== As-Is · 本地原型观察 ==
+A -> S : 选需求、工作类型和已保存流程
+S -> S : 原型从需求和流程选项推导允许的启动类型
+note over S #Orange : [SA-P03 当前边界] 启动校验与外部准备须有同一运行证据
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 选需求、工作类型和已保存流程
+S -> R : 核对需求仓库关联、工作类型和流程版本
+alt 未关联仓库固定新功能；已有仓库显式选四类之一，流程可使用
+  S -> S : 固化所选流程版本和工作类型
+  S -> E : 核对原发起设备与操作关联
+  S -> R : 保留需求仓库关联、工作类型和流程版本及可核对记录
+  S --> A : 请求进入设备与 Git 准备
+else 条件不满足或结果不可确认
+  S --> A : 未选择、越权或类型冲突时提示对应原因
+end
+legend right
+  [Contract] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

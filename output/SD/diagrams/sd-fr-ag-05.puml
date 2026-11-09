@@ -1,0 +1,48 @@
+@startuml
+title SD-FR-AG-05 · 失败子 Agent 的重试或跳过
+caption FR-AG-05 / UC-05、UC-06 / BR-39 / SA-P04、SA-P05 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 回报任务失败和安全原因
+U -> N : 当前聊天页请求重试失败任务
+N -> N : 增加单个任务尝试，保留其他结果
+note over N #Orange
+  SA-P04、SA-P05 问题：原型支持局部重试；共享事务须防止重复重试、旧租约和权限变化导致改写。
+  证据 src/engine.mjs:246–248,269–287 / src/server.mjs:228–246
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 当前角色失败事件
+A -> D : TX 保存失败尝试与安全原因
+A --> U : 显示失败角色、已知原因或暂时无法确认
+U -> A : 提交重试或跳过及当前失败任务 ID
+group TX · 聊天权限及尝试版本裁决
+  A -> D : 核对当前持有页、失败尝试、请求收据
+  alt 仍可单独重试
+    A -> D : 新建该角色尝试并置为就绪\n已成功同波次结果不动
+  else 获权跳过当前失败角色
+    A -> D : 保存跳过及审计，成功记录保留\n仍核对节点最终产物
+  else 已处理 / 过期 / 非失败任务
+    A --> U : 返回原收据或拒绝，不创建新尝试
+  end
+end
+opt 重试已受理
+  W -> A : 领取新尝试，迟到回报按当前尝试核对
+end
+A --> U : 可查看失败记录、新尝试及其他角色结果
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

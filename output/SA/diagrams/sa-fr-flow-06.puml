@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-FLOW-06 · 检查双分支和实际路线选择
+caption FR-FLOW-06 / UC-07 / SA-P07 / UAT-43、44、50
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "流程配置者和检查节点" as A
+participant "平台 · 交付与验收" as S
+collections "逻辑业务记录" as R
+participant "本机检查" as E
+== As-Is · 本地原型观察 ==
+A -> S : 保存检查配置或回报本次有效结论
+S -> S : 原型依据检查结果切换通过或修复路线
+note over S #Orange : [SA-P07 当前边界] 复查及真实发布须绑定同一候选工件
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 保存检查配置或回报本次有效结论
+S -> R : 核对检查双路线与检查波次
+alt 两条路线完整，本次结论是通过或需修复
+  S -> S : 只激活本波对应路线，复查可产生新选择
+  S -> E : 向原检查交接当前候选产物
+  S -> R : 保留检查双路线与检查波次及可核对记录
+  S --> A : 看板反映本波选中的路线
+else 条件不满足或结果不可确认
+  S --> A : 缺路线时不保存；无有效结论时不开放任一路线
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

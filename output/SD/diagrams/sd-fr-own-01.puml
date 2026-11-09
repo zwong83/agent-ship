@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-OWN-01 · 三类配置创建与主副协作
+caption FR-OWN-01 / UC-02 / UAT-14、28 / SA-P01 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs saveObject / ownership；web/app.mjs ownerPanel；test/agentship.test.mjs TA-01/02
+' Authority and operations: POST /api/objects/{kind}；PATCH /api/objects/{kind}/{objectId}；POST …/ownership；SD-B02、SD-D01、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 新建需求、流程或 Agent 配置
+  Old -> Old : 创建者成为主负责人；副负责人可按授予编辑
+  U -> Old : 主负责人用用户名增删成员
+  note over Old #Orange : [SA-P01] 原型按用户名定位；拟议契约用 UUID，\n受控目标选择接口仍待确认
+end
+group To-Be · 拟议技术流程
+  U -> UI : 创建需求、流程或 Agent 配置
+  UI -> API : POST /api/objects/{kind} + 请求键
+  API -> DB : 校验权限；同一事务创建配置、主负责人、\n初始版本与收据
+  API --> UI : 201 配置与允许动作
+  alt 主负责人管理副负责人
+    U -> UI : 添加时输入用户名，移除时选现有成员
+    UI -> API : POST …/ownership，用户名或成员 ID、版本及请求键
+    API -> DB : 校验主负责人后提交关系与版本\n候选与提交按当前主、副负责人关系复核
+    API --> UI : 200 刷新成员；允许移除最后一位
+  else 副负责人编辑获授配置
+    UI -> API : PATCH …/{objectId}，期望版本
+    API -> DB : 校验当前编辑权，提交内容版本
+    API --> UI : 200 已保存
+  else 越权增删、编辑或版本冲突
+    API --> UI : 拒绝且保留已提交状态
+  end
+  note over UI,API : 同一已受理请求重放原结果；\n按忽略大小写的精确用户名解析。
+end
+@enduml

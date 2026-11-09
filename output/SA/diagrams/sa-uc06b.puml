@@ -1,0 +1,25 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-06B · 问题、答复、取消与正式变更
+participant "发问 Agent A" as A
+participant "运行聊天" as C
+actor "当前操作者" as U
+A -> C : 提问（记录目标会话）
+C --> U : 展示「等待回复」和回答框
+note over A,C : 其他独立角色继续；关闭页面后问题保留
+alt 回复
+  U -> C : 回答指定问题
+  C --> A : 仅向发问会话投递答案
+else 取消且操作者为发起人
+  U -> C : 取消指定问题
+  C --> A : 按已有信息继续
+end
+U -> C : 提出正式变更
+C -> C : 待确认，沿用旧需求
+U -> C : 由有确认权者提交确认
+C -> C : 后续适用任务采用新修订
+@enduml

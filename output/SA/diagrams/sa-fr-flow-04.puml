@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-FLOW-04 · 并行路线汇合和完成判定
+caption FR-FLOW-04 / UC-08 / SA-P04 / UAT-35、39
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "运行调度者" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 最后一个实际路线返回结果
+S -> S : 原型检查结束节点前所有运行节点状态
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 最后一个实际路线返回结果
+S -> R : 核对实际路线和结束标记
+alt 实际选中路线和应执行节点均已完成
+  S -> S : 到达结束节点并写终态
+  S -> R : 保留实际路线和结束标记及可核对记录
+  S --> A : 看板显示已完成
+else 条件不满足或结果不可确认
+  S --> A : 仍有实际路线或产物待处理时不得结束
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

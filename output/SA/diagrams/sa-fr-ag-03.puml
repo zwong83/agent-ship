@@ -1,0 +1,32 @@
+@startuml
+title SA-FR-AG-03 · 角色间交接和人与 Agent 双向通信
+caption FR-AG-03 / UC-05 / SA-P04 / UAT-05、20、21、22
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "子 Agent、协调 Agent 或聊天操作者" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+participant "本机 Agent" as E
+== As-Is · 本地原型观察 ==
+A -> S : 发送角色交接、用户消息或问题回复
+S -> S : 原型记录手动回复、角色交接与队列消息
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 发送角色交接、用户消息或问题回复
+S -> S : 普通消息选协调 Agent，@Agent 选指定角色\n答复问题选原发问者
+S -> R : 核对定向会话、交接和投递记录
+alt 目标属于本次运行和允许的会话范围
+  S -> S : 按实际目标投递并保留投递状态
+  S -> E : 以已选角色、任务或会话传递
+  S -> R : 保留定向会话、交接和投递记录及可核对记录
+  S --> A : 原会话可继续并反馈结果
+else 条件不满足或结果不可确认
+  S --> A : 未知或越权目标拒绝；不可确认投递先核对
+end
+legend right
+  [Contract] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

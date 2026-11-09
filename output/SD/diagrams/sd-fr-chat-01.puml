@@ -1,0 +1,54 @@
+@startuml
+title SD-FR-CHAT-01 · 找回会话、授权与定向互动
+caption FR-CHAT-01 / UC-06 / UAT-05、20、22、32 / SA-P05、SA-P06 / 所有者 SD-F02，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs chat / projectedRun；src/engine.mjs message；src/worker.mjs pollOnce；历史演练与协议替身
+' Authority and operations: GET /api/runs/{runId}、…/chat；POST …/chat、…/actions、/api/worker/poll；SD-B02、SD-D03、SD-I01～03
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+participant "原设备 / Codex" as W
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 从运行看板进入聊天并向角色发送
+  Old -> Old : 仅需求主负责人持页标识可操作，\n向任务收件箱路由
+  note over Old #Orange : [SA-P05、SA-P06] 单用户/多标签页历史演练；\n独立第二用户与真机 Codex 双向互动未验
+end
+group To-Be · 拟议技术流程
+  opt 发起人授权或撤销聊天用户
+    U -> API : POST …/chat/access，目标用户及授权操作
+    API -> DB : 核对发起人，保存授权或撤权\n撤销该用户的占用及后续访问
+  end
+  U -> UI : 从看板或获权聊天链接打开会话
+  UI -> API : POST …/chat acquire，独立核对聊天权
+  API -> DB : 核对运行绑定、聊天权及当前占用\n看板读取权限单独判断
+  alt 需求副负责人或其他无权角色
+    API --> UI : 安全拒绝；省略占用者和消息
+  else 有聊天权但已被其他页面占用
+    API --> UI : 409 CHAT_OCCUPIED；不加载消息
+  else 获得租约
+    API --> UI : 当前页租约
+    UI -> API : GET …/chat，X-Chat-Lease 与游标
+    API --> UI : 授权会话投影，或提示重新取快照
+    U -> UI : 给可接收角色发消息
+    UI -> API : POST …/actions message，节点、波次、可选目标、文本\n当前租约与请求键
+    API -> DB : 校验目标及资格，提交消息、定向收件箱与收据
+    API --> UI : Ack，随后刷新聊天
+    W -> API : 绑定设备轮询，领取对应会话消息
+    W -> W : 送至该角色的 Codex 会话
+    W -> API : type=message，正文、会话及可选原投递 ID
+    API -> DB : 核对尝试和序号，保存可见回复
+    API --> UI : 当前授权下按游标读取消息
+  end
+end
+@enduml

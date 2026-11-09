@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-ACC-01 · 注册校验、判重和资料保护
+caption FR-ACC-01 / UC-01 / SA-P01 / UAT-12、15
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "注册访客" as A
+participant "平台 · 身份与配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 提交姓名、用户名、手机、邮箱及两次密码
+S -> S : 原型在工作区内查重并创建账号
+note over S #Orange : [SA-P01 当前边界] 现任角色、提交权限与资料边界需在共享平台复验
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 提交姓名、用户名、手机、邮箱及两次密码
+S -> R : 检查密码 15～128 字符及两次一致\n按规范化后的用户名、邮箱和手机号判重
+alt 字段合法、两次密码一致且账号键可用
+  S -> S : 原子创建账号并保留资料访问限制
+  S -> R : 保留账号和私有联系方式及可核对记录
+  S --> A : 显示待验证和 24 小时期限
+  A -> S : 完成邮箱及手机号验证
+  S --> A : 两项均成功后账号激活，可登录
+else 条件不满足或结果不可确认
+  S --> A : 重复或输入不合规时拒绝且不创建记录
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

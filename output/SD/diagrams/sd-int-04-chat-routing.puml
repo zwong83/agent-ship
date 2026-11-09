@@ -1,0 +1,43 @@
+@startuml
+title SD-I01、SD-I03 · 聊天互斥、定向答复和释放
+caption UC-06 / FR-CHAT-01～06 / FR-AG-03、05 / FR-FLOW-07、09
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+boundary "标签页 A" as A
+boundary "竞争标签页 B" as B
+participant "平台聊天与任务 API" as API
+participant "原设备 worker / 目标会话" as W
+
+A -> API : 授权后申请操作权
+API --> A : 原子取得租约及当前世代凭据
+B -> API : 竞争同一运行聊天
+alt 另一个获授权账号或同账号其他标签页
+  API --> B : CHAT_OCCUPIED + 有权查看的占用者
+else 副负责人或无聊天权限
+  API --> B : 访问拒绝
+end
+
+W -> API : 提问，包含原角色与会话映射
+API --> A : 待答问题，其他独立任务继续
+A -> API : 提交回复 / 发起人取消，带当前凭据与请求键
+API -> API : 同一事务更新问题并保存定向收件箱
+API --> A : 已接受待投递；重复提交复用收据
+W -> API : 轮询并获取该任务的收件箱
+API --> W : 原发问会话与稳定投递 ID
+W -> API : 核对后回报投递结果
+API --> A : 已投递或待核对
+
+alt 显式离开 / 平台收到正常关闭信号
+  A -> API : 持当前凭据释放
+  API -> API : 立即释放；旧页不能影响新占用
+else 心跳丢失
+  API -> API : 检测断网后保留五分钟
+  alt 原持有页限时内以当前凭据恢复
+    A -> API : 重连续用
+  else 宽限届满
+    B -> API : 可重新竞争；过期凭据无效
+  end
+end
+@enduml

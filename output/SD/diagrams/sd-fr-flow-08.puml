@@ -1,0 +1,49 @@
+@startuml
+title SD-FR-FLOW-08 · 自动修复计数与原节点复查
+caption FR-FLOW-08 / UC-07 / BR-46、BR-47 / SA-P07 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+N -> N : 按检查节点累加 rounds
+N -> N : 修复节点完成后重新启动原检查
+note over N #Orange
+  SA-P07 问题：原型计数和复查存在；修复报告须绑定确切工件，跨阶段语义仍待审批。
+  证据 src/engine.mjs:34–40,72–97,178–189
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 某原检查波次需修复，回报受测工件
+group TX · 锁运行与当前检查
+  A -> D : 核对原检查节点、配置限次及已有轮数
+  alt 自动额度未用尽
+    A -> D : 写唯一自动修复轮；首轮为 1\n派发本轮适用修复任务
+  else 额度用尽且结论仍需修复
+    A -> D : 记 limit_reached，阻止相关路线领取和新外部写入\n无关路线仍可领取
+    A --> U : 待人工处理及达到上限的原因
+  end
+end
+opt 已授权的修复轮执行完毕
+  W -> A : 提交修复后的已验收工件
+  A -> D : TX 完成该修复轮，创建原检查的新波次\n固定本次复查输入；保留旧波次
+  alt 复查通过
+    A -> D : 选通过路线；继续验证适用发布条件
+  else 仍需修复
+    A -> A : 重新判断该检查节点自己的上限
+  end
+end
+note over A,D : 修复归属原检查波次，可跨阶段。\n领取及写入授权在同一运行锁下复核。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

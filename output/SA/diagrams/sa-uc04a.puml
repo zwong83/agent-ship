@@ -1,0 +1,27 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-04A · 启动前的业务判定
+start
+:选中已有需求或确认新增;
+if (需求已有仓库?) then (是)
+  :显式选择四种工作类型之一;
+else (否)
+  :固定为新功能;
+endif
+:选择有使用权的已保存流程;
+if (没有需求阶段且缺描述?) then (是)
+  :提示先填描述;
+  stop
+endif
+if (现任主负责人且发起设备有效?) then (是)
+  :固化流程、所选角色和发起电脑;
+  :保存本次运行并准备 Git;
+else (否)
+  :拒绝启动，不触发外部动作;
+endif
+stop
+@enduml

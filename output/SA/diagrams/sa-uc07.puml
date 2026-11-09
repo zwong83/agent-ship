@@ -1,0 +1,28 @@
+@startuml
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+skinparam ArrowColor #335751
+skinparam defaultTextAlignment center
+title UC-07 · 原检查复查与路线级等待
+!pragma layout smetana
+state "检查／原节点复查" as Check
+state "执行一轮修复\n可跨阶段，完成后回原检查" as Repair
+state "待人工处理\n结论缺失" as Invalid
+state "受影响路线等待\n无关路线可继续" as Limit
+state "通过路线" as Pass
+state "核对开发交付产物" as Release
+state "已停止" as Stop
+[*] --> Check
+Check --> Pass : 通过
+Check --> Repair : 需修复且还有自动次数
+Check --> Invalid : 结论无效
+Check --> Limit : 仍需修复且已到上限
+Repair --> Check : 修复后产物就绪
+Invalid --> Check : 有权操作者重新检查
+Limit --> Repair : 人工追加一轮
+Limit --> Stop : 人工停止
+Pass --> Release : 适用测试和检查满足
+Release --> [*]
+Stop --> [*]
+@enduml

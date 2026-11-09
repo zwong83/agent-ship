@@ -1,0 +1,42 @@
+@startuml
+title SD-FR-REQ-02 · 全平台同名需求与安全选择
+caption FR-REQ-02 / UC-02、04 / UAT-54 / SA-P01 / 所有者 SD-F01，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/server.mjs saveObject；web/app.mjs submit name-taken；test/agentship.test.mjs TA-01/02
+' Authority and operations: POST /api/objects/requirements；SD-B02、SD-D01、SD-I01
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+end box
+
+group As-Is · 源码及注明的历史证据
+  U -> Old : 在配置或启动页提交同名需求
+  Old -> Old : 全局匹配规范化名称，主负责人可获原 ID
+  Old --> U : 原需求入口或通用不可用
+  note over Old #Orange : [SA-P01] 原型的提示资格仅按 owner 判断；\n目标以当前有权选择为准
+end
+group To-Be · 拟议技术流程
+  U -> UI : 确认创建需求
+  UI -> API : POST /api/objects/requirements + 请求键
+  API -> DB : 事务尝试插入，唯一约束处理并发同名
+  alt 新名称成功
+    DB --> API : 提交需求、主负责人及收据
+    API --> UI : 201，使用新记录 ID
+  else 发现同名且有权选择
+    API --> UI : 409 与授权的已有记录入口
+    UI --> U : 选择原需求，不新增
+  else 同名但无选择权
+    API --> UI : 409 名称不可用，不返回 ID 或负责人
+  end
+  note over API,DB : 同键同内容返回已受理结果，仍校验访问。\n名称规范化和冲突策略须同数据权威一致。
+end
+@enduml

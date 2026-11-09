@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-CHAT-03 · 持久待答、取消与继续
+caption FR-CHAT-03 / UC-06 / UAT-33、34 / SA-P05 / 所有者 SD-F02，服务端以 Backend SD 为准
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+skinparam maxMessageSize 38
+
+' As-Is evidence: src/engine.mjs runAction；test/agentship.test.mjs TA-06 与 TA-05/06/08 演练
+' Authority and operations: GET /api/runs/{runId}/chat；POST …/actions；SD-B04、SD-D03、SD-I01～03
+actor 用户 as U
+box "As-Is · 历史 Node/SQLite 原型" #F0F1F2
+participant "原型 Web/API" as Old
+end box
+box "To-Be · 拟议设计" #LightGreen
+boundary "React 页面" as UI
+participant "Spring Boot API" as API
+database PostgreSQL as DB
+participant "原设备 / Codex" as W
+end box
+
+group As-Is · 源码及注明的历史证据
+  Old -> Old : 保存等待回复的问题
+  U -> Old : 关闭聊天后重开，重新获取问题
+  Old -> Old : 发起人可取消并使原任务续行
+  note over Old #Orange : [SA-P05] 单机待答保留及取消有历史断言；\n多用户终结竞争和真实续行待验
+end
+group To-Be · 拟议技术流程
+  U -> UI : 重新进入聊天并取得当前页操作权
+  UI -> API : GET …/chat，当前租约
+  API -> DB : 读取原问题及状态
+  API --> UI : 同一问题保持待答
+  U -> UI : 点击取消问题
+  UI -> API : POST …/actions cancel-question，问题 ID、\n租约及请求键
+  API -> DB : 核对运行发起人及当前操作权，锁定原问题
+  alt 有权且问题仍待答
+    API -> DB : 待答→已取消，保存继续指令、审计与收据
+    API --> UI : Ack；重读后显示已取消
+    W -> API : 领取原问题对应的继续指令
+    W -> W : 原发问角色按已有信息继续
+  else 非发起人、租约无效或已被回复
+    API --> UI : 403 / 409；不产生继续指令
+  end
+  note over API,DB : 回复和取消至多一项终结。\n同键重放返回原收据。
+end
+@enduml

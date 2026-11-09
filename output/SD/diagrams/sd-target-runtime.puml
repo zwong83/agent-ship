@@ -1,0 +1,38 @@
+@startuml
+title SD-SYS02 · 目标主运行、事务与失败恢复
+caption To-Be Proposed / UC-04～08 / SD-B03～05、SD-I02～04 / 架构视图
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+actor "浏览器 A／B" as B
+participant "Spring Boot 平台" as P
+database "PostgreSQL" as D
+participant "原机 A 的 Java Worker" as W
+participant "Codex／Git／发布边界" as X
+B -> W : 回环证明（平台一次性挑战）
+B -> P : 当前身份、版本、同机证明和请求键
+P -> D : TX 校验权限／挑战，保存运行、快照、任务与收据
+W -> P : 绑定身份领取任务
+P -> D : TX 短事务发放当前尝试租约
+alt Git 已核对
+  P -> D : 依赖、阶段、角色和工件条件满足才派发
+else Git 失败或结果未知
+  P -> D : 保留原请求与证据，阻塞后续
+  W -> X : 按原引用核对，获准后恢复
+end
+W -> X : 在有效尝试内执行或与目标会话交互
+W -> P : 事件序号、结果或提问
+P -> D : TX 按围栏受理结果、产物、问答和下一步
+alt 原机下线／Agent 待答
+  B -> P : 另一台电脑按权限查询原运行
+  P --> B : 可见进度、阻塞和持久待答
+  W -> P : 原机重连并核对检查点
+else 检查或发布门槛尚未通过
+  P -> D : 同一运行记录跨阶段修复及原检查复查\n达到上限只等待受影响路线
+end
+opt 有适用发布动作
+  P -> D : 验证同一工件、测试、复查及放行
+  W -> X : 获准后调用供应商并核对真实结果
+end
+P -> D : 实际路线完成后落终态
+@enduml

@@ -1,0 +1,29 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+top to bottom direction
+title SD-BE-12 模块内分层与依赖方向
+caption To-Be · Proposed · 实线表示源码依赖 · 虚线表示装配或端口实现
+
+[HTTP / Worker 协议入口\ntransport] as In
+[应用用例及公开门面\napplication] as App
+[业务规则与值类型\ndomain] as Domain
+interface "由用例定义的数据访问端口\napplication.port" as Port
+[JDBC / SQL 映射\ninfrastructure] as Db
+[Spring Boot 装配\nbootstrap] as Boot
+database PostgreSQL as Pg
+
+In --> App : 请求 DTO → 命令
+App --> Domain : 快照 → 决策
+App --> Port : 读取及持久化
+Db ..|> Port : 实现
+Db --> Pg
+Boot ..> In
+Boot ..> App
+Boot ..> Db
+note right of Domain
+  纯 Java
+  只使用业务值和规则
+end note
+@enduml

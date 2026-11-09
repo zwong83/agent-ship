@@ -1,0 +1,45 @@
+@startuml
+title SD-FR-FLOW-05 · 流程更新与运行快照隔离
+caption FR-FLOW-05 / UC-03、UC-05 / BR-42 / SA-P02 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+U -> N : 启动并随后编辑流程
+N -> N : 复制流程节点和所选角色到运行对象
+note over N #Orange
+  SA-P02 问题：原型复制节点和角色；共享证据需要不可变版本的可查询引用。
+  证据 src/engine.mjs:21–31 / src/server.mjs:198–211
+end note
+
+== To-Be · 拟议技术方案 ==
+U -> A : 以流程 V1 和所选角色发起 R1
+group TX · 启动快照
+  A -> D : 校验当前权限及所选版本\n写运行引用、节点和角色版本
+end
+U -> A : 修改阶段、依赖或角色，提交当前配置版本
+alt 当前版本与权限有效
+  A -> D : TX 封存 V2；V1 引用保持
+  U -> A : 从 V2 启动 R2
+  A -> D : TX 固化 R2 的 V2 引用
+else 旧版本 / 已撤权
+  A --> U : 不修改配置；返回冲突或权限拒绝
+end
+W -> A : 领取 R1、R2 任务
+A -> D : 分别读取 R1/V1、R2/V2 快照
+A --> W : 各自适用的节点与角色配置
+A --> U : 看板分别可追溯启动版本
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

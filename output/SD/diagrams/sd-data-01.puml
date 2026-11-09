@@ -1,0 +1,111 @@
+@startuml
+!pragma layout smetana
+title SD-D01 账号、项目与配置版本
+top to bottom direction
+hide circle
+skinparam linetype ortho
+skinparam classFontSize 14
+skinparam classBackgroundColor #F3F8FA
+skinparam classBorderColor #335D73
+skinparam ArrowColor #456778
+
+entity "account" as Account {
+  * id : UUID <<PK>>
+  --
+  * username : 1 至 100 个 ASCII 字符
+  * username_key : 小写唯一登录键
+  email_login_key : 可空且唯一
+}
+entity "account_session" as Session {
+  * id : UUID <<PK>>
+  --
+  * account_id : FK
+  * token_digest : 摘要
+  * expires_at : 到期
+}
+entity "project" as Project {
+  * id : UUID <<PK>>
+}
+entity "project_permission" as ProjectPerm {
+  * project_id, account_id, capability : PK
+  --
+  expires_at / revoked_at
+}
+entity "configuration" as Config {
+  * id : UUID <<PK>>
+  --
+  * kind : requirement / workflow / agent
+  * owner_id : 当前主负责人
+  * version : 乐观版本
+}
+entity "configuration_deputy" as Deputy {
+  * configuration_id, account_id : PK
+  --
+  revoked_at : 撤权
+}
+entity "requirement" as Requirement {
+  * id : FK to configuration
+  --
+  * project_id : FK
+  * name_key : 全局唯一
+  repository_id : FK
+}
+entity "repository" as Repository {
+  * id : UUID <<PK>>
+  --
+  * provider, provider_repository_id : 唯一
+}
+entity "workflow" as Workflow {
+  * id : FK to configuration
+}
+entity "workflow_version" as FlowVersion {
+  * workflow_id, version : PK
+  --
+  sealed_at : 封存后只读
+}
+entity "流程定义明细" as FlowGraph {
+  * workflow_stage / workflow_node
+  --
+  workflow_dependency
+  workflow_check / workflow_route_node
+  workflow_publication / workflow_role
+}
+entity "agent_config" as AgentConfig {
+  * id : FK to configuration
+}
+entity "agent_definition" as Agent {
+  * id : UUID <<PK>>
+  --
+  * role_key : 唯一
+  agent_config_id : 配置角色时有值
+}
+entity "agent_version" as AgentVersion {
+  * agent_id, version : PK
+  --
+  * instruction : 角色版本内容
+}
+Account ||--o{ Session
+Account ||--o{ Config : 主责
+Account ||--o{ Deputy
+Config ||--o{ Deputy
+note right of Deputy
+  有效的流程和 Agent 副负责人
+  获得该配置的使用资格。
+end note
+Account ||--o{ ProjectPerm
+Project ||--o{ ProjectPerm
+Project ||--o{ Requirement
+Config ||--o| Requirement
+Config ||--o| Workflow
+Config ||--o| AgentConfig
+Repository |o--o{ Requirement
+Workflow ||--o{ FlowVersion
+FlowVersion ||--|{ FlowGraph
+AgentConfig |o--o| Agent
+Agent ||--o{ AgentVersion
+AgentVersion ||--o{ FlowGraph : workflow_role
+legend bottom
+  实线表示物理外键或图中明确标注的明细关系。
+  0..1 子类型按 configuration.kind 互斥。
+endlegend
+@enduml

@@ -1,0 +1,29 @@
+@startuml
+title SA-FR-FLOW-02 · 跨阶段依赖和循环校验
+caption FR-FLOW-02 / UC-03 / SA-P02 / UAT-08、42
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "流程配置者" as A
+participant "平台 · 流程配置" as S
+collections "逻辑业务记录" as R
+== As-Is · 本地原型观察 ==
+A -> S : 新增节点依赖并保存
+S -> S : 原型检查引用方向和循环
+note over S #Orange : [SA-P02 当前边界] 原型快照和配置校验需以可追溯版本承接
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 新增节点依赖并保存
+S -> R : 核对前置依赖与所属阶段
+alt 同一流程的同阶段或更早阶段，且引用无环
+  S -> S : 在保存版本中记录前置关系
+  S -> R : 保留前置依赖与所属阶段及可核对记录
+  S --> A : 配置可用于就绪判断
+else 条件不满足或结果不可确认
+  S --> A : 逆序、失效或循环时拒绝；循环显示有循环依赖
+end
+legend right
+  [No Change] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

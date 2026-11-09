@@ -1,0 +1,48 @@
+@startuml
+title SD-FR-AG-03 · 角色间交接及人与角色双向通信
+caption FR-AG-03 / UC-05、UC-06 / BR-27、BR-28 / SA-P04、SA-P05 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 回报交接或问题；轮询角色收件箱
+N -> N : 按已选角色路由并保存用户消息
+note over N #Orange
+  SA-P04、SA-P05 问题：原型有交接、定向问题和 in-flight 输入；平台需持久化消息来源、目标和交付回执。
+  证据 src/engine.mjs:230–265,281–327 / src/worker.mjs:127–139
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : reportWorkerEvent 交接、问题或角色消息
+A -> D : 校验设备、当前尝试、连续事件序号及目标范围
+alt 角色交接有效
+  A -> D : TX 存消息与目标角色收件箱
+else 当前角色向用户提问
+  A -> D : TX 保存问题及会话关联；独立角色可继续
+  A --> U : 显示发问者和待答问题
+end
+U -> A : 当前聊天页主动发消息或回复问题
+A -> A : 解析目标为当前节点的稳定角色 ID
+alt 有权，目标可寻址
+  A -> D : TX 保存消息与定向交付 ID
+  A --> W : 轮询交给对应任务与 Codex 会话
+  W -> A : 回报已交付或可核对失败
+  A --> U : 显示已接收、回复或等待核对
+else 无权 / 目标不明确
+  A --> U : 拒绝或要求选择目标
+end
+note over U,A : 普通消息默认协调 Agent，@Agent 定向到所选角色。\n问题回复沿用原发问会话。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

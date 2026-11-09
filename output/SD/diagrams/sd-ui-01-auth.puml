@@ -1,0 +1,40 @@
+@startuml
+title SD-F01 · 注册、登录与业务入口
+caption UC-01 / FR-ACC-01～02 / NFR-PRD-04
+hide footbox
+skinparam backgroundColor #FCFBF7
+skinparam shadowing false
+
+actor 用户 as U
+boundary "React 页面" as UI
+participant "平台账号 API" as API
+
+U -> UI : 打开注册、登录或业务页
+UI -> API : GET /api/me
+alt 已登录
+  API --> UI : 身份与允许入口
+  UI --> U : 进入工作台
+else 无会话
+  API --> UI : 未登录
+  UI --> U : 显示注册或登录
+  alt 注册
+    U -> UI : 姓名、用户名、手机、邮箱、两次密码
+    UI -> API : 格式检查后提交注册
+  else 登录
+    U -> UI : 邮箱或用户名 + 密码
+    UI -> API : 提交登录
+  end
+  alt 服务器校验成功
+    API --> UI : 注册结果或登录会话
+    UI --> U : 按会话状态继续
+  else 格式、重复、凭据或限流错误
+    API --> UI : 安全错误码与可显示提示
+    UI --> U : 聚焦错误；保留可安全重填的内容
+  end
+end
+opt 主动登出
+  U -> UI : 退出
+  UI -> API : 登出并使原会话失效
+  UI --> U : 清理受限页面状态并返回登录
+end
+@enduml

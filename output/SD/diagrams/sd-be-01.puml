@@ -1,0 +1,41 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #F6F8FC
+skinparam shadowing false
+title SD-BE-01 后端组件与发起电脑
+caption UC-01～UC-08 · 目标拓扑，部署环境待审批
+
+actor "授权用户" as User
+node "运行发起电脑" as Origin {
+  [React 浏览器] as Browser
+  [Java 执行程序] as Worker
+  [Codex App Server] as Codex
+  folder "运行工作目录\n恢复检查点与回报暂存" as Journal
+}
+node "独立共享环境（Proposed）" as Shared {
+  [Spring Boot 同源入口\nReact 静态资源 / API] as Http
+  package "平台用例层" {
+    [账号与配置] as Account
+    [工作流与任务] as Work
+    [聊天与产物] as Chat
+  }
+  [持久化适配] as Repo
+  database "PostgreSQL" as Pg
+}
+cloud "Git 托管与发布平台" as External
+User --> Browser
+User --> Http : 其他浏览器查看有权运行
+Browser --> Http : 同源 API
+Browser --> Worker : 回环设备证明
+Http --> Account
+Http --> Work
+Http --> Chat
+Account --> Repo
+Work --> Repo
+Chat --> Repo
+Repo --> Pg
+Worker --> Http : 主动领取、续租、回报
+Worker --> Codex : 标准输入输出
+Worker --> Journal
+Worker --> External : 获授权操作
+@enduml

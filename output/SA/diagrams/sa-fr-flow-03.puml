@@ -1,0 +1,31 @@
+@startuml
+title SA-FR-FLOW-03 · 阶段屏障、共同前置与顺序
+caption FR-FLOW-03 / UC-05 / SA-P04 / UAT-38、40、41
+hide footbox
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+skinparam backgroundColor #FCFCF9
+actor "运行调度者" as A
+participant "平台 · 运行编排" as S
+collections "逻辑业务记录" as R
+participant "本机任务执行" as E
+== As-Is · 本地原型观察 ==
+A -> S : 前置节点回报有效完成
+S -> S : 原型调度函数按阶段、共同上游和节点顺序推进
+note over S #Orange : [SA-P04 当前边界] 需独立追踪所选角色、执行尝试及节点产物
+== To-Be · 目标逻辑（Proposed） ==
+A -> S : 前置节点回报有效完成
+S -> R : 核对阶段、节点、前置完成和产物状态
+alt 上阶段应执行节点结束且各自前置与产物满足
+  S -> S : 共同直接上游允许同阶段并行，其他按配置顺序
+  S -> E : 交接本次运行已就绪的任务
+  S -> R : 保留阶段、节点、前置完成和产物状态及可核对记录
+  S --> A : 仅开放本轮具备条件的节点
+else 条件不满足或结果不可确认
+  S --> A : 前置未满足时继续等待，不提前分派
+end
+legend right
+  [Logic] 目标为待评审逻辑。
+  现状指所列原型证据边界。
+endlegend
+@enduml

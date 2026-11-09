@@ -1,0 +1,45 @@
+@startuml
+title SD-FR-AG-04 · 收齐角色结果与节点最终产物
+caption FR-AG-04 / UC-05 / BR-40 / SA-P04、SA-P08 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 子角色回报后运行协调者
+N -> N : 要求协调结果有 artifact 才完成节点
+note over N #Orange
+  SA-P04、SA-P08 问题：原型校验 artifact 字段；目标需确认不可变产物可引用并与本节点波次关联。
+  证据 src/engine.mjs:54–70,99–118
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 回报当前角色或协调者的成功结果
+group TX · 节点产物验收
+  A -> D : 锁运行和节点执行；核对尝试及所选角色
+  alt 还有未处置失败或尚未完成角色
+    A -> D : 只保存当前角色结果，下游等待
+  else 角色结果齐备
+    A -> A : 协调 Agent 先处理产物冲突\n仍有冲突则等待人工，再校验最终产物
+    alt 最终产物缺失 / 不可引用
+      A -> D : 记录阻塞原因，节点保持未完成
+    else 产物有效
+      A -> D : 写产物和来源，完成当前节点波次\n重算下游依赖并产生新待执行项
+    end
+  end
+end
+A --> U : 看板显示缺项或最终可查看产物
+note over A,D : 历史波次及已成功角色的证据均保留。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+title SD-FR-FLOW-04 · 实际路线汇合与运行完成
+caption FR-FLOW-04 / UC-05、UC-08 / BR-38 / SA-P04 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+
+== As-Is · 原型证据 ==
+W -> N : 回报节点结果
+N -> N : 等待非结束节点到达 done 或 skipped
+N --> U : 到达末尾后显示完成
+note over N #Orange
+  SA-P04 问题：原型把汇合写入本机状态；目标需核对实际路线和有效证据再原子收尾。
+  证据 src/engine.mjs:124–137,163–190
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 回报最后一个候选节点结果
+group TX · 汇合和终态
+  A -> D : 锁运行、验收当前事件并加载激活路线
+  alt 运行已停止或旧尝试
+    A --> W : 拒绝推进；已受理重放返回原收据
+  else 运行仍可推进
+    A -> A : 按实际激活路线核对必要节点和产物
+    alt 任一路线未完成 / 发布待核对
+      A -> D : 保留等待与当前进度
+    else 全部实际路线完成且已到末尾标记
+      A -> D : 写结束标记及 completed；冻结后续推进
+    end
+  end
+end
+A --> U : 看板显示剩余路径或运行完成
+note over A,D : 结束标记没有执行任务；未激活分支不阻塞。
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

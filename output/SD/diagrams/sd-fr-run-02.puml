@@ -1,0 +1,54 @@
+@startuml
+title SD-FR-RUN-02 · Git 仓库与工作分支准备
+caption FR-RUN-02 / UC-04 / BR-02 / SA-P03 · 后端与集成设计 · Proposed
+hide footbox
+skinparam backgroundColor #FCFCF9
+skinparam shadowing false
+skinparam ArrowColor #335751
+skinparam defaultFontName PingFang SC
+actor "有权用户或浏览器" as U
+participant "原型 Node.js / SQLite" as N #Orange
+participant "目标 Spring Boot 用例" as A #LightGreen
+database "目标 PostgreSQL" as D #LightGreen
+participant "原发起电脑 worker" as W
+participant "Git / 外部服务" as X
+
+== As-Is · 原型证据 ==
+N -> W : 领取本机 Git 任务
+W -> X : 基于工作类型准备仓库和分支
+W -> N : 回报仓库与分支
+note over N #Orange
+  SA-P03 问题：仓库和分支有实际适配代码；共享操作意图及真实提供方验收尚缺。
+  证据 src/providers.mjs:26–75 / src/server.mjs:330–350
+end note
+
+== To-Be · 拟议技术方案 ==
+W -> A : 领取发起电脑的 Git 任务
+A -> D : 校验设备、运行快照、关联仓库及当前尝试
+alt 需求已有仓库
+  A --> W : 沿用关联
+else 尚未关联
+  A -> D : 从运行快照取固定 GitHub 命名空间\n按需求、供应商和模式查原建仓意图
+  W -> A : 获得适用授权后申请实际建仓
+  W -> X : 核对后执行，回报可确认仓库
+  A -> D : TX 真实成功才关联需求；演练只留演练证据
+end
+alt 紧急修复
+  W -> X : 从仓库实际默认分支准备 hotfix
+else 新功能 / 重构 / 常规修复
+  W -> X : 缺 dev 则从默认分支创建\n由 dev 准备 feature / refactor / fix
+end
+alt 外部事实可确认
+  W -> A : 回报仓库、基准分支/提交和工作分支
+  A -> D : TX 写证据并解除研发门槛
+  A --> U : 看板显示 Git 位置与进度
+else 明确失败或结果未知
+  A -> D : 保存失败或待核对，保持下游等待
+  A --> U : 显示原因和允许的后续操作
+end
+
+legend bottom
+  橙色为现状需调整处；浅绿色为目标组件；无色参与者沿用。
+  两个区段分别描述现状与目标，不表示同时运行。
+endlegend
+@enduml

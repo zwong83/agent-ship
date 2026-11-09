@@ -1,0 +1,28 @@
+@startuml
+title SA-ST01 · 运行和角色的逻辑状态
+caption UC-04、05、07、08 / BR-16、28、32、38～49 / To-Be Proposed
+!pragma layout smetana
+skinparam defaultFontName PingFang SC
+skinparam shadowing false
+state "运行" as R {
+ [*] --> Preparing
+ Preparing --> Executing : Git 已核对
+ Preparing --> Attention : 失败或结果未知
+ Attention --> Preparing : 获准恢复准备
+ Executing --> Attention : 适用人工门槛阻塞
+ Attention --> Executing : 有效介入
+ Attention --> Stopped : 允许停止且操作者获权
+ Executing --> Completed : 结束节点及实际路线完成
+}
+state "角色任务尝试" as A {
+ [*] --> Queued
+ Queued --> Active : 设备有权领取
+ Active --> Waiting : Agent 提问
+ Waiting --> Active : 定向答复或发起人取消
+ Active --> Succeeded : 受理结果
+ Active --> Failed : 失败
+ Failed --> Queued : 只为该角色开启下一尝试
+ Failed --> Skipped : 当前操作者跳过失败角色
+}
+note bottom of R : 设备在线状态独立。原设备离线时，\n其他有权浏览器仍可读同一次运行。\n单条路线达到修复上限时，无关路线照常判定。
+@enduml
