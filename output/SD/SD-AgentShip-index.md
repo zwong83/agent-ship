@@ -27,6 +27,8 @@
 | [中间件设计 v0.5](SD-AgentShip-middleware.md) | 组件、功能运行交互、失败、容量、安全与运维 | Proposed |
 | [API v1 设计契约](contracts/agentship-v1.json) | Java 平台、React 与本机执行程序的操作、消息、类型及错误 | v1.0.0-draft.13 |
 
+后续方案记录见 [AI Agent Office](SD-AgentShip-AI-Agent-Office.md)，涵盖办公室交互、运行数据映射和第一版验收。
+
 ## 评审与追溯
 
 | 专业视图 | 触发条件 | 对应设计和证据 |
