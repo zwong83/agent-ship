@@ -1,0 +1,137 @@
+/* Luminous motion layer. All decoration is pointer-transparent and pausable. */
+@property --light-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.futuristic-shell { isolation:isolate; --neon:#76ffdb; --electric:#65caff; }
+.ambient-field { position:fixed; inset:0; pointer-events:none; z-index:-1; overflow:hidden; background:#060d19; }
+.ambient-field i { position:absolute; width:65vw; height:65vw; border-radius:50%; background:radial-gradient(ellipse,#08786d26,transparent 65%); top:-30vw; right:-15vw; animation:aurora-drift 18s ease-in-out infinite alternate; }
+.ambient-field i:nth-child(2) { background:radial-gradient(ellipse,#1e5fb22e,transparent 65%); top:35vh; left:0; animation-delay:-9s; }
+.ambient-field > span { position:absolute; inset:0; background-image:radial-gradient(#91e7ec30 1px,transparent 1px); background-size:52px 52px; mask-image:linear-gradient(transparent,#0008); }
+.futuristic-shell .main { background:transparent; }
+.futuristic-shell .sidebar { background:linear-gradient(155deg,#101e30ee,#07141eeb); backdrop-filter:blur(20px); border-right-color:#64d9cf30; box-shadow:8px 0 55px #0004; }
+.futuristic-shell .topbar { background:#081522bb; backdrop-filter:blur(16px); border-bottom-color:#78edcd26; }
+.topbar-controls { display:flex; align-items:center; gap:14px; }
+.motion-control { font-size:11px; padding:8px 12px; background:#102737; border:1px solid #3e6e76; color:#c4e7ed; min-height:36px; }
+.futuristic-shell .mission-hero,.futuristic-shell .dashboard-hero { isolation:isolate; border-color:#72e5d35c; background:radial-gradient(ellipse at 85% 35%,#126b5d66,transparent 58%),linear-gradient(120deg,#102b37e8,#081627ed); box-shadow:0 0 0 1px #78edcd09,0 20px 65px #0005,0 0 60px #36cabb18,inset 0 1px #a7ffef30; }
+.futuristic-shell .mission-hero::after,.futuristic-shell .dashboard-hero::after,.futuristic-shell .ship-dialog::after { content:''; position:absolute; inset:0; padding:2px; border-radius:inherit; pointer-events:none; background:conic-gradient(from var(--light-angle),transparent 0deg,transparent 55deg,#65caff 80deg,#d9fff6 95deg,#76ffdb 115deg,transparent 145deg,transparent 235deg,#44cbb4 270deg,transparent 300deg); mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude; animation:border-orbit 7s linear infinite; z-index:3; opacity:.9; }
+.futuristic-shell .mission-hero::before,.futuristic-shell .dashboard-hero::before { background-image:linear-gradient(#78edcd0b 1px,transparent 1px),linear-gradient(90deg,#78edcd0b 1px,transparent 1px); background-size:30px 30px; }
+.futuristic-shell .mission-hero h1 span,.futuristic-shell .dashboard-hero h1 span,.futuristic-shell .launch-rail h2 span { color:#98ffe2; text-shadow:0 0 25px #57f3cf55,0 0 65px #24a8aa30; }
+.futuristic-shell button.accent { position:relative; overflow:hidden; isolation:isolate; background:linear-gradient(115deg,#65e4bd,#a4ffdd 52%,#5acbd3); color:#062a29; border:1px solid #a1ffe6; box-shadow:0 0 24px #5df5ce38,inset 0 1px #e9fff3bd,0 5px 20px #0004; transition:transform .2s,box-shadow .2s; }
+.futuristic-shell button.accent:not(:disabled)::after { content:''; position:absolute; inset:-100% -60%; width:45%; background:linear-gradient(90deg,transparent,#ffffff9c,transparent); transform:translateX(-170%) rotate(25deg); animation:button-sheen 4.5s ease-in-out infinite; pointer-events:none; }
+.futuristic-shell button.accent:not(:disabled):hover { transform:translateY(-2px); box-shadow:0 0 35px #6affd773,0 8px 24px #0005; }
+.futuristic-shell button.accent:not(:disabled):active { transform:translateY(0); }
+.futuristic-shell .network-track { stroke:#66bbaa50; stroke-width:1.7; }
+.futuristic-shell .network-light { stroke-width:3; stroke-dasharray:38 105; animation:network-flow 3s linear infinite; filter:drop-shadow(0 0 5px #78ffdf) drop-shadow(0 0 12px #44cfbb); }
+.futuristic-shell .mission-network circle[r='4'] { fill:#bcffef; animation:node-glow 3.2s ease-in-out infinite; filter:drop-shadow(0 0 6px #76ffdb); }
+.futuristic-shell .mission-network g:nth-of-type(2n) circle[r='4'] { animation-delay:-1.6s; }
+.futuristic-shell .mission-network { background:radial-gradient(ellipse,#1b8e7726,transparent 68%); }
+.futuristic-shell .network-caption { color:#a0d9d0; }
+.futuristic-shell .network-legend { color:#a0c5c7; }
+.futuristic-shell .dashboard-radar { background:repeating-radial-gradient(circle,transparent 0 36px,#78edcd22 37px 38px); box-shadow:0 0 75px #59eac321,inset 0 0 35px #78edcd12; }
+.futuristic-shell .radar-ring { border-top:2px solid #b8ffec; border-right:1px solid #78edcd66; animation:radar-orbit 12s linear infinite; box-shadow:0 -4px 18px #78edcd14; }
+.futuristic-shell .dashboard-radar i { animation:node-glow 3s ease-in-out infinite; }
+.futuristic-shell .mission-metrics,.futuristic-shell .dashboard-stat { border-color:#64cdbc36; box-shadow:0 8px 30px #0003,inset 0 1px #baffee10; }
+.futuristic-shell .mission-metrics > div { position:relative; overflow:hidden; background:linear-gradient(125deg,#102c35cc,#101b2bed); }
+.futuristic-shell .mission-metrics > div::after { content:''; position:absolute; bottom:0; left:0; width:40%; height:2px; background:linear-gradient(90deg,transparent,#8bffdc,transparent); box-shadow:0 0 12px #78edcd; animation:metric-scan 6s ease-in-out infinite; }
+.futuristic-shell .mission-metrics > div:nth-child(2)::after { animation-delay:-2s; }
+.futuristic-shell .mission-metrics > div:nth-child(3)::after { animation-delay:-4s; }
+.futuristic-shell .mission-metrics strong,.futuristic-shell .dashboard-stat strong { color:#dcfff4; text-shadow:0 0 18px #78edcd24; }
+.futuristic-shell .dashboard-board,.futuristic-shell .panel,.futuristic-shell .dashboard-requirement { background:linear-gradient(135deg,#122638c9,#0b1725ed); border-color:#6babb132; box-shadow:inset 0 1px #bcfff10c,0 12px 35px #0002; }
+.futuristic-shell .requirement-list-item { background:linear-gradient(110deg,#15423c8c,#112634c9 45%,#101b2cee); box-shadow:inset 0 1px #aaffee15; }
+.futuristic-shell .requirement-list-item:hover,.futuristic-shell .dashboard-requirement:hover { border-color:#71e9ce99; box-shadow:0 0 25px #51cfb71a,inset 0 1px #aaffee22; }
+.futuristic-shell .nav button[aria-current] { background:linear-gradient(100deg,#20574b99,#142d39); border-color:#78edcd70; box-shadow:0 0 22px #5bdfbb12,inset 3px 0 #8bffdc; }
+.futuristic-shell .nav-indicator { box-shadow:0 0 12px #78edcd; }
+.futuristic-shell .requirement-tab button[aria-current] { background:linear-gradient(115deg,#18483d,#142a39); box-shadow:inset 0 -2px #8affda,0 0 20px #78edcd20; }
+.futuristic-shell input:focus,.futuristic-shell textarea:focus,.futuristic-shell select:focus { box-shadow:0 0 0 3px #78edcd14,0 0 22px #78edcd12; }
+.futuristic-shell .ship-dialog { background:linear-gradient(125deg,#12313ae8,#0c1828f7 65%); box-shadow:0 0 0 1px #a1ffdf25,0 0 90px #32c4ac27,0 30px 100px #000a; }
+.futuristic-shell .ship-dialog::backdrop { background:#020a16c9; backdrop-filter:blur(12px); }
+.futuristic-shell .launch-rail { position:relative; background:radial-gradient(ellipse at 20% 85%,#257a614a,transparent 65%),linear-gradient(160deg,#133b42,#0b192a); }
+.futuristic-shell .launch-rail ol { position:relative; }
+.futuristic-shell .launch-rail ol::before { content:''; position:absolute; width:1px; left:16px; top:20px; bottom:20px; background:linear-gradient(#65caff44,#78edcd88,#65caff22); box-shadow:0 0 9px #78edcd44; }
+.futuristic-shell .launch-rail li { position:relative; }
+.futuristic-shell .launch-rail li > span { background:#102a35; z-index:1; }
+.futuristic-shell .launch-rail li.ready > span { box-shadow:0 0 20px #78edcd55; background:#225743; }
+.futuristic-shell .launch-dialog-main footer { background:#0c1a28f5; backdrop-filter:blur(16px); border-top-color:#78edcd40; }
+.futuristic-shell .run-node.active { border-color:#67d9ea; box-shadow:0 0 20px #65caff25; animation:active-node-glow 3s ease-in-out infinite; }
+.futuristic-shell .run-node.good { border-color:#78edcd88; box-shadow:inset 3px 0 #78edcd; }
+.futuristic-shell progress { filter:drop-shadow(0 0 5px #78edcd55); }
+.futuristic-shell .mission-empty-symbol { box-shadow:0 0 35px #78edcd26,inset 0 0 20px #78edcd15; border-color:#8fffe2aa; }
+@keyframes aurora-drift { to { transform:translate3d(-8vw,8vh,0) scale(1.15); } }
+@keyframes border-orbit { to { --light-angle:360deg; } }
+@keyframes button-sheen { 0%,35% { transform:translateX(-170%) rotate(25deg); } 75%,100% { transform:translateX(580%) rotate(25deg); } }
+@keyframes network-flow { to { stroke-dashoffset:-286; } }
+@keyframes node-glow { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+@keyframes radar-orbit { from { transform:rotate(0); opacity:1; } to { transform:rotate(360deg); opacity:1; } }
+@keyframes metric-scan { 0%,100% { transform:translateX(-100%); opacity:.3; } 50% { transform:translateX(350%); opacity:1; } }
+@keyframes active-node-glow { 50% { box-shadow:0 0 28px #65caff44; } }
+.futuristic-shell[data-motion='paused'] *, .futuristic-shell[data-motion='paused'] *::before,.futuristic-shell[data-motion='paused'] *::after { animation-play-state:paused !important; }
+@media(prefers-reduced-motion:reduce) { .futuristic-shell *, .futuristic-shell *::before,.futuristic-shell *::after { animation:none !important; transition:none !important; } .futuristic-shell button.accent::after { display:none; } }
+@media(max-width:750px) { .ambient-field i { width:110vw; height:110vw; } .topbar-controls { gap:8px; } .motion-control { font-size:10px; padding:6px 8px; } .futuristic-shell .session-badge { display:none; } }
+
+/* Spatial surfaces: lit upper edges, solid thickness, and separated elevations. */
+.futuristic-shell { --surface-edge:#90e8dc55; --surface-depth:#030a12; }
+.futuristic-shell .mission-hero {
+  overflow:visible;
+  background:radial-gradient(ellipse at 77% 35%,#236e7770,transparent 60%),linear-gradient(135deg,#1a3949,#0b192b 70%);
+  box-shadow:inset 0 2px 1px #d2fff84a,inset 1px 0 #b3ffec30,inset 0 -2px #020d20,0 8px 0 #07131f,0 9px 0 #426e7870,0 28px 45px #0008,0 0 70px #4ccfb018;
+}
+.futuristic-shell .mission-hero::before { border-radius:inherit; }
+.mission-hero-copy { z-index:1; }
+.futuristic-shell .mission-hero h1 { text-shadow:0 2px #173e4b,0 5px 0 #071b2b,0 12px 18px #0007; }
+.futuristic-shell .mission-hero h1 span { text-shadow:0 2px #397d70,0 5px #133e40,0 12px 20px #0007,0 0 35px #57f3cf44; }
+.mission-scene { position:relative; min-width:0; pointer-events:none; align-self:center; }
+.scene-caption,.scene-legend { font:9px/1.5 Consolas,monospace; letter-spacing:.13em; color:#b2d9df; }
+.scene-caption { text-align:center; }
+.scene-legend { display:flex; justify-content:space-between; gap:8px; }
+.scene-viewport { height:290px; position:relative; perspective:850px; }
+.scene-stack { width:300px; height:240px; position:absolute; left:50%; top:0; margin-left:-150px; scale:.9; transform-style:preserve-3d; transform:rotateX(54deg) rotateZ(-32deg); animation:scene-drift 9s ease-in-out infinite; }
+.scene-shadow { position:absolute; width:85%; height:80px; left:8%; bottom:5px; border-radius:50%; background:radial-gradient(ellipse,#020711bb,transparent 70%); }
+.scene-deck { position:absolute; inset:0; border:1px solid #9dffeb77; border-radius:24px; transform-style:preserve-3d; }
+.scene-deck-base { transform:translateZ(-45px); background:linear-gradient(135deg,#294758,#102737); box-shadow:0 3px #0d1d2d,0 7px #0c1b29,0 9px #487a85,0 22px 35px #0008,inset 0 2px #c4fff877; }
+.deck-mark { position:absolute; bottom:15px; left:22px; font:11px Consolas,monospace; letter-spacing:.3em; color:#8db8c8; }
+.scene-deck-middle { transform:translateZ(-8px); background:linear-gradient(135deg,#67e6d41c,#3d8db42e); box-shadow:0 2px #498480,0 6px 16px #0005,inset 0 0 28px #71eada15; }
+.scene-deck-middle i { position:absolute; width:6px; height:6px; border-radius:50%; background:#a0ffe9; box-shadow:0 0 12px #78edcd; }
+.scene-deck-middle i:nth-child(1) { left:14px; top:14px; }
+.scene-deck-middle i:nth-child(2) { right:14px; top:14px; }
+.scene-deck-middle i:nth-child(3) { left:14px; bottom:14px; }
+.scene-deck-middle i:nth-child(4) { right:14px; bottom:14px; }
+.scene-deck-top { transform:translateZ(30px); background:linear-gradient(#73e1dc12 1px,transparent 1px),linear-gradient(90deg,#73e1dc12 1px,transparent 1px),linear-gradient(145deg,#256169ba,#102d40ed); background-size:24px 24px,24px 24px,100% 100%; box-shadow:0 2px #5ca59c,0 5px #102d3b,0 18px 24px #0005,inset 0 1px #d8fff27a; }
+.scene-deck-top svg { position:absolute; inset:0; width:100%; height:100%; }
+.scene-track { stroke:#79becc70; stroke-width:2; }
+.scene-signal { stroke:#a3ffe6; stroke-width:3; stroke-dasharray:20 70; animation:scene-transmit 3s linear infinite; filter:drop-shadow(0 0 4px #78edcd); }
+.scene-node { position:absolute; width:28px; height:28px; margin:-14px; border:1px solid #d1fff5; border-radius:8px; background:linear-gradient(135deg,#91fce4,#27768b); box-shadow:0 2px #225b63,0 5px #16454e,0 7px #0a2937,0 12px 12px #0008,0 0 18px #78edcd55; transform:translateZ(7px); display:grid; place-items:center; }
+.scene-node i { width:8px; height:8px; border-radius:2px; background:#e5fff8; box-shadow:0 0 8px #b2ffe9; }
+.scene-node-source { left:18.33%; top:50%; }
+.scene-node-alpha { left:81.66%; top:22.92%; }
+.scene-node-beta { left:81.66%; top:50%; }
+.scene-node-gamma { left:81.66%; top:77.08%; }
+.scene-core { position:absolute; left:calc(50% - 27px); top:calc(50% - 27px); width:54px; height:54px; transform-style:preserve-3d; transform:translateZ(30px); }
+.core-top { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; color:#052c32; font:bold 22px Consolas,monospace; background:linear-gradient(140deg,#d3fff3,#69dfc4 65%,#3a9aa7); border:1px solid #e2fff8; box-shadow:inset 0 0 15px #edfff775,0 0 25px #78edcd44; }
+.core-top > span { color:#20616a; }
+.core-front { position:absolute; width:54px; height:30px; top:54px; background:linear-gradient(#318d83,#123e4b); transform-origin:top; transform:rotateX(-90deg); border:1px solid #8df2d780; }
+.core-side { position:absolute; width:30px; height:54px; left:54px; background:linear-gradient(90deg,#226775,#0d3045); transform-origin:left; transform:rotateY(90deg); border:1px solid #75d6d87a; }
+.scene-orbit { position:absolute; inset:-22px; border:1px dashed #91eadb55; border-radius:38px; transform:translateZ(10px); }
+@keyframes scene-drift { 0%,100% { transform:rotateX(54deg) rotateZ(-32deg) translateZ(0); } 50% { transform:rotateX(50deg) rotateZ(-27deg) translateZ(10px); } }
+@keyframes scene-transmit { to { stroke-dashoffset:-180; } }
+
+.futuristic-shell .mission-metrics { gap:16px; border:0; border-radius:0; background:transparent; overflow:visible; box-shadow:none; margin-top:8px; }
+.futuristic-shell .mission-metrics > div,.futuristic-shell .dashboard-stat { border:1px solid var(--surface-edge); border-radius:14px; background:linear-gradient(130deg,#254450,#122333 65%); box-shadow:inset 0 1px 1px #e4fff838,inset 0 -1px #020b18,0 5px 0 #071421,0 6px 0 #40616d66,0 15px 24px #0006; }
+.futuristic-shell .mission-metrics strong { font-size:36px; text-shadow:0 2px #327a75,0 5px 8px #0009,0 0 18px #78edcd44; }
+.futuristic-shell .requirement-category-tabs { padding:14px 12px 18px; gap:10px; border:1px solid #4c809150; border-radius:16px; background:linear-gradient(#060e1b,#102332); box-shadow:inset 0 3px 10px #0009,inset 0 -1px #b2e9ed22,0 1px #89d5d61f; }
+.futuristic-shell .requirement-category-tabs [role=tab] { color:#b4c9d4; border:1px solid #64838f55; background:linear-gradient(150deg,#293f50,#142636); box-shadow:inset 0 1px #e2fff224,0 4px #07121e,0 5px #365661,0 8px 10px #0007; transition:transform .2s,box-shadow .2s,border-color .2s; }
+.futuristic-shell .requirement-category-tabs [role=tab][aria-selected=true] { color:#d5fff0; background:linear-gradient(145deg,#387f70,#173e45); border-color:#a1ffe1aa; box-shadow:inset 0 1px #defff37a,inset 0 -2px #83ffd2,0 4px #153e3b,0 5px #69bfa6,0 9px 14px #0008,0 0 22px #78edcd22; }
+.futuristic-shell .category-count { background:#071c29aa; box-shadow:inset 0 2px 3px #0007,0 1px #b3ffe729; }
+.futuristic-shell .dashboard-board,.futuristic-shell .panel { border-color:#6e9eaa66; background:radial-gradient(ellipse at top left,#244b5960,transparent 60%),linear-gradient(130deg,#122637,#0c1827); box-shadow:inset 0 1px 1px #d1fff53d,inset 1px 0 #91c9cd1a,0 6px 0 #07121f,0 7px 0 #38576866,0 24px 40px #0006; }
+.futuristic-shell .requirement-list-item,.futuristic-shell .dashboard-requirement { box-shadow:inset 0 1px #c4fff244,0 4px #06111c,0 5px #35566366,0 10px 15px #0005; }
+.futuristic-shell .mission-empty-symbol { transform:perspective(500px) rotateY(-22deg) rotateX(14deg); background:linear-gradient(140deg,#67c9b4,#266761 55%,#183a50); color:#d1fff0; border-color:#a8ffde; box-shadow:inset 0 2px #d6fff177,5px 5px #173d43,8px 8px #0b2737,16px 18px 20px #0008,0 0 40px #78edcd33; }
+.futuristic-shell .mission-guide li > span { display:grid; place-items:center; min-width:34px; height:34px; border:1px solid #6ca99d70; border-radius:9px; background:linear-gradient(145deg,#28564e,#112836); box-shadow:inset 0 1px #d7ffeb33,0 3px #06151e,0 4px #507c7455; }
+.futuristic-shell button.accent { box-shadow:inset 0 2px #effff59c,0 4px #2a7d72,0 6px #123d40,0 12px 22px #0007,0 0 28px #5df5ce38; }
+.futuristic-shell .nav button[aria-current] { box-shadow:inset 3px 0 #8bffdc,inset 0 1px #c6fff230,3px 4px #06121e,4px 5px #3e6c6e44,0 12px 20px #0004; }
+@media(hover:hover) and (prefers-reduced-motion:no-preference) {
+  .futuristic-shell[data-motion='enabled'] .requirement-category-tabs [role=tab]:hover { transform:translateY(-3px); border-color:#a4ffdf; }
+  .futuristic-shell[data-motion='enabled'] .requirement-list-item:hover { transform:perspective(1000px) rotateX(1deg) translateY(-4px); }
+  .futuristic-shell[data-motion='enabled'] button.accent:not(:disabled):hover { transform:translateY(-3px); box-shadow:inset 0 2px #effff5,0 6px #2a7d72,0 8px #123d40,0 17px 24px #0007,0 0 35px #5df5ce55; }
+}
+.futuristic-shell .requirement-category-tabs [role=tab]:active { transform:translateY(2px); }
+.futuristic-shell[data-motion='paused'] button:hover,.futuristic-shell[data-motion='paused'] button:active { transform:none; }
+@media(max-width:1100px) and (min-width:751px) { .scene-stack { scale:.8; } .scene-viewport { height:245px; } .scene-caption { font-size:8px; } }
+@media(max-width:750px) { .mission-scene { display:none; } .futuristic-shell .mission-metrics { gap:10px; } .futuristic-shell .mission-metrics > div { padding:15px 10px; } }
+@media(prefers-reduced-motion:reduce) { .futuristic-shell .requirement-category-tabs [role=tab]:active,.futuristic-shell button.accent:hover { transform:none; } }

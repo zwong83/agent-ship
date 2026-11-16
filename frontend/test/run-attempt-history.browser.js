@@ -26,17 +26,17 @@ async page => {
   await page.goto(`${origin}/runs/${run.id}`);
   await page.getByRole('heading', { name: '带历史的运行', exact: true }).waitFor();
   if (params.length) throw new Error('Board eagerly read attempt history');
-  const open = page.getByRole('button', { name: '查看尝试历史', exact: true });
+  const open = page.getByRole('button', { name: "View attempt history", exact: true });
   await open.waitFor({ timeout: 3000 });
   await open.click();
   await page.getByText('前端 Agent（固定版本）', { exact: true }).waitFor();
   await page.getByText('基于旧版本', { exact: true }).waitFor();
-  await page.getByRole('button', { name: '加载更多尝试', exact: true }).click();
+  await page.getByRole('button', { name: "Loading more attempts", exact: true }).click();
   await page.getByText('第 2 次尝试', { exact: true }).waitFor();
   if (await page.getByText('第 1 次尝试', { exact: true }).count() !== 1 || !params.at(-1)?.includes('cursor=after-failed')) {
     throw new Error('Loading the next page lost or duplicated previous attempts');
   }
-  await page.getByLabel('筛选节点', { exact: true }).selectOption(id(8));
+  await page.getByLabel("Filter nodes", { exact: true }).selectOption(id(8));
   await page.getByText('第 2 次尝试', { exact: true }).waitFor({ state: 'hidden' });
   await page.getByText('第 1 次尝试', { exact: true }).waitFor();
   if (!params.at(-1)?.includes(`nodeId=${id(8)}`) || params.at(-1)?.includes('cursor=')) {

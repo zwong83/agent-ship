@@ -25,7 +25,7 @@ from uuid import uuid4
 ROOT = Path(__file__).resolve().parents[2]
 WORKSPACE = ROOT / ".agentship" / "verification"
 JAR = ROOT / "platform" / "target" / "agentship-platform-0.1.0-SNAPSHOT.jar"
-TEST_PASSWORD = "synthetic test phrase +!"
+TEST_PASSWORD = "Synthetic test phrase 1+!"
 FLOW_BROWSER_NAME = "浏览器端多 Agent 流程"
 FLOW_BROWSER_AGENTS = (
     ("coordinator", "流程协调 Agent"),
@@ -146,14 +146,14 @@ def test_identity(origin, connect):
     assert anon.get("/api/me") == {"user": None, "csrfToken": None}
     anon.get("/api/me/contact", 401)
     anon.get("/api/projects", 401)
-    for length in (14, 129):
-        anon.post("/api/register", account("bad_password", 108, password="x" * length), 400)
+    for password in ("Aa1!xxx", "Aa1!" + "x" * 125, "UPPER123!", "lower123!", "NoNumber!", "NoSymbol1", "Space123 "):
+        anon.post("/api/register", account("bad_password", 108, password=password), 400)
     mismatch = account("bad_password", 108)
     mismatch["confirmPassword"] = "another synthetic phrase"
     anon.post("/api/register", mismatch, 400)
     anon.post("/api/register", account("x" * 101, 109, email="overlimit@example.invalid"), 400)
-    for index, size in enumerate((15, 128), start=130):
-        anon.post("/api/register", account(f"valid_password_{size}", index, password="x" * size), 202)
+    for index, size in enumerate((8, 128), start=130):
+        anon.post("/api/register", account(f"valid_password_{size}", index, password="Aa1!" + "x" * (size - 4)), 202)
     anon.post("/api/register", account("x" * 100, 132, email="atlimit@example.invalid"), 202)
 
     owner_info = create_account(owner, account("fixture_owner", 101))
@@ -394,6 +394,7 @@ def platform(java, jar, scratch, database_port, app_port, key, name):
            "AGENTSHIP_DB_USER": "design_check", "AGENTSHIP_DB_PASSWORD": "",
            "AGENTSHIP_PORT": str(app_port), "AGENTSHIP_BIND_ADDRESS": "127.0.0.1",
            "AGENTSHIP_SECURE_COOKIE": "false", "AGENTSHIP_LOCAL_VERIFICATION": "true",
+           "AGENTSHIP_REQUIRE_CONTACT_VERIFICATION": "true",
            "AGENTSHIP_VERIFICATION_KEY": key}
     origin, log = f"http://127.0.0.1:{app_port}", scratch / f"{name}.log"
     with log.open("wb") as output:

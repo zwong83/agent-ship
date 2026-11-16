@@ -60,7 +60,7 @@ public class IdentityController {
     public Map<String, List<IdentityService.Message>> developmentInbox(@RequestParam String registrationRef,
                                                                         HttpServletRequest request) {
         if (!localHost(request.getServerName()) || !localHost(request.getRemoteAddr())) {
-            throw new ApiProblem(404, "NOT_FOUND", "未找到所请求的内容。");
+            throw new ApiProblem(404, "NOT_FOUND", "The requested content was not found.");
         }
         return Map.of("messages", identity.developmentInbox(registrationRef));
     }

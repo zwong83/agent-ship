@@ -121,7 +121,7 @@ class JdbcSchedulingStore implements SchedulingStore {
                     .add(rs.getObject("prerequisite_node_id", UUID.class));
         });
         return jdbc.query("""
-                SELECT n.node_id,n.kind,n.purpose,n.agent_order,s.ordinal AS stage_ordinal,e.id,e.wave,e.state,
+                SELECT n.node_id,n.kind,n.collect_requirements,n.agent_order,s.ordinal AS stage_ordinal,e.id,e.wave,e.state,
                     e.requirement_revision,m.check_node_id,m.outcome,c.state AS check_outcome,own.state AS cycle_state
                 FROM workflow_node n JOIN workflow_stage s USING (workflow_id,workflow_version,stage_id)
                 JOIN node_execution e ON (e.workflow_id,e.workflow_version,e.node_id)=(n.workflow_id,n.workflow_version,n.node_id)
@@ -133,7 +133,7 @@ class JdbcSchedulingStore implements SchedulingStore {
                 """, args, (rs, row) -> {
             UUID node = rs.getObject("node_id", UUID.class);
             return new Node(node, rs.getObject("id", UUID.class), rs.getInt("stage_ordinal"), rs.getInt("wave"),
-                    rs.getString("kind"), rs.getString("purpose"), rs.getString("agent_order"), rs.getString("state"),
+                    rs.getString("kind"), rs.getBoolean("collect_requirements"), rs.getString("agent_order"), rs.getString("state"),
                     rs.getLong("requirement_revision"), rs.getObject("check_node_id", UUID.class), rs.getString("outcome"),
                     rs.getString("check_outcome"), rs.getString("cycle_state"), prerequisites.getOrDefault(node, List.of()));
         });

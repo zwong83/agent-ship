@@ -1,6 +1,6 @@
 export type WorkType = 'feature' | 'refactor' | 'hotfix' | 'fix';
 export const workTypeLabels: Record<WorkType, string> = {
-  feature: '新功能', refactor: '重构', hotfix: '紧急修复', fix: '常规修复',
+  feature: 'New feature', refactor: 'Refactor', hotfix: 'Hotfix', fix: 'Bug fix',
 };
 
 export interface DeviceStatus {
@@ -148,11 +148,11 @@ export interface RunDetail extends RunSummary {
 }
 
 export const runStateLabels: Record<string, string> = {
-  queued: '等待准备仓库', preparing: '准备仓库中', running: '执行中', waiting: '等待处理',
-  needs_attention: '待人工处理', failed: '失败', completed: '已完成', stopped: '已停止',
-  blocked: '等待前置条件', ready: '待执行', waiting_reply: '等待回复', complete: '已完成',
-  skipped: '已跳过', leased: '已领取', pending: '待执行', succeeded: '已完成',
-  canceled: '已取消',
+  queued: 'Waiting to prepare warehouse', preparing: 'Preparing for warehouse', running: 'Executing', waiting: 'Waiting for processing',
+  needs_attention: 'Needs attention', failed: 'Failed', completed: 'Completed', stopped: 'Stopped',
+  blocked: 'Wait for precondition', ready: 'Queued', waiting_reply: 'Waiting for reply', complete: 'Completed',
+  skipped: 'skipped', leased: 'Received', pending: 'Queued', succeeded: 'Completed',
+  canceled: 'Canceled',
 };
 
 export function statusText(state: string) { return runStateLabels[state] ?? state; }
@@ -165,15 +165,15 @@ export async function localDeviceProof(challenge: DeviceChallenge): Promise<Devi
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(challenge), credentials: 'omit', signal: control.signal,
     });
-    if (!response.ok) throw new Error('本机设备未完成配对或暂时无法验证，请检查本机执行程序。');
+    if (!response.ok) throw new Error('The local device has not completed pairing or cannot be verified temporarily. Please check the local execution program.');
     const proof: DeviceProof = await response.json();
     if (proof.challengeId !== challenge.challengeId || !proof.deviceId || !proof.signature) {
-      throw new Error('本机设备返回的验证结果无效，请重新配对后再试。');
+      throw new Error('The verification result returned by the local device is invalid. Please pair again and try again.');
     }
     return proof;
   } catch (err) {
     if (err instanceof TypeError || (err instanceof DOMException && err.name === 'AbortError')) {
-      throw new Error('无法连接这台电脑的执行程序。请先到「本机设备」完成配对，并允许浏览器访问本机网络。');
+      throw new Error('Unable to connect to this computer\'s executable program. Please go to "Local Device" first to complete pairing and allow the browser to access the local network.');
     }
     throw err;
   } finally {

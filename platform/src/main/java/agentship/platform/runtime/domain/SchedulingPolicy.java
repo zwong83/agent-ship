@@ -13,7 +13,7 @@ public final class SchedulingPolicy {
 
     private SchedulingPolicy() {}
 
-    public record Node(UUID id, UUID execution, int stage, int wave, String kind, String purpose, String order, String state,
+    public record Node(UUID id, UUID execution, int stage, int wave, String kind, boolean collectRequirements, String order, String state,
                 long revision, UUID check, String route, String checkOutcome, String cycleState, List<UUID> dependencies) {
         public boolean settled() {
             return SETTLED.contains(state);

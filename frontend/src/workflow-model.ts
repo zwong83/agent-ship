@@ -1,17 +1,12 @@
 import type { FlowNode, FlowStage } from './api';
 
 export const nodeTypeLabels: Record<FlowNode['type'], string> = {
-  work: '工作节点', check: '检查节点', publish: '发布节点', end: '结束节点',
-};
-
-export const nodePurposeLabels: Record<NonNullable<FlowNode['purpose']>, string> = {
-  requirement: '需求', product: '产品设计', frontend: '前端开发', backend: '后端开发',
-  test: '测试', repair: '修复', other: '其他',
+  work: 'Work node', check: 'Check node', publish: 'Publish node', end: 'End node',
 };
 
 export function newNode(type: FlowNode['type'] = 'work'): FlowNode {
-  const base = { id: crypto.randomUUID(), name: type === 'end' ? '流程结束' : '新节点', type, dependencies: [] };
-  return type === 'end' ? base : { ...base, purpose: 'other', coordinatorId: '', agentIds: [], agentOrder: 'parallel' };
+  const base = { id: crypto.randomUUID(), name: type === 'end' ? 'End of workflow' : 'New node', type, dependencies: [] };
+  return type === 'end' ? base : { ...base, collectRequirements: false, coordinatorId: '', agentIds: [], agentOrder: 'parallel' };
 }
 
 export function moveItem<T>(items: T[], index: number, direction: number) {
@@ -24,6 +19,28 @@ export function moveItem<T>(items: T[], index: number, direction: number) {
 
 export function replaceNode(stages: FlowStage[], node: FlowNode) {
   return stages.map(stage => ({ ...stage, nodes: stage.nodes.map(current => current.id === node.id ? node : current) }));
+}
+
+/** Validate a source → dependent connection before changing the draft. */
+export function dependencyIssue(stages: FlowStage[], sourceId: string, targetId: string): string | null {
+  const nodes = new Map(stages.flatMap(stage => stage.nodes.map(node => [node.id, node] as const)));
+  const source = nodes.get(sourceId);
+  const target = nodes.get(targetId);
+  if (!source || !target) return 'Select two nodes that exist in this workflow.';
+  if (sourceId === targetId) return 'A node cannot depend on itself.';
+  if (source.type === 'end') return 'The end node cannot start a dependency.';
+  if (target.dependencies.includes(sourceId)) return 'These nodes are already connected.';
+  const stageOf = (id: string) => stages.findIndex(stage => stage.nodes.some(node => node.id === id));
+  if (stageOf(sourceId) > stageOf(targetId)) return 'Connect to a node in the same stage or a later stage.';
+  const visited = new Set<string>();
+  function reachesTarget(id: string): boolean {
+    if (id === targetId) return true;
+    if (visited.has(id)) return false;
+    visited.add(id);
+    return nodes.get(id)?.dependencies.some(reachesTarget) ?? false;
+  }
+  if (reachesTarget(sourceId)) return 'This connection would create a circular dependency.';
+  return null;
 }
 
 export function removeNodes(stages: FlowStage[], removed: Set<string>) {
@@ -48,27 +65,27 @@ export function workflowIssues(stages: FlowStage[]) {
   const byId = new Map(nodes.map(node => [node.id, node]));
   const stageIndex = new Map(stages.flatMap((stage, index) => stage.nodes.map(node => [node.id, index] as const)));
   const ends = nodes.filter(node => node.type === 'end');
-  if (!stages.length) issues.push('请添加至少一个阶段。');
-  if (ends.length !== 1) issues.push('流程必须有且只有一个结束节点。');
-  if (ends.length === 1 && nodes.at(-1)?.id !== ends[0].id) issues.push('结束节点必须位于最后一个阶段的最后。');
+  if (!stages.length) issues.push('Please add at least one stage.');
+  if (ends.length !== 1) issues.push('A process must have one and only one end node.');
+  if (ends.length === 1 && nodes.at(-1)?.id !== ends[0].id) issues.push('The end node must be at the end of the last stage.');
   for (const [index, stage] of stages.entries()) {
-    if (!stage.name.trim()) issues.push(`阶段 ${index + 1} 需要名称。`);
-    if (!stage.nodes.length) issues.push(`阶段「${stage.name || index + 1}」需要至少一个节点。`);
+    if (!stage.name.trim()) issues.push(`Stage ${index + 1} needs a name.`);
+    if (!stage.nodes.length) issues.push(`Stage "${stage.name || index + 1}" needs at least one node.`);
     for (const node of stage.nodes) {
-      const name = node.name.trim() || '未命名节点';
-      if (!node.name.trim()) issues.push(`阶段「${stage.name}」中有节点尚未命名。`);
-      if (node.type !== 'end' && !node.coordinatorId) issues.push(`「${name}」需要选择协调 Agent。`);
-      if (node.type === 'publish' || node.publication) issues.push(`「${name}」使用了尚未开放的正式发布配置。`);
-      if (node.agentIds?.includes(node.coordinatorId ?? '')) issues.push(`「${name}」的协调 Agent 不能同时作为子 Agent。`);
+      const name = node.name.trim() || 'Unnamed node';
+      if (!node.name.trim()) issues.push(`Stage "${stage.name}" contains an Unnamed node.`);
+      if (node.type !== 'end' && !node.coordinatorId) issues.push(`Select a coordinator for "${name}".`);
+      if (node.type === 'publish' || node.publication) issues.push(`Production publishing is not yet available for "${name}".`);
+      if (node.agentIds?.includes(node.coordinatorId ?? '')) issues.push(`The coordinator for "${name}" cannot also be a sub-agent.`);
       for (const dependency of node.dependencies) {
-        if (!byId.has(dependency)) issues.push(`「${name}」引用了已不存在的前置节点。`);
-        else if (byId.get(dependency)?.type === 'end') issues.push(`「${name}」不能依赖结束节点。`);
-        else if ((stageIndex.get(dependency) ?? -1) > index) issues.push(`「${name}」不能依赖更晚阶段的节点。`);
+        if (!byId.has(dependency)) issues.push(`"${name}" references a dependency that no longer exists.`);
+        else if (byId.get(dependency)?.type === 'end') issues.push(`"${name}" cannot depend on the end node.`);
+        else if ((stageIndex.get(dependency) ?? -1) > index) issues.push(`"${name}" cannot depend on a later stage.`);
       }
       if (node.type === 'check') {
-        if (!node.checkRoutes?.passNodeId || !node.checkRoutes?.repairNodeId) issues.push(`「${name}」需要配置通过和需修复两条路线。`);
-        else if (node.checkRoutes.passNodeId === node.checkRoutes.repairNodeId) issues.push(`「${name}」的两条路线需要不同的入口。`);
-        if (!Number.isInteger(node.checkRoutes?.automaticRepairLimit) || (node.checkRoutes?.automaticRepairLimit ?? -1) < 0) issues.push(`「${name}」的自动修复上限需要填写零或正整数。`);
+        if (!node.checkRoutes?.passNodeId || !node.checkRoutes?.repairNodeId) issues.push(`Configure both pass and repair routes for "${name}".`);
+        else if (node.checkRoutes.passNodeId === node.checkRoutes.repairNodeId) issues.push(`The routes for "${name}" must have different entry nodes.`);
+        if (!Number.isInteger(node.checkRoutes?.automaticRepairLimit) || (node.checkRoutes?.automaticRepairLimit ?? -1) < 0) issues.push(`The repair limit for "${name}" must be a nonnegative integer.`);
       }
     }
   }
@@ -83,6 +100,6 @@ export function workflowIssues(stages: FlowStage[]) {
     complete.add(id);
     return false;
   }
-  if (nodes.some(node => cyclic(node.id))) issues.push('有循环依赖，请调整节点之间的前置关系。');
+  if (nodes.some(node => cyclic(node.id))) issues.push('Circular dependencies detected. Update the node dependencies.');
   return issues;
 }

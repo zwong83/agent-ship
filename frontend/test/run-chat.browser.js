@@ -9,15 +9,15 @@ async page => {
     text: '验收需要覆盖移动端吗？', state: 'waiting', canReply: true, canCancel: true, createdAt: '2026-11-09T09:11:00Z' };
   const staleQuestion = { ...question, id: id(8), text: '旧轮次问题。', canReply: false, canCancel: false };
   const readyToCancel = { ...question, id: id(9), text: '可取消的补充问题。', canReply: false };
-  const requirement = { nodeId, wave: 2, title: '需求说明', description: '旧说明。', revision: 1, sourceVersion: 3, canConfirm: true };
+  const requirement = { nodeId, wave: 2, title: "Requirement description", description: '旧说明。', revision: 1, sourceVersion: 3, canConfirm: true };
   const failedRole = { taskId: id(10), nodeId: id(12), wave: 1, roleDisplayName: '构建 Agent', attemptNumber: 2,
     reason: '本机测试未通过。', actions: ['retry', 'skip'] };
   const view = {
     messages: [{ id: id(6), type: 'message', text: '已读取原需求。', direction: 'agent_to_user', senderRoleId: 'coordinator',
-      senderLabel: '协调 Agent', nodeId, wave: 2, createdAt: '2026-11-09T09:10:00Z' }],
+      senderLabel: "Coordinator", nodeId, wave: 2, createdAt: '2026-11-09T09:10:00Z' }],
     questions: [question, staleQuestion, readyToCancel], changes: [], nextCursor: 'older-fixture', deviceOnline: false, runState: 'waiting',
     targets: [{ nodeId, wave: 2, nodeName: '需求梳理', coordinatorRoleId: 'coordinator', roles: [
-      { roleId: 'coordinator', roleDisplayName: '协调 Agent', availability: 'ready' },
+      { roleId: 'coordinator', roleDisplayName: "Coordinator", availability: 'ready' },
       { roleId: 'reviewer', roleDisplayName: '评审 Agent', availability: 'ready' },
     ] }],
     allowedActions: ['message', 'reply', 'cancel-question', 'retry', 'skip', 'propose-change', 'confirm-change', 'describe', 'rerun'],
@@ -75,7 +75,7 @@ async page => {
   });
   await page.goto(`${origin}/runs/${runId}/chat`);
   if (await page.getByText(question.text, { exact: true }).count()) throw new Error('Chat content leaked before acquiring the lease');
-  await page.getByRole('button', { name: '获取操作权', exact: true }).click();
+  await page.getByRole('button', { name: "Get operating rights", exact: true }).click();
   await page.getByText(question.text, { exact: true }).waitFor({ timeout: 3000 });
   await page.getByText('发起电脑离线', { exact: false }).first().waitFor();
   const questionCard = page.locator('.chat-question').filter({ hasText: question.text });
@@ -84,11 +84,11 @@ async page => {
   }
   await questionCard.getByLabel('回复评审 Agent').fill('需要覆盖移动端。');
   await questionCard.getByRole('button', { name: '回复', exact: true }).click();
-  await page.getByText('已回复', { exact: true }).waitFor();
+  await page.getByText("Replied", { exact: true }).waitFor();
   const reply = commands.at(-1);
   if (reply?.action !== 'reply' || reply.targetId !== question.id || reply.text !== '需要覆盖移动端。' || reply.tabId !== tab
     || reply.epoch !== 7 || reply.leaseCredential !== 'fixture-lease') throw new Error('Reply lost its question or lease binding');
-  const composer = page.getByLabel('消息内容', { exact: true });
+  const composer = page.getByLabel("Message content", { exact: true });
   await composer.waitFor({ timeout: 3000 });
   await composer.fill('请整理本轮验收点。');
   await page.getByRole('button', { name: '发送消息', exact: true }).click();
@@ -103,17 +103,17 @@ async page => {
   const accepted = commands.length;
   await composer.fill('@未知角色 请查看。');
   await page.getByRole('button', { name: '发送消息', exact: true }).click();
-  await page.getByText('未找到唯一可接收消息的 @Agent，请从当前节点的角色中选择。', { exact: true }).waitFor();
+  await page.getByText("The only @Agent that can receive messages was not found, please choose from the roles of the current node.", { exact: true }).waitFor();
   if (commands.length !== accepted) throw new Error('Invalid mention was silently redirected');
-  await page.getByRole('button', { name: '查看更早消息', exact: true }).click();
+  await page.getByRole('button', { name: "View older news", exact: true }).click();
   await page.getByText('此前已登记需求。', { exact: true }).waitFor();
   const timeline = await page.getByRole('log').locator('.chat-entry p').allTextContents();
   if (timeline.join('|') !== '此前已登记需求。|已读取原需求。') throw new Error('Chat history reordered or duplicated messages');
-  const retry = page.getByRole('button', { name: '重试失败角色', exact: true });
+  const retry = page.getByRole('button', { name: "Retry failed role", exact: true });
   await retry.waitFor({ timeout: 3000 });
   if (await page.getByRole('button', { name: '回复', exact: true }).count()) throw new Error('Historical question received a reply action');
   await page.getByRole('button', { name: '取消提问', exact: true }).click();
-  await page.getByText('已取消', { exact: true }).waitFor();
+  await page.getByText("Canceled", { exact: true }).waitFor();
   if (commands.at(-1)?.targetId !== readyToCancel.id) throw new Error('Cancel request selected the wrong question');
   await retry.click();
   await retry.waitFor({ state: 'hidden' });
@@ -121,9 +121,9 @@ async page => {
   if (retried?.action !== 'retry' || retried.targetId !== failedRole.taskId || retried.expectedAttemptNumber !== 2) {
     throw new Error('Retry lost its failed task attempt');
   }
-  await page.getByLabel('变更后名称', { exact: true }).fill('增加移动端验收');
-  await page.getByLabel('变更后说明', { exact: true }).fill('需要移动端验收记录。');
-  await page.getByRole('button', { name: '提交变更提议', exact: true }).click();
+  await page.getByLabel("Name after change", { exact: true }).fill('增加移动端验收');
+  await page.getByLabel("Description after change", { exact: true }).fill('需要移动端验收记录。');
+  await page.getByRole('button', { name: "Submit a change proposal", exact: true }).click();
   await page.getByText('扩大验收范围。', { exact: true }).waitFor();
   const proposal = commands.at(-1);
   if (proposal?.expectedRequirementRevision !== 1 || proposal.expectedSourceRequirementVersion !== 3 || proposal.wave !== 2
@@ -140,7 +140,7 @@ async page => {
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error('Chat overflows mobile');
   await page.screenshot({ path: '.agentship/verification/run-chat-mobile.png', animations: 'disabled', fullPage: true });
   revoked = true;
-  await page.getByText('操作权已失效，请重新获取。', { exact: true }).waitFor({ timeout: 6000 });
+  await page.getByText("The operation right has expired, please obtain it again.", { exact: true }).waitFor({ timeout: 6000 });
   if (await page.getByRole('log').count() || await page.getByText(question.text, { exact: true }).count()) {
     throw new Error('Revoked tab still displays protected chat');
   }

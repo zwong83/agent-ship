@@ -77,7 +77,7 @@ public class DeviceService implements RunDevices {
             if (seen != null) value.put("lastSeenAt",seen.toInstant().toString());
             return value;
         });
-        if (rows.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","找不到该设备。");
+        if (rows.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","The device cannot be found.");
         return rows.getFirst();
     }
 
@@ -138,9 +138,9 @@ public class DeviceService implements RunDevices {
                     DeviceProofCodec.encode(challenge.nonce),origin),signature)) throw invalidProof();
         } catch (IllegalArgumentException | GeneralSecurityException error) { throw invalidProof(); }
         if (device.seen == null || device.seen.toInstant().isBefore(Instant.now().minusSeconds(ONLINE_SECONDS)))
-            throw new ApiProblem(409,"DEVICE_OFFLINE","请先启动本机程序，再重新确认发起电脑。");
+            throw new ApiProblem(409,"DEVICE_OFFLINE","Please start the local program first, and then reconfirm to start the computer.");
         if (device.mode.equals("codex") && !device.codex.equals("available"))
-            throw new ApiProblem(409,"CODEX_UNAVAILABLE","本机 Codex 尚不可用，请检查后重试。");
+            throw new ApiProblem(409,"CODEX_UNAVAILABLE","The native Codex is not available yet, please check and try again.");
         jdbc.update("UPDATE device_challenge SET consumed_at=statement_timestamp() WHERE id=:id",Map.of("id",challengeId));
         return new DeviceBinding(deviceId,device.mode);
     }
@@ -150,7 +150,7 @@ public class DeviceService implements RunDevices {
         // Table is one of two internal constants, never a request field.
         Long count = jdbc.queryForObject("SELECT count(*) FROM " + table + " WHERE account_id=:actor AND expires_at>statement_timestamp()",
                 Map.of("actor",actor.id()),Long.class);
-        if (count != null && count >= maximum) throw new ApiProblem(429,"TOO_MANY_REQUESTS","请求过多，请稍后重试。",Map.of("retryAfterSeconds",60));
+        if (count != null && count >= maximum) throw new ApiProblem(429,"TOO_MANY_REQUESTS","Too many requests, please try again later.",Map.of("retryAfterSeconds",60));
     }
 
     private void session(Actor actor) {
@@ -178,8 +178,8 @@ public class DeviceService implements RunDevices {
     private static UUID uuid(JsonNode body, String name) {
         try { return UUID.fromString(text(body,name,36)); } catch (IllegalArgumentException error) { throw ApiProblem.invalid(); }
     }
-    private static ApiProblem unavailablePair() { return new ApiProblem(409,"PAIRING_UNAVAILABLE","配对码无效、已使用或已过期，请重新生成。"); }
-    private static ApiProblem invalidProof() { return new ApiProblem(409,"DEVICE_PROOF_INVALID","设备确认无效或已过期，请重新确认发起电脑。"); }
+    private static ApiProblem unavailablePair() { return new ApiProblem(409,"PAIRING_UNAVAILABLE","The pairing code is invalid, used or expired, please generate again."); }
+    private static ApiProblem invalidProof() { return new ApiProblem(409,"DEVICE_PROOF_INVALID","The device confirmation is invalid or expired, please reconfirm the initiating computer."); }
     private record Pairing(UUID id, Actor actor, String origin, Instant expires, Timestamp consumed) {}
     private record Challenge(byte[] nonce, Instant expires, Timestamp consumed) {}
     private record ProofDevice(String mode, byte[] key, String codex, Timestamp seen) {}

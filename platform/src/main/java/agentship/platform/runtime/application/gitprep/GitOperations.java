@@ -41,7 +41,7 @@ public class GitOperations {
             UUID requirement = (UUID) context.run().get("requirement_id");
             UUID run = "create_repository".equals(planned.effect()) ? null : context.runId();
             var operation = store.ensure(requirement, run, (String) context.run().get("mode"), planned);
-            if(!planned.targetId().equals(operation.target())) throw RequestFields.conflict("GIT_TARGET_CONFLICT","同一需求的仓库位置与已保存的操作不一致，请人工确认");
+            if(!planned.targetId().equals(operation.target())) throw RequestFields.conflict("GIT_TARGET_CONFLICT","The warehouse location for the same requirement is inconsistent with the saved operation. Please confirm manually.");
             values.add(operation);
         }
         return values;
@@ -60,7 +60,7 @@ public class GitOperations {
     public Map<String,Object> authorize(TaskContext context,JsonNode body) {
         String operationKey=RequestFields.text(body,"operationKey",300),effect=RequestFields.text(body,"effect",40),target=RequestFields.text(body,"targetId",500);
         var operation=find(context,operationKey);
-        if(!effect.equals(operation.effect()) || !target.equals(operation.target())) throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","外部操作超出本次运行确认的范围");
+        if(!effect.equals(operation.effect()) || !target.equals(operation.target())) throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","The external operation is beyond the scope of this run confirmation.");
         String state=operation.state();
         String decision;
         Instant deadline=Instant.now().plusSeconds(30);
@@ -68,13 +68,13 @@ public class GitOperations {
             UUID owner = (UUID) context.run().get("current_owner");
             Instant grantDeadline = store.grantDeadline(context.runId(), effect, target, owner);
             if (!context.run().get("initiator_id").equals(owner) || grantDeadline == null) {
-                throw new ApiProblem(403,"EXTERNAL_GRANT_REQUIRED","本次 Git 操作授权已失效，需要主负责人重新确认");
+                throw new ApiProblem(403,"EXTERNAL_GRANT_REQUIRED","This Git operation authorization has expired and needs to be reconfirmed by the person in charge.");
             }
             if(grantDeadline.isBefore(deadline)) deadline=grantDeadline;
             decision="dispatch";
         } else if(state.equals("succeeded")) decision="already_succeeded";
         else if(Set.of("dispatching","unknown").contains(state)) decision="reconcile";
-        else throw RequestFields.conflict("EXTERNAL_OPERATION_FAILED","该外部操作已确认失败，需要人工处理");
+        else throw RequestFields.conflict("EXTERNAL_OPERATION_FAILED","The external operation has been confirmed to have failed and requires manual processing.");
         Instant lease=((Timestamp)context.attempt().get("lease_deadline")).toInstant();
         if(lease.isBefore(deadline)) deadline=lease;
         store.associateTask(operation.id(), context.task());
@@ -89,11 +89,11 @@ public class GitOperations {
         String effect=operation.effect(),target=operation.target();
         if(!target.equals(RequestFields.text(evidence,"targetId",500)) ||
                 !(effect.equals("create_repository")?"repository":"branch").equals(RequestFields.text(evidence,"kind",30))) {
-            throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","Git 结果与任务目标不一致");
+            throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","Git results are inconsistent with task goals");
         }
         Instant observed=RequestFields.instant(evidence,"observedAt");
         if(observed.isAfter(Instant.now().plusSeconds(300))) throw ApiProblem.invalid();
-        if (!store.scopedToTask(operation.id(), context.task()) || operation.state().equals("intended")) throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","尚未为当前任务记录此 Git 操作");
+        if (!store.scopedToTask(operation.id(), context.task()) || operation.state().equals("intended")) throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","This Git operation has not been recorded for the current task");
         String result=evidence.hasNonNull("providerResultId")?RequestFields.text(evidence,"providerResultId",500):null;
         UUID repository=null;
         String branch=null,commit=null;
@@ -105,25 +105,25 @@ public class GitOperations {
                 JsonNode git=evidence.get("git");
                 if(git==null || !git.isObject() || !repo.equals(git.get("repository"))) throw ApiProblem.invalid();
                 branch=RequestFields.text(git,"workBranch",250);
-                if(!target.equals(GitPlan.repository(context.run())+"#refs/heads/"+branch)) throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","分支证据不符合计划");
+                if(!target.equals(GitPlan.repository(context.run())+"#refs/heads/"+branch)) throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","Branch evidence doesn't go as planned");
                 String expectedBase=effect.equals("create_base_branch") || context.run().get("work_type").equals("hotfix")
                         ?RequestFields.text(repo,"defaultBranch",200):"dev";
-                if(!expectedBase.equals(RequestFields.text(git,"baseBranch",200))) throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","基础分支证据不符合计划");
+                if(!expectedBase.equals(RequestFields.text(git,"baseBranch",200))) throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","Base branch evidence does not go as planned");
                 commit=RequestFields.text(git,"baseCommit",64);
                 if(!commit.matches("[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")) throw ApiProblem.invalid();
                 if(!result.equals(commit) || (git.hasNonNull("headCommit") && !commit.equals(RequestFields.text(git,"headCommit",64)))) {
-                    throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","分支提交证据不一致");
+                    throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","Branch commit evidence is inconsistent");
                 }
             }
             if(effect.equals("create_repository") && !result.equals(RequestFields.text(repo,"repositoryId",200))) {
-                throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","仓库提供方标识不一致");
+                throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","Warehouse provider identification is inconsistent");
             }
             repository=repository(repo);
             for(var preceding:ensure(context)) {
                 if(preceding.state().equals("succeeded")) {
                     var identities = store.successfulRepositories(preceding.id());
                     if (identities.stream().anyMatch(identity -> !repositoryIdentityEquals(identity, repo))) {
-                        throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","各 Git 步骤必须对应同一个仓库标识");
+                        throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","Each Git step must correspond to the same warehouse ID");
                     }
                 }
             }
@@ -132,11 +132,11 @@ public class GitOperations {
             var prior = store.confirmedObservation(operation.id());
             if (!outcome.equals("confirmed_success") || !java.util.Objects.equals(repository, prior.repository())
                     || !java.util.Objects.equals(branch, prior.branch()) || !java.util.Objects.equals(commit, prior.commit())) {
-                throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","已确认的 Git 结果不能被不同结果覆盖");
+                throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","Confirmed Git results cannot be overwritten by different results");
             }
             return prior;
         }
-        if(operation.state().equals("failed")) throw RequestFields.conflict("EXTERNAL_OPERATION_FAILED","该 Git 操作已确认失败");
+        if(operation.state().equals("failed")) throw RequestFields.conflict("EXTERNAL_OPERATION_FAILED","This Git operation has been confirmed to have failed");
         var recorded = store.observe(operation.id(), context.task(), target, observed, result,
                 new Observation(outcome, repository, branch, commit));
         if (outcome.equals("confirmed_success") && effect.equals("create_repository") && context.run().get("mode").equals("codex")) {
@@ -147,10 +147,10 @@ public class GitOperations {
 
     public void complete(TaskContext context,JsonNode evidence) {
         var finalEvidence=observation(context,evidence);
-        if(!"confirmed_success".equals(finalEvidence.outcome())) throw RequestFields.conflict("GIT_EVIDENCE_REQUIRED","需要已验证的 Git 成功证据才能完成准备");
+        if(!"confirmed_success".equals(finalEvidence.outcome())) throw RequestFields.conflict("GIT_EVIDENCE_REQUIRED","Requires proven evidence of Git success to complete preparation");
         var operations=ensure(context);
-        if(operations.stream().anyMatch(op->!op.state().equals("succeeded"))) throw RequestFields.conflict("GIT_EVIDENCE_REQUIRED","所有 Git 准备步骤都需要成功证据");
-        if(!GitPlan.workBranch(context.run()).equals(finalEvidence.branch())) throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","完成结果必须对应本次运行的工作分支");
+        if(operations.stream().anyMatch(op->!op.state().equals("succeeded"))) throw RequestFields.conflict("GIT_EVIDENCE_REQUIRED","All Git preparation steps require evidence of success");
+        if(!GitPlan.workBranch(context.run()).equals(finalEvidence.branch())) throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","The completion result must correspond to the working branch of this run.");
         JsonNode git=evidence.get("git"),repo=evidence.get("repository");
         store.completeRun(context.runId(), finalEvidence.repository(), RequestFields.text(git, "baseBranch", 200),
                 RequestFields.text(git, "workBranch", 250), RequestFields.text(git, "baseCommit", 64),
@@ -159,18 +159,18 @@ public class GitOperations {
 
     private Operation find(TaskContext context,String key) {
         return ensure(context).stream().filter(op->key.equals(op.key())).findFirst()
-                .orElseThrow(()->new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","外部操作不属于当前 Git 任务"));
+                .orElseThrow(()->new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","The external operation does not belong to the current Git task"));
     }
     private void validateRepository(TaskContext context,JsonNode repo) {
         String provider=context.run().get("mode").equals("demo")?"demo":"github";
         if(repo==null || !provider.equals(RequestFields.text(repo,"provider",20)) || !GitPlan.repository(context.run()).equalsIgnoreCase(RequestFields.text(repo,"displayName",300))) {
-            throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","仓库证据不符合运行模式或目标位置");
+            throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","Warehouse evidence does not match run mode or target location");
         }
         String id=RequestFields.text(repo,"repositoryId",200),branch=RequestFields.text(repo,"defaultBranch",200);
         if(provider.equals("github") && !id.matches("[0-9]{1,30}")) throw ApiProblem.invalid();
         if(!branch.matches("[A-Za-z0-9][A-Za-z0-9._/-]{0,199}") || branch.contains("..") || branch.contains("//") || branch.endsWith("/") || branch.endsWith(".") || branch.endsWith(".lock")) throw ApiProblem.invalid();
         if(context.run().get("github_namespace")==null && provider.equals("github") && !id.equals(context.run().get("provider_repository_id"))) {
-            throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","仓库标识与需求关联的仓库不一致");
+            throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH","The warehouse ID is inconsistent with the warehouse associated with the requirement");
         }
     }
     private boolean repositoryIdentityEquals(UUID id, JsonNode repo) {
@@ -187,7 +187,7 @@ public class GitOperations {
         String branch = RequestFields.text(repo, "defaultBranch", 200);
         var existing = store.ensureRepository(provider, remote, name, branch);
         if (!existing.name().equalsIgnoreCase(name)) {
-            throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH", "仓库标识已对应其他仓库位置");
+            throw RequestFields.conflict("GIT_EVIDENCE_MISMATCH", "The warehouse ID has been mapped to other warehouse locations");
         }
         store.defaultBranch(existing.id(), branch);
         return existing.id();

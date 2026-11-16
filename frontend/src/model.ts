@@ -6,11 +6,11 @@ export type Purpose = 'requirement' | 'product' | 'frontend' | 'backend' | 'test
 export type CheckOutcome = 'pass' | 'repair';
 
 export const sections: Record<Section, string> = {
-  requirements: '需求', flows: '流程配置', agents: 'Agent 配置', runs: '运行看板', devices: '本机设备',
+  requirements: 'Requirements', flows: 'Workflows', agents: 'Agents', runs: 'Run dashboard', devices: 'Local devices',
 };
-export const workTypes: Record<WorkType, string> = { feature: '新功能', refactor: '重构', hotfix: '紧急修复', fix: '常规修复' };
+export const workTypes: Record<WorkType, string> = { feature: 'New feature', refactor: 'Refactor', hotfix: 'Hotfix', fix: 'Bug fix' };
 export const purposes: Record<Purpose, string> = {
-  requirement: '需求', product: '产品定义', frontend: '前端开发', backend: '后端开发', test: '检查与测试', repair: '修复', other: '其他',
+  requirement: 'Requirements', product: 'product definition', frontend: 'Frontend development', backend: 'Backend development', test: 'Inspection and testing', repair: 'Repair', other: 'other',
 };
 
 export interface User { id: string; name: string; username: string }
@@ -99,7 +99,7 @@ export async function api<T>(path: string, method = 'GET', body?: object): Promi
   });
   if (result.ok) return result.json() as Promise<T>;
   const payload = await result.json().catch(() => null) as { error?: { message?: string; code?: string; details?: ErrorDetails } } | null;
-  throw new ApiError(payload?.error?.message ?? '操作失败', payload?.error?.code, payload?.error?.details);
+  throw new ApiError(payload?.error?.message ?? 'Operation failed', payload?.error?.code, payload?.error?.details);
 }
 
 export function ordinary(name: string, purpose: Purpose = 'other', roles: string[] = []): FlowNode {
@@ -107,24 +107,24 @@ export function ordinary(name: string, purpose: Purpose = 'other', roles: string
 }
 
 export function endNode(): FlowNode {
-  return { ...ordinary('结束'), type: 'end', coordinator: null };
+  return { ...ordinary('End'), type: 'end', coordinator: null };
 }
 
 export function sampleFlow(): Stage[] {
-  const request = ordinary('补齐需求', 'requirement', ['builtin:architecture']);
-  const product = ordinary('产品定义', 'product', ['builtin:architecture']);
+  const request = ordinary('Fill needs', 'requirement', ['builtin:architecture']);
+  const product = ordinary('product definition', 'product', ['builtin:architecture']);
   product.dependencies = [request.id];
-  const frontend = ordinary('前端开发', 'frontend', ['builtin:frontend_design']);
-  const backend = ordinary('后端开发', 'backend', ['builtin:interface_data']);
+  const frontend = ordinary('Frontend development', 'frontend', ['builtin:frontend_design']);
+  const backend = ordinary('Backend development', 'backend', ['builtin:interface_data']);
   frontend.dependencies = backend.dependencies = [product.id];
-  const repair = ordinary('修复问题', 'repair', ['builtin:implementation']);
-  const release: FlowNode = { ...ordinary('发布交付'), type: 'publish', target: '试点环境', workflow: '' };
-  const check: FlowNode = { ...ordinary('检查与测试', 'test', ['builtin:testing', 'builtin:quality_attributes', 'builtin:security_testing']),
+  const repair = ordinary('fix problem', 'repair', ['builtin:implementation']);
+  const release: FlowNode = { ...ordinary('release delivery'), type: 'publish', target: 'pilot environment', workflow: '' };
+  const check: FlowNode = { ...ordinary('Inspection and testing', 'test', ['builtin:testing', 'builtin:quality_attributes', 'builtin:security_testing']),
     type: 'check', dependencies: [frontend.id, backend.id], branches: { pass: release.id, repair: repair.id, limit: 3 } };
   return [
-    { name: '需求', nodes: [request] },
-    { name: '研发', nodes: [product, frontend, backend] },
-    { name: '验证与发布', nodes: [check, repair, release, endNode()] },
+    { name: 'Requirements', nodes: [request] },
+    { name: 'R&D', nodes: [product, frontend, backend] },
+    { name: 'Verify and publish', nodes: [check, repair, release, endNode()] },
   ];
 }
 

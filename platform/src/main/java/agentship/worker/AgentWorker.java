@@ -96,13 +96,13 @@ final class AgentWorker implements AutoCloseable {
                     executeRole(job, workspace, journal);
                 }
             } catch (AgentWorkspace.ArtifactConflict conflict) {
-                fail(journal, "AGENT_ARTIFACT_CONFLICT", "角色或上游代码有冲突，已保留各自产物供处理。");
+                fail(journal, "AGENT_ARTIFACT_CONFLICT", "There is a conflict between the role or the upstream code, and the respective products have been reserved for processing.");
             } catch (ResumeRequired ambiguous) {
-                fail(journal, "AGENT_RESUME_REQUIRED", "无法确认原 Codex 会话的结果，请在发起电脑核对。");
+                fail(journal, "AGENT_RESUME_REQUIRED", "Unable to confirm the results of the original Codex session, please check on the initiating computer.");
             } catch (PlatformRejection rejection) {
                 throw rejection;
             } catch (Exception failure) {
-                fail(journal, "AGENT_EXECUTION_FAILED", "本机 Agent 或工作区未能完成任务，请检查本机环境。");
+                fail(journal, "AGENT_EXECUTION_FAILED", "The local Agent or workspace failed to complete the task, please check the local environment.");
             }
             journal.reportTerminal();
         } catch (PlatformRejection rejection) {
@@ -128,7 +128,7 @@ final class AgentWorker implements AutoCloseable {
         journal.reportReply(result.reply());
         switch (result.status()) {
             case "question" -> journal.terminal("question", Map.of("sessionRef", journal.threadId(), "text", result.question()));
-            case "failure" -> fail(journal, "AGENT_EXECUTION_FAILED", "本机 Agent 未能完成任务。");
+            case "failure" -> fail(journal, "AGENT_EXECUTION_FAILED", "The native Agent failed to complete the task.");
             case "complete" -> finish(job, workspace, journal, result.artifact(), demo ? result.verdict() : "unresolved");
             default -> throw new IOException("Unsupported task result");
         }
@@ -152,12 +152,12 @@ final class AgentWorker implements AutoCloseable {
             outcome = candidate.equals(evidence.path("candidate")) ? evidence.path("outcome").asText() : "unresolved";
         }
         String summary = switch (outcome) {
-            case "pass" -> "通过。Git 未发现本次差异引入的空白问题或冲突标记。";
-            case "repair" -> "需修复。Git 检测到本次差异引入的空白问题或冲突标记。";
-            default -> "待确认。受检提交或执行结果缺少可核对的证据。";
+            case "pass" -> "pass. Git found no whitespace issues or conflict tags introduced by this diff.";
+            case "repair" -> "Needs repair. Git detects whitespace issues or conflict tags introduced by this diff.";
+            default -> "To be confirmed. The submitted submission or execution result under inspection lacks verifiable evidence.";
         };
-        String report = "# Git 差异检查\n\n准备的提交：`" + revision + "`\n\n"
-                + "检查方式：`git diff --check`，范围为运行基准与受检提交之间的差异。\n\n" + summary + "\n";
+        String report = "# Git diff check\n\nPrepared commit:`" + revision + "`\n\n"
+                + "Check method: `git diff --check`, the scope is the difference between the running baseline and the checked commit. \n\n" + summary + "\n";
         finish(job, workspace, journal, report, outcome);
     }
 
@@ -173,35 +173,35 @@ final class AgentWorker implements AutoCloseable {
                 if (job.gitDiffCheck() && !"unresolved".equals(result.outcome())) {
                     String diff = workspace.checkGitDiff(revision);
                     String combined = "unresolved".equals(diff) ? diff : "repair".equals(diff) ? diff : result.outcome();
-                    result = new MavenCandidateCheck.Result(combined, result.detail() + " Git 差异检查：" + checkLabel(diff) + "。");
+                    result = new MavenCandidateCheck.Result(combined, result.detail() + " Git diff check:" + checkLabel(diff) + ".");
                 }
             } catch (Exception unavailable) {
                 job.assertLease();
-                result = MavenCandidateCheck.unresolved("本机 Maven 检查未取得完整证据，请核对离线依赖和执行环境。");
+                result = MavenCandidateCheck.unresolved("The native Maven check did not obtain complete evidence, please check the offline dependencies and execution environment.");
             }
             journal.data.set("mavenCheck", JSON.valueToTree(Map.of("candidate", candidate, "result", result)));
             journal.save();
         } else {
             result = candidate.equals(evidence.path("candidate"))
                     ? JSON.treeToValue(evidence.path("result"), MavenCandidateCheck.Result.class)
-                    : MavenCandidateCheck.unresolved("本机检查记录与本次候选不一致。");
+                    : MavenCandidateCheck.unresolved("The local inspection record is inconsistent with this candidate.");
         }
-        String report = "# Maven 开发检查\n\n受检提交：`" + revision + "`\n\n"
-                + "检查方式：本机离线 `mvn test`。\n\n结论：" + checkLabel(result.outcome()) + "。" + result.detail() + "\n";
+        String report = "# Maven Development Check\n\nChecked commit:`" + revision + "`\n\n"
+                + "Checking method: This machine is offline `mvn test`. \n\nConclusion:" + checkLabel(result.outcome()) + "." + result.detail() + "\n";
         finish(job, workspace, journal, report, result.outcome());
     }
 
     private static String checkLabel(String outcome) {
         return switch (outcome) {
-            case "pass" -> "通过";
-            case "repair" -> "需修复";
-            default -> "待确认";
+            case "pass" -> "Pass";
+            case "repair" -> "Needs repair";
+            default -> "To be confirmed";
         };
     }
 
     private void finish(Job job, AgentWorkspace workspace, Journal journal, String artifact, String verdict) throws Exception {
         if (artifact.isBlank() || artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 64 * 1024) {
-            fail(journal, "AGENT_ARTIFACT_REQUIRED", "Agent 未交付可引用的节点产物。");
+            fail(journal, "AGENT_ARTIFACT_REQUIRED", "Agent did not deliver a referenceable node artifact.");
             return;
         }
         Map<String,Object> output = new LinkedHashMap<>();
@@ -228,19 +228,19 @@ final class AgentWorker implements AutoCloseable {
         for (Inbox message; (message = journal.nextInbox(false)) != null;) journal.delivered(message.id());
         String instructions = job.input.path("roleInstruction").asText();
         if (instructions.contains("[demo:question]") && answer == null) {
-            return new CodexAppServer.Result("question", "", "请补充本节点的验收条件。", "none");
+            return new CodexAppServer.Result("question", "", "Please add the acceptance conditions for this node.", "none");
         }
         if (instructions.contains("[demo:fail]")) {
             return new CodexAppServer.Result("failure", "", "", "none");
         }
-        String heading = job.coordinator ? "演示节点最终产物" : "演示 Agent 产物";
+        String heading = job.coordinator ? "Demo node final product" : "Demo Agent product";
         String context = workspace.context();
         String report = "# " + heading + "\n\n"
-                + "需求：" + job.input.path("requirementName").asText() + "\n"
-                + "角色：" + job.input.path("roleDisplayName").asText(job.input.path("roleId").asText()) + "\n"
-                + "节点：" + job.input.path("node").path("name").asText() + "\n"
+                + "need:" + job.input.path("requirementName").asText() + "\n"
+                + "Role:" + job.input.path("roleDisplayName").asText(job.input.path("roleId").asText()) + "\n"
+                + "node:" + job.input.path("node").path("name").asText() + "\n"
                 + (context.length() <= 24_000 ? context : context.substring(0, 24_000));
-        String reply = journal.lastInboxId() == null ? "" : "已收到当前角色的消息，已继续执行。";
+        String reply = journal.lastInboxId() == null ? "" : "The message for the current role has been received and execution has continued.";
         return new CodexAppServer.Result("complete", report, "", demoVerdict(instructions, job.wave), reply);
     }
 
@@ -395,6 +395,8 @@ final class AgentWorker implements AutoCloseable {
         boolean gitDiffCheck() { return check() && input.path("roleInstruction").asText().contains("[check:git-diff]"); }
         boolean mavenCheck() { return check() && input.path("roleInstruction").asText().contains("[check:maven-test]"); }
         boolean writable() {
+            if (input.has("permissions")) return !check() && "write".equals(input.path("permissions").path("workspaceAccess").asText());
+            // Compatibility for jobs already dispatched by a pre-migration server.
             String purpose = input.path("node").path("purpose").asText();
             return !check() && (coordinator || List.of("frontend", "backend", "repair").contains(purpose));
         }
@@ -425,7 +427,7 @@ final class AgentWorker implements AutoCloseable {
         String prompt() {
             return switch (kind) {
                 case "answer" -> "Operator answer to your prior question:\n" + text;
-                case "continue_without_answer" -> "The question was canceled. 请根据已有信息继续。";
+                case "continue_without_answer" -> "The question was canceled. Please continue based on the information available.";
                 case "change_confirmed" -> "A later requirement revision was confirmed. Continue this task with its original pinned input.";
                 default -> "Operator message for your current role:\n" + text;
             };

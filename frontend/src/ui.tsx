@@ -1,10 +1,11 @@
-import type { FormEvent, ReactNode } from 'react';
+import { cloneElement, isValidElement, type FormEvent, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { Select } from './select';
 
 const statuses: Record<string, string> = {
-  preparing: '准备仓库', running: '执行中', waiting: '等待回复', attention: '待人工处理',
-  offline: '等待发起电脑上线', completed: '已完成', stopped: '已停止',
-  pending: '待开始', active: '执行中', done: '完成', skipped: '本次未走该路线', blocked: '待人工处理',
-  queued: '排队', leased: '执行中', failed: '失败', answered: '已回复', cancelled: '已取消',
+  preparing: 'Prepare warehouse', running: 'Executing', waiting: 'Waiting for reply', attention: 'Needs attention',
+  offline: 'Waiting for the initiating computer to come online', completed: 'Completed', stopped: 'Stopped',
+  pending: 'To be started', active: 'Executing', done: 'Finish', skipped: 'Didn’t take this route this time', blocked: 'Needs attention',
+  queued: 'queue', leased: 'Executing', failed: 'Failed', answered: 'Replied', cancelled: 'Canceled',
 };
 
 export function Heading({ label, title, text, actions }: { label: string; title: string; text: string; actions?: ReactNode }) {
@@ -18,7 +19,8 @@ export function Button({ children, onClick, variant = 'ghost', disabled }: {
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label>{label}{children}</label>;
+  return <label>{label}{isValidElement<SelectHTMLAttributes<HTMLSelectElement>>(children) && children.type === Select
+    ? cloneElement(children, { 'aria-label': children.props['aria-label'] ?? label }) : children}</label>;
 }
 
 export function Choices({ entries }: { entries: Record<string, string> }) {

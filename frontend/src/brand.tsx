@@ -1,8 +1,9 @@
 import type { ObjectKind } from './api';
+import { MissionScene } from './mission-scene';
 
 export function Brand() {
   return <div className="brand">
-    <img src="/agentship-mark.svg" width="42" height="42" alt="" />
+    <img src="/agent-ship.png" width="52" height="52" alt="" draggable={false} />
     <span>Agent<span className="brand-accent">Ship</span><small>AI DELIVERY WORKSPACE</small></span>
   </div>;
 }
@@ -17,13 +18,5 @@ export function ConfigIcon({ kind }: { kind: ObjectKind }) {
 }
 
 export function MissionGraphic() {
-  return <div className="mission-graphic" aria-hidden="true">
-    <div className="orbit orbit-outer" /><div className="orbit orbit-inner" />
-    <div className="mission-axis" />
-    <div className="mission-core"><img src="/agentship-mark.svg" width="88" height="88" alt="" /></div>
-    <div className="satellite satellite-one"><ConfigIcon kind="requirements" /><span>REQUIREMENT</span></div>
-    <div className="satellite satellite-two"><ConfigIcon kind="flows" /><span>WORKFLOW</span></div>
-    <div className="satellite satellite-three"><ConfigIcon kind="agents" /><span>AGENT</span></div>
-    <span className="orbit-point point-one" /><span className="orbit-point point-two" />
-  </div>;
+  return <div className="spatial-graphic"><MissionScene /></div>;
 }

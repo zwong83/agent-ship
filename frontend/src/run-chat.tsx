@@ -1,3 +1,4 @@
+import { Select } from './select';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, errorText, queryPath, request } from './api';
 import { Button, Field } from './ui';
@@ -29,15 +30,15 @@ type ChatProps = {
   onAction: (action: ChatCommand) => Promise<boolean>; onLeaseLost: () => void; onUnauthorized: () => void;
 };
 
-const deliveryLabel: Record<Delivery, string> = { pending: '待投递', delivered: '已投递', unknown: '投递状态待确认' };
-const questionLabel: Record<Question['state'], string> = { waiting: '待回复', answered: '已回复', canceled: '已取消' };
+const deliveryLabel: Record<Delivery, string> = { pending: 'Awaiting delivery', delivered: 'Delivered', unknown: 'Delivery status awaiting confirmation' };
+const questionLabel: Record<Question['state'], string> = { waiting: 'Awaiting reply', answered: 'Replied', canceled: 'Canceled' };
 const senderLabel: Record<Message['direction'], string> = {
-  user_to_agent: '操作者', agent_to_user: 'Agent', agent_to_agent: 'Agent', system: '系统',
+  user_to_agent: 'operator', agent_to_user: 'Agent', agent_to_agent: 'Agent', system: 'system',
 };
 
 function displayTime(value: string) {
   const time = new Date(value);
-  return Number.isNaN(time.getTime()) ? '' : new Intl.DateTimeFormat('zh-CN', {
+  return Number.isNaN(time.getTime()) ? '' : new Intl.DateTimeFormat('en-US', {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
   }).format(time);
 }
@@ -120,33 +121,33 @@ export function RunChat({ path, lease, refresh, disabled, onAction, onLeaseLost,
   const visible = historyRole ? history.messages.filter(message => [message.senderRoleId, message.targetRoleId].includes(historyRole)) : history.messages;
   const busy = disabled || !!error;
   return <section className="panel repair-control run-chat" aria-labelledby="run-chat-title">
-    <div className="row between"><h2 id="run-chat-title">运行聊天</h2>
-      {view?.runState === 'stopped' ? <span className="pill attn">运行已停止</span>
-        : view?.runState === 'completed' ? <span className="pill good">运行已完成</span>
-        : view?.deviceOnline === false && <span className="pill attn">发起电脑离线 · 消息等待投递</span>}</div>
-    {error && <div className="row"><p role="alert" className="inline-error">{error}</p><Button onClick={() => setReload(value => value + 1)}>重试读取</Button></div>}
-    {!view && !error && <p role="status">正在读取聊天和待答问题…</p>}
+    <div className="row between"><h2 id="run-chat-title">Run chat</h2>
+      {view?.runState === 'stopped' ? <span className="pill attn">Running has stopped</span>
+        : view?.runState === 'completed' ? <span className="pill good">Run completed</span>
+        : view?.deviceOnline === false && <span className="pill attn">Initiate computer offline · Message waiting for delivery</span>}</div>
+    {error && <div className="row"><p role="alert" className="inline-error">{error}</p><Button onClick={() => setReload(value => value + 1)}>Retry reading</Button></div>}
+    {!view && !error && <p role="status">Loading chat and questions...</p>}
     {view && <>
       <div className="row between chat-history-tools">
-        {roleNames.size > 0 && <Field label="筛选会话"><select value={historyRole} onChange={event => setHistoryRole(event.target.value)}>
-          <option value="">所有角色</option>
+        {roleNames.size > 0 && <Field label="Filter sessions"><Select value={historyRole} onChange={event => setHistoryRole(event.target.value)}>
+          <option value="">All roles</option>
           {[...roleNames].map(([roleId, name]) => <option key={roleId} value={roleId}>{name}</option>)}
-        </select></Field>}
-        {history.cursor && <Button disabled={olderPending} onClick={() => void loadOlder()}>{olderPending ? '读取中…' : '查看更早消息'}</Button>}
+        </Select></Field>}
+        {history.cursor && <Button disabled={olderPending} onClick={() => void loadOlder()}>{olderPending ? 'Loading…' : 'View older news'}</Button>}
       </div>
-      <div className="chat-history" role="log" aria-label="聊天记录" tabIndex={0}>
-        {visible.length === 0 && <p className="subtle">{historyRole ? '此角色没有已加载的聊天记录。' : '本次运行还没有聊天记录。'}</p>}
+      <div className="chat-history" role="log" aria-label="Chat history" tabIndex={0}>
+        {visible.length === 0 && <p className="subtle">{historyRole ? 'This character has no loaded chat history.' : 'There are no chat records for this run yet.'}</p>}
         {visible.map(message => <article className={`chat-entry ${message.direction}`} key={message.id}>
           <div className="row between"><strong>{message.senderLabel || senderLabel[message.direction]}</strong>
             <time dateTime={message.createdAt}>{displayTime(message.createdAt)}</time></div>
           <p>{message.text}</p>
-          {message.targetRoleId && <small className="subtle">发给 {roleNames.get(message.targetRoleId) ?? message.targetRoleId}</small>}
+          {message.targetRoleId && <small className="subtle">issued to {roleNames.get(message.targetRoleId) ?? message.targetRoleId}</small>}
           {message.deliveryState && <small className="subtle">{deliveryLabel[message.deliveryState]}</small>}
         </article>)}
       </div>
       {view.allowedActions.includes('message') && <MessageComposer targets={view.targets} disabled={busy} onAction={onAction} />}
       {view.questions.length > 0 && <section className="chat-section" aria-labelledby="run-questions-title">
-        <h3 id="run-questions-title">Agent 提问</h3>
+        <h3 id="run-questions-title">Agent asked a question</h3>
         {view.questions.map(question => <QuestionCard key={question.id} question={question}
           roleName={question.roleDisplayName ?? roleNames.get(question.roleId) ?? question.roleId}
           canReply={view.allowedActions.includes('reply') && !!question.canReply}
@@ -181,34 +182,34 @@ function MessageComposer({ targets, disabled, onAction }: { targets: Target[]; d
   const selectedRole = roles.find(role => role.roleId === (roleId || target?.coordinatorRoleId));
   const canSend = !!target && (draft.trimStart().startsWith('@') || selectedRole?.availability === 'ready');
 
-  if (!targets.length) return <p className="subtle">当前没有可选的运行节点。已保存的消息仍可查看。</p>;
+  if (!targets.length) return <p className="subtle">There are currently no optional running nodes. Saved messages can still be viewed.</p>;
   return <form className="chat-composer" onSubmit={async event => {
     event.preventDefault();
     const text = draft.trim();
     if (disabled || !target || !text || !canSend) return;
     setError('');
     const route = text.startsWith('@') ? mention(text, roles) : { text, ...(roleId ? { targetRoleId: roleId } : {}) };
-    if (!route) { setError('未找到唯一可接收消息的 @Agent，请从当前节点的角色中选择。'); return; }
-    if (!route.text) { setError('请输入要发送的消息。'); return; }
+    if (!route) { setError('The only @Agent that can receive messages was not found, please choose from the roles of the current node.'); return; }
+    if (!route.text) { setError('Please enter a message to send.'); return; }
     if (await onAction({ action: 'message', nodeId: target.nodeId, wave: target.wave, ...route })) setDraft('');
   }}>
     <div className="chat-fields">
-      <Field label="运行节点"><select value={target ? key : ''} disabled={disabled} onChange={event => {
+      <Field label="Running node"><Select value={target ? key : ''} disabled={disabled} onChange={event => {
         setSelection(event.target.value); setRoleId(''); setError('');
       }}>
-        {!target && <option value="" disabled>选择当前节点</option>}
-        {targets.map(item => <option key={targetKey(item)} value={targetKey(item)}>{item.nodeName} · 第 {item.wave} 次</option>)}
-      </select></Field>
-      <Field label="发送给"><select value={roleId} disabled={disabled || !target} onChange={event => { setRoleId(event.target.value); setError(''); }}>
-        <option value="">默认协调 Agent{target?.coordinatorRoleId ? '' : '（暂不可用）'}</option>
-        {roleId && !roles.some(role => role.roleId === roleId) && <option value={roleId} disabled>原选角色已失效</option>}
+        {!target && <option value="" disabled>Select current node</option>}
+        {targets.map(item => <option key={targetKey(item)} value={targetKey(item)}>{item.nodeName} · No. {item.wave}</option>)}
+      </Select></Field>
+      <Field label="send to"><Select value={roleId} disabled={disabled || !target} onChange={event => { setRoleId(event.target.value); setError(''); }}>
+        <option value="">Default coordinator{target?.coordinatorRoleId ? '' : '(Not available yet)'}</option>
+        {roleId && !roles.some(role => role.roleId === roleId) && <option value={roleId} disabled>The original selected role has expired</option>}
         {roles.map(role => <option key={role.roleId} value={role.roleId} disabled={role.availability !== 'ready'}>@{role.roleDisplayName}</option>)}
-      </select></Field>
+      </Select></Field>
     </div>
-    <Field label="消息内容"><textarea rows={3} value={draft} maxLength={10000} placeholder="输入消息，也可在开头输入 @角色名"
+    <Field label="Message content"><textarea rows={3} value={draft} maxLength={10000} placeholder="Enter a message, you can also enter @character name at the beginning"
       disabled={disabled} onChange={event => { if (target) setSelection(key); setDraft(event.target.value); setError(''); }} /></Field>
     {error && <p role="alert" className="inline-error">{error}</p>}
-    <button type="submit" className="accent" disabled={disabled || !canSend || !draft.trim()}>发送消息</button>
+    <button type="submit" className="accent" disabled={disabled || !canSend || !draft.trim()}>Send message</button>
   </form>;
 }
 
@@ -217,22 +218,22 @@ function QuestionCard({ question, roleName, canReply, canCancel, disabled, onAct
   disabled: boolean; onAction: ChatProps['onAction'];
 }) {
   const [answer, setAnswer] = useState('');
-  return <article className="run-node chat-question" aria-label={`${roleName}的提问`}>
+  return <article className="run-node chat-question" aria-label={`${roleName}question`}>
     <div className="row between"><strong>{roleName}</strong><span className={'pill ' + (question.state === 'waiting' ? 'attn' : '')}>{questionLabel[question.state]}</span></div>
     <p className="chat-text">{question.text}</p>
-    {question.answer && <p className="chat-text"><strong>回复</strong> {question.answer}</p>}
+    {question.answer && <p className="chat-text"><strong>reply</strong> {question.answer}</p>}
     {question.deliveryState && <p className="subtle">{deliveryLabel[question.deliveryState]}</p>}
-    {question.state === 'waiting' && !canReply && !canCancel && <p className="subtle">此问题当前不可操作。</p>}
+    {question.state === 'waiting' && !canReply && !canCancel && <p className="subtle">This issue is currently unavailable.</p>}
     {question.state === 'waiting' && <>
       {canReply && <form onSubmit={async event => {
         event.preventDefault();
         const text = answer.trim();
         if (!disabled && text && await onAction({ action: 'reply', targetId: question.id, text })) setAnswer('');
       }}>
-        <Field label={`回复${roleName}`}><textarea rows={3} value={answer} maxLength={10000} disabled={disabled} onChange={event => setAnswer(event.target.value)} /></Field>
-        <button type="submit" className="accent" disabled={disabled || !answer.trim()}>回复</button>
+        <Field label={`reply${roleName}`}><textarea rows={3} value={answer} maxLength={10000} disabled={disabled} onChange={event => setAnswer(event.target.value)} /></Field>
+        <button type="submit" className="accent" disabled={disabled || !answer.trim()}>reply</button>
       </form>}
-      {canCancel && <Button disabled={disabled} onClick={() => void onAction({ action: 'cancel-question', targetId: question.id })}>取消提问</Button>}
+      {canCancel && <Button disabled={disabled} onClick={() => void onAction({ action: 'cancel-question', targetId: question.id })}>Cancel question</Button>}
     </>}
   </article>;
 }

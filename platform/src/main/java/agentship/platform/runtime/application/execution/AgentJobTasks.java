@@ -53,7 +53,7 @@ class AgentJobTasks {
         node.put("name", row.get("name"));
         node.put("type", row.get("kind"));
         node.put("dependencies", dependencies);
-        put(node, "purpose", row.get("purpose"));
+        node.put("collectRequirements", row.get("collect_requirements"));
         put(node, "agentOrder", row.get("agent_order"));
 
         var upstream = store.upstream(context);
@@ -68,6 +68,7 @@ class AgentJobTasks {
         input.put("roleId", row.get("role_key"));
         input.put("roleDisplayName", row.get("display_name"));
         input.put("roleInstruction", row.get("instruction"));
+        input.put("permissions", Map.of("workspaceAccess", row.get("workspace_access")));
         put(input, "skillRef", row.get("skill_ref"));
         input.put("node", node);
         input.put("git", git(run));
@@ -151,7 +152,7 @@ class AgentJobTasks {
             Object previous = context.attempt().get("session_ref");
             // A new session may replace a lost one only after a lease is reclaimed.
             if (previous != null && !previous.equals(thread) && ((Number) context.attempt().get("last_event_sequence")).longValue() != 0) {
-                throw RequestFields.conflict("SESSION_MISMATCH", "任务会话与当前尝试不一致");
+                throw RequestFields.conflict("SESSION_MISMATCH", "Task session is inconsistent with current attempt");
             }
             if (previous != null && !previous.equals(thread)) inbox.unresolvedPending(context);
         }
@@ -164,7 +165,7 @@ class AgentJobTasks {
         if (result.has("external") || result.has("handoffs") && !result.path("handoffs").isEmpty()) throw ApiProblem.invalid();
         JsonNode artifacts = result.get("artifacts");
         if (artifacts == null || !artifacts.isArray() || artifacts.size() != 1) {
-            throw RequestFields.conflict("AGENT_ARTIFACT_REQUIRED", "Agent 必须提交一项有效产物");
+            throw RequestFields.conflict("AGENT_ARTIFACT_REQUIRED", "Agent must submit a valid product");
         }
         inbox.unresolvedPending(context);
         boolean coordinator = "coordinator".equals(context.attempt().get("kind"));
@@ -176,7 +177,7 @@ class AgentJobTasks {
             String reason = null;
             if ("check".equals(node.kind())) reason = saveCheck(context, node, result.get("check"), artifact);
             else if (result.has("check")) throw ApiProblem.invalid();
-            if ("requirement".equals(node.purpose()) && !store.hasDescription(context)) reason = "AGENT_REQUIREMENT_REQUIRED";
+            if (node.collectRequirements() && !store.hasDescription(context)) reason = "AGENT_REQUIREMENT_REQUIRED";
             store.nodeState(context, reason == null ? "complete" : "needs_attention");
         } else if (result.has("check")) {
             throw ApiProblem.invalid();
@@ -198,7 +199,7 @@ class AgentJobTasks {
         if (!commit.matches("[0-9a-f]{40}|[0-9a-f]{64}") || !source.equals(expected) || !digest.matches("sha256:[0-9a-f]{64}")
                 || !run.get("provider_repository_id").equals(RequestFields.text(artifact, "repositoryId", 200))
                 || !run.get("work_branch").equals(RequestFields.text(artifact, "workBranch", 250))) {
-            throw RequestFields.conflict("AGENT_ARTIFACT_REQUIRED", "产物证据不属于当前任务、尝试或仓库");
+            throw RequestFields.conflict("AGENT_ARTIFACT_REQUIRED", "Product evidence does not belong to the current task, attempt, or repository");
         }
         return store.saveArtifact(context, kind, title, source, HexFormat.of().parseHex(digest.substring(7)), commit);
     }
@@ -213,7 +214,7 @@ class AgentJobTasks {
             version = RequestFields.text(result, "testedArtifactVersion", 450);
             var expected = checkCandidate(context, node.id(), node.wave(), candidate(context, store.upstream(context)));
             if (!commit.equals(expected.get("commit")) || !version.equals(expected.get("version"))) {
-                throw RequestFields.conflict("CHECK_CANDIDATE_MISMATCH", "检查结果与已固定的候选产物不一致");
+                throw RequestFields.conflict("CHECK_CANDIDATE_MISMATCH", "The inspection result is inconsistent with the fixed candidate product");
             }
         }
         String reason = switch (outcome) {
@@ -256,7 +257,7 @@ class AgentJobTasks {
     private String session(TaskContext context, JsonNode result) {
         String session = RequestFields.text(result, "sessionRef", 500);
         if (!session.equals(context.attempt().get("session_ref"))) {
-            throw RequestFields.conflict("SESSION_MISMATCH", "任务会话与当前尝试不一致");
+            throw RequestFields.conflict("SESSION_MISMATCH", "Task session is inconsistent with current attempt");
         }
         return session;
     }

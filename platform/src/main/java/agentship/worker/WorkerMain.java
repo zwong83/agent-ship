@@ -58,7 +58,7 @@ public final class WorkerMain {
         try { new WorkerMain(Settings.parse(args)).run(); }
         catch (Exception error) {
             // Never print exception content: HTTP errors and state may contain credentials.
-            System.err.println("本机程序未能启动。请检查平台地址、配对码、状态目录权限和端口是否已占用。");
+            System.err.println("The native program failed to start. Please check whether the platform address, pairing code, status directory permissions and port are occupied.");
             System.exit(1);
         }
     }
@@ -95,8 +95,8 @@ public final class WorkerMain {
                 server.start();
                 heartbeat.scheduleWithFixedDelay(this::poll,0,10,TimeUnit.SECONDS);
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> { heartbeat.shutdownNow(); closeWorkers(); server.stop(0); }));
-                System.out.println("AgentShip 本机程序已启动，仅监听 http://127.0.0.1:" + settings.port
-                        + "。Git 准备：" + settings.executeGit + "，Agent 执行：" + settings.executeAgents + "。");
+                System.out.println("AgentShip native program has been started and only listens to http://127.0.0.1:" + settings.port
+                        + ". Git preparation:" + settings.executeGit + ", Agent executes:" + settings.executeAgents + ".");
                 new CountDownLatch(1).await();
             } finally { heartbeat.shutdownNow(); closeWorkers(); server.stop(0); }
         }
@@ -187,7 +187,7 @@ public final class WorkerMain {
             String origin = exchange.getRequestHeaders().getFirst("Origin");
             String host = exchange.getRequestHeaders().getFirst("Host");
             if (!settings.origin.equals(origin) || !("127.0.0.1:" + settings.port).equals(host)) {
-                send(exchange,403,Map.of("error",Map.of("code","FORBIDDEN","message","请求来源不匹配。"))); return;
+                send(exchange,403,Map.of("error",Map.of("code","FORBIDDEN","message","The request source does not match."))); return;
             }
             exchange.getResponseHeaders().set("Access-Control-Allow-Origin",settings.origin);
             exchange.getResponseHeaders().set("Vary","Origin");
@@ -217,7 +217,7 @@ public final class WorkerMain {
             if (!path.equals("/proof") || !exchange.getRequestMethod().equals("POST")) {
                 send(exchange,405,Map.of("error",Map.of("code","METHOD_NOT_ALLOWED"))); return;
             }
-            if (!online()) { send(exchange,503,Map.of("error",Map.of("code","DEVICE_OFFLINE","message","本机程序正在等待平台连接。"))); return; }
+            if (!online()) { send(exchange,503,Map.of("error",Map.of("code","DEVICE_OFFLINE","message","The native program is waiting for platform connection."))); return; }
             String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
             if (contentType == null || !contentType.split(";")[0].trim().equalsIgnoreCase("application/json")) {
                 send(exchange,400,Map.of("error",Map.of("code","INVALID_REQUEST"))); return;
@@ -233,7 +233,7 @@ public final class WorkerMain {
                 if (!expiry.isAfter(Instant.now()) || expiry.isAfter(Instant.now().plusSeconds(180))) throw new IllegalArgumentException();
                 String signature = DeviceProofCodec.sign(proofKey,DeviceProofCodec.message(UUID.fromString(state.deviceId),id,nonce,settings.origin));
                 send(exchange,200,Map.of("deviceId",state.deviceId,"challengeId",id,"signature",signature));
-            } catch (Exception error) { send(exchange,400,Map.of("error",Map.of("code","INVALID_REQUEST","message","设备挑战无效或已过期。"))); }
+            } catch (Exception error) { send(exchange,400,Map.of("error",Map.of("code","INVALID_REQUEST","message","The device challenge is invalid or expired."))); }
         }
     }
 
@@ -283,7 +283,7 @@ public final class WorkerMain {
                 throw new IllegalArgumentException("Platform origins outside loopback require HTTPS");
             if (!values.containsKey("--state-dir")) throw new IllegalArgumentException("An explicit state directory is required");
             int port = Integer.parseInt(values.getOrDefault("--port","4781"));
-            String mode = values.getOrDefault("--mode","demo"), name = values.getOrDefault("--name","我的电脑");
+            String mode = values.getOrDefault("--mode","demo"), name = values.getOrDefault("--name","My computer");
             if (port < 1024 || port > 65535 || name.isBlank() || name.length() > 120 || !List.of("demo","codex").contains(mode)) throw new IllegalArgumentException();
             boolean executeGit=values.containsKey("--execute-git");
             boolean executeAgents=values.containsKey("--execute-agents");

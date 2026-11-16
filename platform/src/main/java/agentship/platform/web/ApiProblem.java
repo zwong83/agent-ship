@@ -23,10 +23,10 @@ public final class ApiProblem extends RuntimeException {
     public Map<String, Object> details() { return details; }
 
     public static ApiProblem invalid() {
-        return new ApiProblem(400, "INVALID_REQUEST", "请检查输入后重试。");
+        return new ApiProblem(400, "INVALID_REQUEST", "Please check your input and try again.");
     }
 
     public static ApiProblem unauthenticated() {
-        return new ApiProblem(401, "UNAUTHENTICATED", "请使用有效的账号登录。");
+        return new ApiProblem(401, "UNAUTHENTICATED", "Please log in with a valid account.");
     }
 }

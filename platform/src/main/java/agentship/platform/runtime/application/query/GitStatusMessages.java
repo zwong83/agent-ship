@@ -5,17 +5,17 @@ public final class GitStatusMessages {
 
     public static String message(String code) {
         return switch(code) {
-            case "AGENT_EXECUTION_PENDING"->"仓库与分支已就绪，等待发起电脑领取 Agent 任务";
-            case "GIT_OUTCOME_UNKNOWN"->"Git 操作结果暂不确定，正在等待电脑只读核对；不会重复发起写操作";
-            case "GIT_TARGET_CONFLICT","GIT_EVIDENCE_MISMATCH"->"仓库或分支与预期不一致，需要人工确认";
-            case "GIT_AUTH_REQUIRED","GIT_PERMISSION_DENIED"->"发起电脑的 GitHub 凭证或仓库权限需要检查";
-            case "EXTERNAL_GRANT_REQUIRED"->"Git 操作授权已过期或主负责人已变更，需要重新确认";
-            case "GIT_PROVIDER_UNAVAILABLE"->"Git 服务暂不可用，需要检查网络或服务状态";
-            case "GIT_REPOSITORY_EMPTY"->"仓库没有可用的初始提交，需要先补充初始内容";
-            case "GIT_NAMESPACE_UNAVAILABLE"->"填写的 GitHub 用户或组织不可用，需要检查名称和权限";
-            case "GIT_BASE_BRANCH_UNAVAILABLE"->"无法确认基础分支，需要检查仓库的默认分支与 dev 分支";
-            case "GIT_PREPARATION_FAILED"->"Git 准备失败，需要检查后处理";
-            default->"等待发起电脑执行 Git 准备任务";
+            case "AGENT_EXECUTION_PENDING"->"The warehouse and branches are ready, waiting to initiate the computer to receive the Agent task";
+            case "GIT_OUTCOME_UNKNOWN"->"The result of the Git operation is temporarily uncertain and is waiting for read-only verification by the computer; the write operation will not be initiated repeatedly.";
+            case "GIT_TARGET_CONFLICT","GIT_EVIDENCE_MISMATCH"->"The warehouse or branch is inconsistent with expectations and requires manual confirmation.";
+            case "GIT_AUTH_REQUIRED","GIT_PERMISSION_DENIED"->"The GitHub credentials or warehouse permissions of the initiating computer need to be checked";
+            case "EXTERNAL_GRANT_REQUIRED"->"The Git operation authorization has expired or the person in charge has changed and needs to be reconfirmed.";
+            case "GIT_PROVIDER_UNAVAILABLE"->"The Git service is temporarily unavailable. You need to check the network or service status.";
+            case "GIT_REPOSITORY_EMPTY"->"There is no initial submission available in the warehouse, and the initial content needs to be supplemented first.";
+            case "GIT_NAMESPACE_UNAVAILABLE"->"The GitHub user or organization filled in is not available, need to check name and permissions";
+            case "GIT_BASE_BRANCH_UNAVAILABLE"->"Unable to confirm the base branch, you need to check the default branch and dev branch of the warehouse";
+            case "GIT_PREPARATION_FAILED"->"Git preparation failed, need to check and process";
+            default->"Waiting for the initiating computer to perform Git preparation tasks";
         };
     }
 }

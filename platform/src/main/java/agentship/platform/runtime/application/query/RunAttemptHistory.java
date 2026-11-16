@@ -127,7 +127,7 @@ public class RunAttemptHistory {
     public Map<String, Object> readArtifact(Actor actor, UUID run, UUID artifact) {
         var args = requireVisibleRun(actor, run).addValue("artifact", artifact);
         var rows = jdbc.query(ARTIFACTS + " AND a.id=:artifact", args, (rs, index) -> artifactReference(rs));
-        if (rows.isEmpty()) throw new ApiProblem(404, "NOT_FOUND", "产物不存在或没有访问权限。");
+        if (rows.isEmpty()) throw new ApiProblem(404, "NOT_FOUND", "Product does not exist or does not have access rights.");
         var reference = rows.getFirst();
         return Map.of("reference", reference, "title", reference.get("title"));
     }
@@ -158,7 +158,7 @@ public class RunAttemptHistory {
                     WHERE r.id=:run AND (c.owner_id=:actor OR EXISTS(SELECT 1 FROM configuration_deputy d
                         WHERE d.configuration_id=c.id AND d.account_id=:actor AND d.revoked_at IS NULL)))
                 """, args, Boolean.class);
-        if (!Boolean.TRUE.equals(visible)) throw new ApiProblem(404, "NOT_FOUND", "运行不存在或没有访问权限。");
+        if (!Boolean.TRUE.equals(visible)) throw new ApiProblem(404, "NOT_FOUND", "Run does not exist or does not have access rights.");
         return args;
     }
 

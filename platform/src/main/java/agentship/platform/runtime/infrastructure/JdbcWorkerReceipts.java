@@ -28,7 +28,7 @@ class JdbcWorkerReceipts implements WorkerReceipts {
                 """,args);
         if(inserted==1) return null;
         var receipt=jdbc.queryForMap("SELECT request_digest,result_id FROM command_receipt WHERE actor_kind='device' AND actor_id=:device AND scope=:scope AND request_key=:key",args);
-        if(!MessageDigest.isEqual(digest,(byte[])receipt.get("request_digest"))) throw RequestFields.conflict("IDEMPOTENCY_CONFLICT","同一请求标识不能用于不同的任务内容");
+        if(!MessageDigest.isEqual(digest,(byte[])receipt.get("request_digest"))) throw RequestFields.conflict("IDEMPOTENCY_CONFLICT","The same request ID cannot be used for different task content");
         return (UUID)receipt.get("result_id");
     }
     @Override

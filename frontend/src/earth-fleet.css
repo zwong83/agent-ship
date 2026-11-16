@@ -1,0 +1,88 @@
+/* Shared live scope, an orbital formation, and stationary execution controls. */
+.orbital-dashboard { --orbit-green:#83ffb6;--orbit-red:#ff748a; }
+.orbital-dashboard .fleet-console { grid-template-columns:minmax(240px,1fr) minmax(420px,2.4fr) minmax(210px,.85fr); }
+.orbital-dashboard .telemetry-left { grid-template-rows:auto auto minmax(190px,1fr); }
+.orbital-dashboard .tone-active { color:var(--orbit-green); }.orbital-dashboard .tone-attention { color:var(--orbit-red); }
+.execution-light { display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--orbit-green);box-shadow:0 0 8px #76ffb95c;flex-shrink:0; }.execution-light.is-blocked { background:var(--orbit-red);box-shadow:0 0 10px #ff748a66; }
+.live-progress { display:grid;grid-template-columns:1fr auto;gap:6px;font-size:10px;color:#a6bec9;margin-top:11px;border-top:1px solid #6b9b9f30;padding-top:9px; }.live-progress strong { color:#d9ffec;font-family:Consolas,monospace; }.live-progress progress { grid-column:1/-1;height:4px;width:100%; }.live-progress small { grid-column:1/-1;font-size:9px;color:#9fb6c5; }
+.execution-telemetry { display:flex;flex-direction:column;min-height:0; }.execution-telemetry header { flex-shrink:0; }.execution-scroll { max-height:230px;min-height:100px;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5f9f9a #0a1b26;padding:0 5px 0 0;outline-offset:3px;border-radius:4px; }.execution-scroll::-webkit-scrollbar { width:4px;height:4px; }.execution-scroll::-webkit-scrollbar-thumb { background:#5f9f9a;border-radius:4px; }
+.execution-entry + .execution-entry { border-top:1px solid #6c9d9f36;margin-top:13px;padding-top:12px; }.orbital-dashboard .execution-select { display:flex;align-items:center;gap:7px;text-align:left;padding:0;min-height:32px;width:100%;border:0;background:none;box-shadow:none; }.execution-select strong { font-size:12px;font-weight:500;overflow-wrap:anywhere;flex:1; }.execution-select > span { color:#a8d5cb;font-size:11px; }.orbital-dashboard .execution-select[aria-pressed=true] strong { color:#9affd5; }.execution-entry dl { display:grid;gap:5px;margin:6px 0 8px;font-size:11px; }.execution-entry dl > div { display:grid;grid-template-columns:70px minmax(0,1fr);gap:6px;line-height:1.45; }.execution-entry dt { color:#91afc1; }.execution-entry dd { color:#d0e4ec;margin:0;overflow-wrap:anywhere; }.execution-entry-footer { display:flex;justify-content:space-between;align-items:center;gap:6px; }.execution-entry-footer > span { font:9px/1.6 Consolas,monospace;color:#adc8d4; }.orbital-dashboard .execution-entry-footer button { color:#ffadba;border-color:#e57f905c;background:#3b2635;font-size:10px;padding:5px 7px;min-height:30px;white-space:nowrap; }.execution-scroll-hint { font:9px Consolas,monospace;color:#7eafbb;margin:11px 0 0; }
+.orbital-dashboard .earth-stage { padding:0;display:block;min-height:380px;flex:1;perspective:none;isolation:isolate; }
+.earth-orbit { position:absolute;inset:0;overflow:hidden;isolation:isolate;background:radial-gradient(ellipse at center,#11445120,transparent 70%); }
+.earth-orbit::before { content:'';position:absolute;inset:5% 0;background:radial-gradient(#c2fff3aa .6px,transparent .9px);background-size:57px 67px;opacity:.3;pointer-events:none; }
+.earth-sphere { position:absolute;width:100%;height:100%;inset:0;z-index:10;pointer-events:none; }
+.earth-coordinates { position:absolute;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;gap:10px;font:7px Consolas,monospace;letter-spacing:.16em;color:#719ba9;pointer-events:none;z-index:1; }
+.orbital-ship { position:absolute;top:0;left:0;width:120px;height:116px;will-change:transform;transform-origin:center;--ship-light:var(--orbit-green); }.orbital-ship.orbital-blocked { --ship-light:var(--orbit-red); }.orbital-ship.orbital-stale { --ship-light:#90a3b6; }
+.fleet-dashboard .orbital-ship-select { display:flex;flex-direction:column;align-items:center;position:absolute;inset:18px 0 0;width:100%;padding:0;border:1px solid transparent;background:transparent;box-shadow:none;color:var(--ship-light);border-radius:14px;opacity:var(--orbital-depth,1); }
+.fleet-dashboard .orbital-ship-select:hover,.fleet-dashboard .orbital-ship-select[aria-pressed=true] { background:radial-gradient(ellipse,#73e3c91f,transparent 70%);border-color:#9efcdf40;box-shadow:0 0 22px #7cffe014; }
+.fleet-dashboard .earth-orbit .fleet-vessel { height:68px;width:120px;flex-shrink:0;filter:drop-shadow(0 8px 9px #0009) drop-shadow(0 0 5px #82ddc524); }
+.earth-orbit .vessel-body { animation:none; }.earth-orbit .vessel-shadow,.earth-orbit .vessel-orbit { opacity:.3; }.earth-orbit .vessel-beacon { fill:var(--ship-light); }.orbital-running .vessel-engine { opacity:.6;animation:engine-pulse 2s ease-in-out infinite alternate; }.orbital-blocked .vessel-engine { opacity:.15; }
+.orbital-name { display:block;max-width:120px;padding:3px 7px;border-radius:4px;background:#051624e8;color:#e3f6f5;border:1px solid #72b8b426;box-shadow:0 2px 8px #0004;font-size:10px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }.orbital-status { color:var(--ship-light);font:8px Consolas,monospace;margin-top:4px;letter-spacing:.08em;text-shadow:0 1px 4px #000; }
+.fleet-dashboard .ship-alert-dot { position:absolute;z-index:3;left:calc(50% - 22px);top:-7px;width:44px;height:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:none;box-shadow:none;display:grid;place-items:center;color:var(--ship-light); }
+.ship-alert-dot > i { display:block;width:12px;height:12px;border:1px solid #dcfff0;background:var(--ship-light);border-radius:50%;box-shadow:0 0 8px var(--ship-light),0 0 20px var(--ship-light),0 0 0 5px #7affe315; }
+.orbital-blocked .ship-alert-dot > i { width:17px;height:17px;border-color:#ffd6df;box-shadow:0 0 10px #ff567a,0 0 25px #ff567a88;animation:blocked-beacon 2.5s ease-in-out infinite; }.alert-glyph { position:absolute;inset:0;display:grid;place-items:center;font:bold 12px Consolas,monospace;color:#3b0f1b; }.ship-alert-dot:disabled { opacity:1;cursor:not-allowed; }.orbital-stale .ship-alert-dot > i { animation:none;box-shadow:0 0 6px #8ea4b444; }
+.orbit-legend { display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px 18px;padding:10px 12px;color:#bdd6dd;font-size:10px;border-top:1px solid #65979626;background:#091b2788; }.orbit-legend span { display:flex;align-items:center;gap:7px; }
+.earth-empty { position:absolute;z-index:30;left:15%;right:15%;bottom:20px;text-align:center;padding:14px;border:1px solid #679f9b50;background:linear-gradient(135deg,#103140ed,#091b2bf2);backdrop-filter:blur(12px);border-radius:10px;box-shadow:0 8px 24px #0005; }.earth-empty h3 { font-size:18px;letter-spacing:-.02em;margin:0 0 7px; }.earth-empty p { color:#b5cbd6;font-size:11px;line-height:1.6;margin:5px 0; }.earth-empty .eyebrow { font-size:8px;margin:0 0 7px; }.earth-empty button { font-size:11px;margin-top:7px;padding:8px 12px; }
+@keyframes blocked-beacon { 0%,100% { box-shadow:0 0 10px #ff567a,0 0 22px #ff567a66; } 50% { box-shadow:0 0 14px #ff567a,0 0 32px #ff567aaa; } }
+@media(min-width:981px) and (max-height:900px) {
+ .orbital-dashboard .telemetry-card { padding:11px 13px; }.orbital-dashboard .telemetry-card header { margin-bottom:8px; }.orbital-dashboard .telemetry-left { grid-template-rows:auto auto minmax(175px,1fr); }.orbital-dashboard .telemetry-left .metric-primary { margin-bottom:8px; }.orbital-dashboard .telemetry-left .metric-primary > strong { font-size:26px; }.orbital-dashboard .telemetry-note { margin-top:7px; }.orbital-dashboard .status-spectrum { display:none; }.orbital-dashboard .earth-stage { min-height:335px; }.execution-scroll { max-height:168px; }.execution-entry dl { font-size:10px; }.execution-entry dl > div { grid-template-columns:65px minmax(0,1fr); }.execution-select strong { font-size:11px; }.execution-scroll-hint { margin-top:8px; }.orbital-dashboard .fleet-space-header { padding:13px 18px 9px; }.orbital-dashboard .fleet-search { margin:0 18px; }.orbital-dashboard .token-baseline { display:none; }.orbital-dashboard .telemetry-right { grid-template-rows:auto minmax(145px,1fr) auto; }
+}
+@media(max-width:1190px) and (min-width:981px) { .orbital-dashboard .fleet-console { grid-template-columns:minmax(215px,1fr) minmax(355px,1.8fr) minmax(180px,.8fr);gap:12px; }.orbital-ship { width:122px; }.fleet-dashboard .earth-orbit .fleet-vessel { width:122px; }.orbital-name { max-width:120px; } }
+@media(max-width:980px) { .orbital-dashboard .fleet-console { grid-template-columns:1fr 1fr; }.orbital-dashboard .earth-stage { min-height:430px; }.orbital-dashboard .telemetry-left { grid-template-rows:auto auto minmax(240px,1fr); }.execution-scroll { max-height:300px; } }
+@media(max-width:600px) { .orbital-dashboard .earth-stage { min-height:370px; }.orbital-dashboard .telemetry-left { display:grid;grid-template-rows:auto; }.orbital-ship { width:112px;height:124px; }.fleet-dashboard .earth-orbit .fleet-vessel { width:112px;height:76px; }.orbital-name { max-width:110px;font-size:9px; }.orbital-status { font-size:8px; }.earth-coordinates { font-size:6px;left:10px;right:10px; }.orbit-legend { font-size:9px;gap:12px; }.earth-empty { left:8%;right:8%;bottom:18px; }.execution-scroll { max-height:330px; }.execution-entry dl { font-size:12px; }.execution-entry dl > div { grid-template-columns:80px minmax(0,1fr); }.execution-select { min-height:44px!important; }.orbital-dashboard .execution-entry-footer button { min-height:44px;padding:8px 12px; } }
+@media(prefers-reduced-motion:reduce) { .orbital-dashboard *,.orbital-dashboard *::before,.orbital-dashboard *::after { animation:none!important;transition:none!important; } .orbital-ship { will-change:auto; } }
+
+.orbital-dashboard .attention-card .metric-primary strong { color:#ff9dad; }.orbital-dashboard .attention-list button span { color:#efb2bf; }
+@media(min-width:981px) and (max-height:760px) {
+ .orbital-dashboard .telemetry-left { grid-template-rows:auto auto minmax(140px,1fr); }.orbital-dashboard .execution-scroll { max-height:100px;min-height:65px; }.orbital-dashboard .telemetry-left > .telemetry-card:nth-child(2) .telemetry-note { display:none; }.orbital-dashboard .live-progress { margin-top:7px;padding-top:7px;gap:4px; }.orbital-dashboard .earth-stage { min-height:335px; }.orbital-dashboard .orbit-legend { padding:7px 10px; }
+}
+
+/* Free orbital movement with stationary, numbered names. */
+.orbital-dashboard .earth-stage { min-height:690px;aspect-ratio:1; }
+.orbital-flight-space { position:absolute;inset:0; }
+.orbital-dashboard .orbital-ship { width:64px;height:64px; }
+.orbital-dashboard .orbital-ship-select { inset:0;opacity:1;display:grid;place-items:center; }
+.orbital-dashboard .earth-orbit .fleet-vessel { position:absolute;left:50%;top:50%;width:76px;height:76px;object-fit:contain;pointer-events:none;transform:translate(-50%,-50%) rotate(var(--vessel-bank,0deg)) scale(var(--vessel-scale,1));transform-origin:center;opacity:var(--orbital-depth,1);filter:drop-shadow(0 6px 6px #0009) drop-shadow(0 0 4px #7cffe440); }
+.orbital-dashboard .orbital-blocked .vessel-engine,.orbital-dashboard .orbital-running .vessel-engine { opacity:1;animation:engine-pulse 1.6s ease-in-out infinite alternate; }
+.orbital-dashboard .ship-alert-dot { top:-13px; }
+.ship-callsign { position:absolute;bottom:0;left:calc(50% - 15px);min-width:30px;padding:3px 4px;border:1px solid #8debdc66;border-radius:4px;background:#061421f2;color:#d1fff3;font:11px/1 Consolas,monospace;letter-spacing:.06em;box-shadow:0 2px 7px #0009; }
+.orbital-blocked .ship-callsign { border-color:#ff748a88;color:#ffb2c0; }
+.orbital-roster { position:absolute;bottom:12px;left:14px;right:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;z-index:30; }
+.orbital-dashboard .orbital-roster-card { display:flex;align-items:center;gap:10px;min-height:62px;padding:9px 11px;text-align:left;border:1px solid #74bdbd44;background:linear-gradient(135deg,#102e3ce8,#081926f5);box-shadow:inset 0 1px #b1ffed09,0 5px 12px #0004;border-radius:9px;color:#d9f6f2; }
+.orbital-dashboard .orbital-roster-card:hover,.orbital-dashboard .orbital-roster-card[data-selected=true] { border-color:#a6ffe1;box-shadow:0 0 16px #73e3c930;transform:translateY(-1px); }
+.roster-callsign { display:grid;place-items:center;flex-shrink:0;width:29px;height:31px;background:#102f3a;border:1px solid #a4eddb35;border-radius:6px;color:#a0ffe0;font:12px Consolas,monospace; }
+.roster-copy { min-width:0;flex:1; }.roster-focus { color:#90cfc6;font-size:13px; }
+.orbital-dashboard .orbital-name { display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;max-width:none;white-space:normal;overflow-wrap:anywhere;font-size:12px;font-weight:600;line-height:1.4;padding:0;background:none;border:0;box-shadow:none; }
+.orbital-dashboard .orbital-status { display:block;font-size:10px;line-height:1.4;margin-top:4px;color:#83ffb6; }
+.orbital-roster-card.is-blocked .orbital-status,.orbital-roster-card.is-blocked .roster-callsign { color:#ff9dad; }
+.orbital-dashboard .earth-coordinates { z-index:25;font-size:8px; }
+@media(max-width:1199px) { .orbital-dashboard .earth-stage { min-height:530px; } }
+@media(max-width:600px) { .orbital-dashboard .earth-stage { min-height:530px; }.orbital-dashboard .earth-coordinates { font-size:6px; }.orbital-roster { left:10px;right:10px;gap:7px; }.orbital-dashboard .orbital-roster-card { padding:7px;gap:7px; }.roster-focus { display:none; }.roster-callsign { width:23px;font-size:10px; }.orbital-dashboard .orbital-name { font-size:11px; } }
+
+/* Rear hulls sit behind the glass; front hulls and wakes pass above it. */
+.orbital-flight-space { isolation:isolate; }
+.orbital-flight-space .earth-sphere { z-index:100; }
+.orbital-dashboard .earth-coordinates { z-index:160; }
+.orbital-ship[data-depth=rear] .ship-callsign { opacity:.65; }
+.orbital-ship[data-depth=rear] .ship-alert-dot > i { box-shadow:0 0 7px var(--ship-light); }
+@media(min-width:1200px) { .earth-orbit[data-fleet-size="5"] .orbital-roster,.earth-orbit[data-fleet-size="6"] .orbital-roster { grid-template-columns:repeat(3,minmax(0,1fr)); }.orbital-roster-card { min-width:0; } }
+
+/* Keep rear craft readable through the glass while front wakes carry more light. */
+.orbital-ship[data-depth=rear] .ship-callsign { opacity:.85; }
+.orbital-dashboard .ship-alert-dot > i { width:14px;height:14px; }
+.orbital-dashboard .orbital-blocked .ship-alert-dot > i { width:19px;height:19px; }
+@media(max-width:600px) { .orbital-dashboard .orbital-ship { width:64px;height:64px; }.orbital-dashboard .earth-orbit .fleet-vessel { width:72px;height:72px; } }
+
+/* Independent alert HUD: the sphere and hull depth can never cover a click target. */
+.orbital-alert-layer { position:absolute;inset:0;z-index:300;pointer-events:none; }
+.orbital-dashboard .orbital-hud-alert { top:0;left:0;width:52px;height:52px;min-height:52px;pointer-events:auto;--ship-light:var(--orbit-green); }
+.orbital-dashboard .orbital-hud-alert.orbital-blocked { --ship-light:var(--orbit-red); }
+.orbital-dashboard .orbital-hud-alert.orbital-stale { --ship-light:#90a3b6; }
+.orbital-dashboard .orbital-hud-alert.orbital-blocked > i { width:19px;height:19px;border-color:#ffd6df;box-shadow:0 0 10px #ff567a,0 0 24px #ff567a88;animation:blocked-beacon 2.5s ease-in-out infinite; }
+.orbital-dashboard .orbital-hud-alert:hover,.orbital-dashboard .orbital-hud-alert:focus-visible { background:#ff78851a;outline:1px solid var(--ship-light);outline-offset:-4px; }
+.orbital-dashboard .orbital-roster-select { display:flex;align-items:center;gap:9px;flex:1;min-width:0;min-height:44px;padding:0;text-align:left;color:inherit;border:0;background:none;box-shadow:none; }
+.orbital-dashboard .roster-alert { width:44px;height:44px;min-height:44px;padding:0;flex-shrink:0;display:grid;place-items:center;border:1px solid #ff91a34d;border-radius:50%;background:#ff748a10;box-shadow:none; }
+.roster-alert > span { display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#ff8fa3;color:#3b0f1b;font:bold 13px Consolas,monospace;box-shadow:0 0 12px #ff567a77; }
+@media(min-width:600px) and (max-width:980px) { .orbital-dashboard .earth-stage { min-height:690px; } }
+
+.orbital-dashboard .orbital-hud-alert.orbital-stale > i { animation:none;box-shadow:0 0 8px #90a3b655;border-color:#aab9c6; }

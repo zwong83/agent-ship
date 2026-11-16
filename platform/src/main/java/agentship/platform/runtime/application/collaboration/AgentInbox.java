@@ -78,6 +78,6 @@ public class AgentInbox {
     }
 
     private static ApiProblem mismatched() {
-        return RequestFields.conflict("INBOX_SCOPE_MISMATCH", "消息不属于当前角色会话。");
+        return RequestFields.conflict("INBOX_SCOPE_MISMATCH", "The message does not belong to the current role session.");
     }
 }

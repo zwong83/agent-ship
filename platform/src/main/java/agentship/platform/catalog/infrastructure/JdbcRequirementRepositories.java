@@ -20,7 +20,7 @@ class JdbcRequirementRepositories implements RequirementRepositories {
         UUID existing = jdbc.queryForObject("SELECT repository_id FROM requirement WHERE id=:id",
                 Map.of("id", requirement), UUID.class);
         if (existing != null && !existing.equals(repository)) {
-            throw new ApiProblem(409, "GIT_TARGET_CONFLICT", "需求已关联其他仓库，请人工确认");
+            throw new ApiProblem(409, "GIT_TARGET_CONFLICT", "The requirement has been associated with other warehouses, please confirm manually.");
         }
         if (existing == null) {
             jdbc.update("UPDATE requirement SET repository_id=:repository WHERE id=:id",

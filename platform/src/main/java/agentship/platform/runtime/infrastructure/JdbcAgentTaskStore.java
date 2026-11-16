@@ -51,10 +51,11 @@ class JdbcAgentTaskStore implements AgentTaskStore {
     @Override
     public Map<String, Object> dispatchDetails(UUID task) {
         return jdbc.queryForMap("""
-                SELECT e.wave,e.requirement_revision,e.node_id,n.name,n.kind,n.purpose,n.agent_order,
+                SELECT e.wave,e.requirement_revision,e.node_id,n.name,n.kind,n.collect_requirements,n.agent_order,wr.workspace_access,
                     a.role_key,v.display_name,v.instruction,v.skill_ref,r.title,r.description
                 FROM role_task t JOIN node_execution e ON e.id=t.execution_id
                 JOIN workflow_node n ON (n.workflow_id,n.workflow_version,n.node_id)=(e.workflow_id,e.workflow_version,e.node_id)
+                JOIN workflow_role wr ON (wr.workflow_id,wr.workflow_version,wr.node_id,wr.agent_id)=(e.workflow_id,e.workflow_version,e.node_id,t.agent_id)
                 JOIN agent_definition a ON a.id=t.agent_id
                 JOIN agent_version v ON (v.agent_id,v.version)=(t.agent_id,t.agent_version)
                 JOIN run_requirement_revision r ON (r.run_id,r.revision)=(e.run_id,e.requirement_revision)

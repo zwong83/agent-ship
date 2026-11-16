@@ -60,7 +60,7 @@ public class RunOperatorService {
             if (acquired == null) {
                 String holder = store.holderName(run);
                 Map<String, Object> details = holder == null ? Map.of() : Map.of("holderName", holder);
-                throw new ApiProblem(409, "CHAT_OCCUPIED", "运行操作页正在由其他标签页使用。", details);
+                throw new ApiProblem(409, "CHAT_OCCUPIED", "The run action page is in use by another tab.", details);
             }
             return leaseView(actor, run, tab, sessionToken, acquired);
         }
@@ -106,7 +106,7 @@ public class RunOperatorService {
         if (prior != null) return receipt(prior, true);
         Long wave = store.checkWave(run, check);
         if (wave == null || wave != expectedWave) {
-            throw RequestFields.conflict("CHECK_WAVE_CONFLICT", "检查轮次已更新，请刷新后再处理。");
+            throw RequestFields.conflict("CHECK_WAVE_CONFLICT", "The inspection round has been updated, please refresh before processing.");
         }
         switch (action) {
             case "repair" -> repair.manualRepair(locked, check, actor.id());
@@ -151,10 +151,10 @@ public class RunOperatorService {
             String username = RequestFields.text(body, "username", 100);
             if (!username.matches("[A-Za-z0-9_-]{1,100}")) throw ApiProblem.invalid();
             target = store.activeAccount(username.toLowerCase(Locale.ROOT));
-            if (target == null) throw new ApiProblem(404, "NOT_FOUND", "没有找到已激活的用户名。");
+            if (target == null) throw new ApiProblem(404, "NOT_FOUND", "No activated username found.");
             boolean deputy = store.isDeputy((UUID) locked.get("requirement_id"), target);
             if (actor.id().equals(target) || deputy) {
-                throw RequestFields.conflict("CHAT_ACCESS_NOT_ALLOWED", "发起人和需求副负责人无需或不可添加为访客。");
+                throw RequestFields.conflict("CHAT_ACCESS_NOT_ALLOWED", "Sponsors and deputy demand managers do not need to or cannot be added as guests.");
             }
             store.grant(run, target, actor.id());
         } else {
@@ -218,10 +218,10 @@ public class RunOperatorService {
     }
 
     private static ApiProblem inaccessible() {
-        return new ApiProblem(404, "NOT_FOUND", "运行不存在或没有操作页访问权限。");
+        return new ApiProblem(404, "NOT_FOUND", "Run does not exist or does not have access to the operation page.");
     }
 
     private static ApiProblem staleLease() {
-        return RequestFields.conflict("CHAT_LEASE_LOST", "当前标签页的操作权已失效，请重新进入。");
+        return RequestFields.conflict("CHAT_LEASE_LOST", "The operation rights of the current tab page have expired, please re-enter.");
     }
 }

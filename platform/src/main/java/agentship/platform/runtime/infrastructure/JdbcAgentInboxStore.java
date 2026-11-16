@@ -21,7 +21,7 @@ class JdbcAgentInboxStore implements AgentInboxStore {
     public List<Map<String, Object>> pending(UUID run, UUID task, String session) {
         return jdbc.query("""
                 SELECT i.id,i.task_id,i.session_ref,i.kind,i.question_id,i.created_at,
-                    coalesce(i.payload->>'text','请根据已有信息继续。') AS body,
+                    coalesce(i.payload->>'text','Continue using the available information.') AS body,
                     i.payload->>'chatMessageId' AS message_id,t.requirement_revision
                 FROM agent_inbox i JOIN role_task t ON t.id=i.task_id
                 WHERE i.run_id=:run AND i.task_id=:task AND i.session_ref=:session AND i.delivery_state='pending'

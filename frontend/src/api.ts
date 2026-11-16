@@ -14,16 +14,20 @@ export interface Session {
 }
 
 export interface SelfContact {
-  email: string;
-  phone: string;
+  email: string | null;
+  phone: string | null;
 }
 
-export interface RegistrationReceipt {
+export interface VerificationReceipt {
   status: 'verification_required';
   requiredChannels: VerificationChannel[];
   registrationRef: string;
   expiresAt: string;
 }
+
+export type RegistrationReceipt = VerificationReceipt | {
+  status: 'active'; requiredChannels: []; registrationRef: null; expiresAt: null;
+};
 
 export interface RegistrationVerification {
   status: 'verification_required' | 'active';
@@ -45,6 +49,8 @@ export interface FlowNode {
   id: string;
   name: string;
   type: 'work' | 'check' | 'publish' | 'end';
+  collectRequirements?: boolean;
+  /** Compatibility field for previously saved workflows. */
   purpose?: 'requirement' | 'product' | 'frontend' | 'backend' | 'test' | 'repair' | 'other';
   dependencies: string[];
   coordinatorId?: string;
@@ -71,7 +77,7 @@ export interface AgentChoice {
 export type ConfigData =
   | { projectId: string; description: string | null }
   | { stages: FlowStage[] }
-  | { roleKey: string; description: string; skillRef?: string };
+  | { roleKey: string; description: string; skillRef?: string; workspaceAccess?: WorkspaceAccess };
 
 export interface ConfigDetail extends ConfigSummary {
   owner: User;
@@ -97,26 +103,26 @@ export interface ApiProblem {
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly problem?: ApiProblem) {
-    super(problem?.message || '请求暂未完成。');
+    super(problem?.message || 'The request is not completed yet.');
   }
 }
 
 const messages: Record<string, string> = {
-  ACCESS_REVOKED: '你的编辑权限已被移除。',
-  STALE_VERSION: '这项配置已更新。请重新读取后再保存。',
-  MEMBER_UNAVAILABLE: '找不到可添加或转交的用户名。',
-  IDENTIFIER_UNAVAILABLE: '该用户名、邮箱或手机号已被使用。',
-  INVALID_CREDENTIALS: '登录信息有误，或账号尚未激活。',
-  VERIFICATION_UNAVAILABLE: '验证码无效或已过期。',
-  NAME_UNAVAILABLE: '此名称无法使用。',
-  REQUIREMENT_EXISTS: '你已有同名需求。',
-  RATE_LIMITED: '操作太频繁，请稍后再试。',
+  ACCESS_REVOKED: 'Your editing permissions have been removed.',
+  STALE_VERSION: 'This configuration has changed. Reload it before saving.',
+  MEMBER_UNAVAILABLE: 'No eligible user found for this username.',
+  IDENTIFIER_UNAVAILABLE: 'This username, email or mobile phone number has already been used.',
+  INVALID_CREDENTIALS: 'The login information is incorrect, or the account has not been activated.',
+  VERIFICATION_UNAVAILABLE: 'The verification code is invalid or expired.',
+  NAME_UNAVAILABLE: 'This name cannot be used.',
+  REQUIREMENT_EXISTS: 'You already have a requirement with the same name.',
+  RATE_LIMITED: 'Too many requests. Please try again later.',
 };
 
 export function errorText(error: unknown) {
-  if (!(error instanceof ApiError)) return '无法连接平台，请重试。';
+  if (!(error instanceof ApiError)) return 'Unable to connect to the platform, please try again.';
   if (error.problem?.code && messages[error.problem.code]) return messages[error.problem.code];
-  if (error.status === 429) return '操作太频繁，请稍后再试。';
+  if (error.status === 429) return 'Too many requests. Please try again later.';
   return error.message;
 }
 
@@ -156,3 +162,5 @@ export function queryPath(path: string, fields: Record<string, string | undefine
   });
   return query.size ? path + '?' + query : path;
 }
+
+export type WorkspaceAccess = 'read_only' | 'write' | 'legacy';

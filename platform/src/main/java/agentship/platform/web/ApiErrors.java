@@ -34,19 +34,19 @@ public class ApiErrors {
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> notFound(Exception ignored, HttpServletRequest request) {
-        return failure(new ApiProblem(404, "NOT_FOUND", "未找到所请求的内容。"), request);
+        return failure(new ApiProblem(404, "NOT_FOUND", "The requested content was not found."), request);
     }
 
     @ExceptionHandler(DataAccessResourceFailureException.class)
     public ResponseEntity<Map<String, Object>> unavailable(Exception ignored, HttpServletRequest request) {
-        return failure(new ApiProblem(503, "TEMPORARILY_UNAVAILABLE", "平台暂不可用，请稍后重试。"), request);
+        return failure(new ApiProblem(503, "TEMPORARILY_UNAVAILABLE", "The platform is temporarily unavailable, please try again later."), request);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> unexpected(Exception exception, HttpServletRequest request) {
         LoggerFactory.getLogger(ApiErrors.class).error("Request {} failed ({})",
                 requestId(request), exception.getClass().getSimpleName());
-        return failure(new ApiProblem(500, "INTERNAL_ERROR", "请求暂时无法完成。"), request);
+        return failure(new ApiProblem(500, "INTERNAL_ERROR", "The request cannot be completed at this time."), request);
     }
 
     public static String requestId(HttpServletRequest request) {

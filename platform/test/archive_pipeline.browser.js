@@ -1,7 +1,7 @@
 async page => {
-  await page.getByText('已归档', { exact: true }).waitFor();
-  await page.getByText('归档待处理', { exact: true }).waitFor();
-  await page.getByText('仓库中同名标签已指向其他提交。', { exact: true }).waitFor();
+  await page.getByText("Archived", { exact: true }).waitFor();
+  await page.getByText("Archived for processing", { exact: true }).waitFor();
+  await page.getByText("The tag with the same name in the repository already points to another commit.", { exact: true }).waitFor();
   await page.getByText(/refs\/tags\/agentship\//).first().waitFor();
   return 'agentShip-archive-pipeline-ok';
 }

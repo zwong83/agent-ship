@@ -87,7 +87,7 @@ public class NodeScheduler {
         if ("needs_attention".equals(node.state())) {
             String check = store.checkBlocker(run, node);
             if (check != null) return check;
-            if ("requirement".equals(node.purpose())) return "AGENT_REQUIREMENT_REQUIRED";
+            if (node.collectRequirements()) return "AGENT_REQUIREMENT_REQUIRED";
             return "AGENT_EXECUTION_FAILED";
         }
         List<Map<String, Object>> pendingChildren = roles.stream()

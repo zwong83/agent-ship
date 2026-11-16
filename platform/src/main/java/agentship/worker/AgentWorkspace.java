@@ -218,7 +218,7 @@ final class AgentWorkspace {
             throw new IOException("Archived content mismatch");
         }
         JsonNode git = input.path("git");
-        return Map.of("kind", coordinator ? "product" : "other", "title", coordinator ? "节点最终产物" : "Agent 产物",
+        return Map.of("kind", coordinator ? "product" : "other", "title", coordinator ? "node final product" : "Agent product",
                 "sourceRef", "local-git:" + run + "/" + task + "/" + attempt + "@" + archived + ":" + relative,
                 "contentDigest", digest(content), "commit", archived, "workBranch", git.path("workBranch").asText(),
                 "repositoryId", git.path("repository").path("repositoryId").asText());

@@ -224,7 +224,7 @@ class JdbcChatView implements ChatView {
                 .encodeToString(Tokens.hmac(lease.getBytes(StandardCharsets.UTF_8), "agentship-chat-page-v1\n" + value));
     }
 
-    private static ApiProblem expired() { return new ApiProblem(410, "CURSOR_EXPIRED", "分页已失效，请重新查询。"); }
+    private static ApiProblem expired() { return new ApiProblem(410, "CURSOR_EXPIRED", "Pagination has expired, please try again."); }
     private static String time(Object stamp) { return stamp == null ? null : ((Timestamp) stamp).toInstant().toString(); }
     private static void put(Map<String, Object> value, String field, Object data) { if (data != null) value.put(field, data); }
 }

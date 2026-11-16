@@ -1,2 +1,7 @@
 .agentship/
 .DS_Store
+frontend/node_modules/
+frontend/dist/
+platform/target/
+__pycache__/
+*.py[cod]

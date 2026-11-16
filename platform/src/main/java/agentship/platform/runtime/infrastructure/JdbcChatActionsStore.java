@@ -218,7 +218,7 @@ class JdbcChatActionsStore implements ChatActionsStore {
             JOIN requirement q ON q.id=r.requirement_id
             JOIN workflow_node n ON (n.workflow_id,n.workflow_version,n.node_id)=(e.workflow_id,e.workflow_version,e.node_id)
             JOIN run_requirement_revision v ON (v.run_id,v.revision)=(r.id,r.current_revision)
-            WHERE e.run_id=:run AND r.finished_at IS NULL AND n.kind='work' AND n.purpose='requirement'
+            WHERE e.run_id=:run AND r.finished_at IS NULL AND n.kind='work' AND n.collect_requirements
               AND e.state IN ('running','waiting_reply','needs_attention') AND task_route_is_open(e.run_id,e.node_id)
               AND e.wave=(SELECT max(x.wave) FROM node_execution x WHERE (x.run_id,x.node_id)=(e.run_id,e.node_id))
             """;

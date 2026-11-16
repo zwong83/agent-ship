@@ -1,0 +1,53 @@
+/* Search belongs to the library: a luminous lens, recessed input and live results. */
+.library-search-area { flex-basis:100%; min-width:0; padding:4px 0 14px; }
+.futuristic-shell .config-search.search-row { position:relative; isolation:isolate; grid-template-columns:40px minmax(0,1fr) 36px auto; width:100%; margin:0; gap:14px; padding:8px 18px 8px 10px; border:1px solid #6ca59e99; border-radius:13px; background:linear-gradient(115deg,#1b3d49,#0a1c2b 60%,#122e3b); box-shadow:inset 0 1px #dafff340,inset 0 -3px 6px #0005,0 4px #05111d,0 5px #3d6b72,0 12px 24px #0005; transition:border-color .2s,box-shadow .2s; }
+.config-search::before { content:''; position:absolute; pointer-events:none; height:1px; left:12%; right:12%; top:-1px; background:linear-gradient(90deg,transparent,#bdffe5,transparent); opacity:.65; }
+.config-search::after { content:''; position:absolute; pointer-events:none; left:3%; bottom:-1px; width:20%; height:2px; border-radius:2px; background:linear-gradient(90deg,transparent,#c7ffe9,#84f8e0,transparent); opacity:0; box-shadow:0 0 12px #8affdf,0 0 24px #76f0cc77; }
+.config-search:focus-within::after { animation:search-light-sweep 2.8s linear infinite; }
+.config-search:focus-within .search-lens { animation:search-lens-glow 2.4s ease-in-out infinite; }
+.config-search.is-typing .search-lens { border-color:#d5fff0; filter:drop-shadow(0 0 8px #8affc966); }
+@keyframes search-light-sweep { 0% { transform:translateX(0); opacity:0; } 12%,88% { opacity:1; } 100% { transform:translateX(370%); opacity:0; } }
+@keyframes search-lens-glow { 0%,100% { box-shadow:inset 0 1px #d4fff24b,0 3px #061a22,0 0 8px #60e5be33; } 50% { box-shadow:inset 0 1px #e4fff2aa,0 3px #061a22,0 0 20px #60e5be88; } }
+@media(prefers-reduced-motion:reduce) { .config-search:focus-within::after { animation:none; opacity:1; } .config-search:focus-within .search-lens { animation:none; } }
+.futuristic-shell .config-search:focus-within { border-color:#a6ffe0; box-shadow:inset 0 1px #defff066,0 4px #05111d,0 5px #5c9c91,0 0 0 3px #75e4be19,0 0 28px #65d9c21c; }
+.search-lens { display:grid; place-items:center; width:40px; height:40px; border:1px solid #79cfb65c; border-radius:10px; background:linear-gradient(135deg,#32675f,#153745); box-shadow:inset 0 1px #d4fff23b,0 3px #061a22,0 0 14px #60e5be13; }
+.futuristic-shell .config-search svg { margin:0; width:19px; height:19px; stroke:#b4ffe4; stroke-width:1.7; }
+.futuristic-shell .config-search.search-row input[type=search] { width:100%; padding:10px 0; min-height:44px; border:0; border-radius:0; background:transparent; box-shadow:none; outline:none; color:#e5fff4; font-size:15px; }
+.config-search input[type=search]::-webkit-search-cancel-button { -webkit-appearance:none; }
+.config-search input::placeholder { color:#adc7cf; opacity:1; }
+.futuristic-shell .config-search .search-clear { display:grid; place-items:center; min-height:36px; width:36px; padding:0; border:1px solid transparent; background:transparent; box-shadow:none; color:#b6d4d9; font-size:24px; }
+.futuristic-shell .config-search .search-clear:hover { background:#284c5780; border-color:#7ecab466; }
+.config-search .search-clear:disabled { visibility:hidden; }
+.search-live { display:flex; align-items:center; gap:8px; padding-left:16px; border-left:1px solid #628d8d55; white-space:nowrap; color:#9cbdbf; font:10px/1.6 Consolas,monospace; text-transform:uppercase; letter-spacing:.08em; }
+.search-live i { width:5px; height:5px; border-radius:50%; background:#9ef2cf; box-shadow:0 0 7px #81e8be80; }
+@media(max-width:600px) { .futuristic-shell .config-search.search-row { grid-template-columns:34px minmax(0,1fr) 36px; gap:10px; padding:6px 8px; } .search-lens { width:34px; height:36px; border-radius:9px; } .search-live { display:none; } .library-search-area { padding-bottom:12px; } }
+
+.futuristic-shell .agent-editor { padding:26px; border:1px solid #62919d80; border-radius:18px; background:var(--surface-fill); box-shadow:var(--surface-shadow); }
+.agent-editor > .row h2 { font-size:20px; }
+.agent-field-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:20px; }
+.agent-config-card { min-width:0; padding:22px; border:1px solid #527e8b80; border-radius:14px; background:linear-gradient(140deg,#153344,#0d1f2e); box-shadow:inset 0 1px #d0fff32b,0 4px #071420,0 5px #294956; }
+.agent-identity { grid-column:1/-1; }
+.agent-config-card > header { display:flex; align-items:flex-start; gap:12px; margin-bottom:24px; }
+.agent-config-card > header > div { flex:1; min-width:0; }
+.agent-config-card h3 { margin:0 0 6px; font-size:16px; color:#e2fff5; }
+.agent-config-card header p { margin:0; color:#a7c4d1; font-size:13px; line-height:1.5; }
+.agent-step { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border:1px solid #7ad8ba80; border-radius:9px; font:12px Consolas,monospace; color:#b2ffe1; background:linear-gradient(135deg,#296456,#143642); box-shadow:inset 0 1px #e6fff12e,0 3px #081722,0 0 14px #6ce6bf16; }
+.agent-field-tag { flex-shrink:0; font:10px/1.6 Consolas,monospace; color:#b4dad8; padding:3px 7px; border:1px solid #578d8a66; border-radius:5px; background:#081b2866; }
+.agent-identity-fields { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.agent-config-card label { display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:13px; color:#d6edea; }
+.agent-config-card input,.agent-config-card textarea { width:100%; font-size:14px; }
+.agent-config-card textarea { min-height:225px; resize:vertical; line-height:1.7; }
+.agent-config-card input[readonly] { color:#a7c2cb; border-style:dashed; }
+.agent-config-card .agent-field-help { margin:10px 0 0; color:#9fbeca; font-size:12px; line-height:1.65; }
+.agent-instruction-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; }
+.agent-instruction-footer button { padding:8px 12px; font-size:12px; }
+.agent-instruction-footer span { color:#96b2c1; font:11px Consolas,monospace; }
+.agent-skill-note { display:flex; align-items:flex-start; gap:12px; margin-top:26px; padding:16px; border:1px solid #568d7f66; border-radius:10px; background:linear-gradient(130deg,#20423d66,#091d29); }
+.agent-skill-note .signal-dot { margin-top:5px; flex-shrink:0; }
+.agent-skill-note strong { font-size:12px; color:#c9f7e4; }
+.agent-skill-note p { margin:7px 0 0; font-size:12px; color:#a7c3cc; line-height:1.7; }
+.agent-savebar { justify-content:space-between; padding-top:20px; border-top:1px solid #4b748466; }
+.agent-savebar p { margin:0; max-width:440px; font-size:12px; line-height:1.6; color:#a7c1cc; }
+.agent-savebar > button { min-height:44px; padding:12px 26px; }
+@media(max-width:1100px) { .agent-field-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) { .futuristic-shell .agent-editor { padding:16px; } .agent-config-card { padding:16px; } .agent-identity-fields { grid-template-columns:minmax(0,1fr); gap:20px; } .agent-config-card > header { flex-wrap:wrap; } .agent-savebar > button { width:100%; } }

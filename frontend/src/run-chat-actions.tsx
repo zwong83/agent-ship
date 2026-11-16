@@ -25,16 +25,16 @@ export type ChatWorkView = {
 };
 
 type WorkProps = { view: ChatWorkView; disabled: boolean; onAction: (command: ChatWorkCommand) => Promise<boolean> };
-const roleActionLabels = { retry: '重试失败角色', skip: '跳过失败角色' } as const;
-const changeLabels = { pending: '待确认', confirmed: '已确认', rejected: '未通过' } as const;
+const roleActionLabels = { retry: 'Retry failed role', skip: 'Skip failed characters' } as const;
+const changeLabels = { pending: 'To be confirmed', confirmed: 'Confirmed', rejected: 'failed' } as const;
 
 export function ChatWorkControls({ view, disabled, onAction }: WorkProps) {
   const { allowedActions, failedRoles = [], requirements = [], changes = [], rerunTargets = [] } = view;
   return <>
     {failedRoles.length > 0 && <section className="chat-section" aria-labelledby="chat-failed-title">
-      <h3 id="chat-failed-title">失败角色</h3>
+      <h3 id="chat-failed-title">failed role</h3>
       {failedRoles.map(role => <article key={role.taskId} className="run-node">
-        <div className="row between"><strong>{role.roleDisplayName}</strong><span className="pill attn">第 {role.attemptNumber} 次尝试失败</span></div>
+        <div className="row between"><strong>{role.roleDisplayName}</strong><span className="pill attn">Attempt {role.attemptNumber} failed attempts</span></div>
         {role.reason && <p className="chat-text">{role.reason}</p>}
         <div className="row chat-actions">
           {role.actions.filter(action => allowedActions.includes(action)).map(action => <Button key={action} disabled={disabled}
@@ -45,30 +45,30 @@ export function ChatWorkControls({ view, disabled, onAction }: WorkProps) {
       </article>)}
     </section>}
     {(requirements.length > 0 || changes.length > 0) && <section className="chat-section" aria-labelledby="chat-requirements-title">
-      <h3 id="chat-requirements-title">需求变更</h3>
+      <h3 id="chat-requirements-title">Requirements change</h3>
       {requirements.map(requirement => <RequirementEditor key={`${requirement.nodeId}:${requirement.wave}`} requirement={requirement}
         canPropose={allowedActions.includes('propose-change')} canDescribe={allowedActions.includes('describe') && requirement.canConfirm}
         disabled={disabled} onAction={onAction} />)}
       {changes.map(change => <article key={change.id} className="run-node">
-        <div className="row between"><strong>{change.title || '需求变更提议'}</strong>
+        <div className="row between"><strong>{change.title || 'Requirements change proposal'}</strong>
           <span className={'pill ' + (change.state === 'pending' ? 'attn' : change.state === 'confirmed' ? 'good' : '')}>
-            {changeLabels[change.state]}{change.effectiveRevision ? ` · 版本 ${change.effectiveRevision}` : ''}
+            {changeLabels[change.state]}{change.effectiveRevision ? ` · Version ${change.effectiveRevision}` : ''}
           </span></div>
         <p className="chat-text">{change.summary}</p>
         {change.description && change.description !== change.summary && <p className="chat-text">{change.description}</p>}
         {change.state === 'pending' && change.canConfirm && allowedActions.includes('confirm-change') && <div className="chat-actions">
           <Button variant="accent" disabled={disabled} onClick={() => void onAction({ action: 'confirm-change', targetId: change.id,
             nodeId: change.nodeId, wave: change.wave, expectedRequirementRevision: change.basedOnRevision,
-            expectedSourceRequirementVersion: change.basedOnSourceRequirementVersion })}>确认变更</Button>
+            expectedSourceRequirementVersion: change.basedOnSourceRequirementVersion })}>Confirm changes</Button>
         </div>}
       </article>)}
     </section>}
     {allowedActions.includes('rerun') && rerunTargets.length > 0 && <section className="chat-section" aria-labelledby="chat-rerun-title">
-      <h3 id="chat-rerun-title">按新需求版本重跑</h3>
-      <p className="subtle">重跑生成新的节点轮次，原有产物和尝试记录继续保留。</p>
+      <h3 id="chat-rerun-title">Rerun according to the new required version</h3>
+      <p className="subtle">Re-running generates a new node round, and the original product and attempt records continue to be retained.</p>
       {rerunTargets.map(target => <article key={`${target.nodeId}:${target.wave}`} className="run-node row between">
-        <div><strong>{target.nodeName}</strong><p className="subtle">原轮次 · 第 {target.wave} 次</p></div>
-        <Button disabled={disabled} onClick={() => void onAction({ action: 'rerun', nodeId: target.nodeId, wave: target.wave })}>重跑已完成节点</Button>
+        <div><strong>{target.nodeName}</strong><p className="subtle">Original round · No. {target.wave}</p></div>
+        <Button disabled={disabled} onClick={() => void onAction({ action: 'rerun', nodeId: target.nodeId, wave: target.wave })}>Rerun completed node</Button>
       </article>)}
     </section>}
   </>;
@@ -89,7 +89,7 @@ function RequirementEditor({ requirement, canPropose, canDescribe, disabled, onA
   const canSubmit = describe || canPropose;
   return <article className="run-node">
     <div className="row between"><strong>{requirement.title}</strong>
-      <span className="pill">需求版本 {requirement.revision} · 第 {requirement.wave} 次</span></div>
+      <span className="pill">Requirement version {requirement.revision} · No. {requirement.wave}</span></div>
     {requirement.description && <p className="chat-text">{requirement.description}</p>}
     {canSubmit && <form className="chat-requirement-form" onSubmit={async event => {
       event.preventDefault();
@@ -103,15 +103,15 @@ function RequirementEditor({ requirement, canPropose, canDescribe, disabled, onA
         : { action: 'propose-change', proposedRequirement: { title, description: text || null }, ...revision });
       if (accepted) setEditing(undefined);
     }}>
-      {!describe && <Field label="变更后名称"><input value={draft.title} maxLength={120} disabled={disabled}
+      {!describe && <Field label="Name after change"><input value={draft.title} maxLength={120} disabled={disabled}
         onChange={event => setEditing({ ...draft, title: event.target.value })} /></Field>}
-      <Field label={describe ? '需求说明' : '变更后说明'}><textarea aria-label={describe ? '需求说明' : '变更后说明'} rows={4}
+      <Field label={describe ? 'Requirement description' : 'Description after change'}><textarea aria-label={describe ? 'Requirement description' : 'Description after change'} rows={4}
         value={draft.description} maxLength={10000} disabled={disabled}
         onChange={event => setEditing({ ...draft, description: event.target.value })} /></Field>
-      {stale && <div className="row"><p role="alert" className="inline-error">需求版本已更新，请载入最新版本后重新编辑。</p>
-        <Button onClick={() => setEditing(undefined)}>载入最新需求</Button></div>}
+      {stale && <div className="row"><p role="alert" className="inline-error">The required version has been updated, please load the latest version and edit again.</p>
+        <Button onClick={() => setEditing(undefined)}>Load the latest requirements</Button></div>}
       <button type="submit" className="accent" disabled={disabled || stale || (describe ? !draft.description.trim() : !draft.title.trim())}>
-        {describe ? '补齐需求说明' : '提交变更提议'}
+        {describe ? 'Complete the requirement description' : 'Submit a change proposal'}
       </button>
     </form>}
   </article>;

@@ -1,3 +1,4 @@
+import { Select } from './select';
 import { useEffect, useState } from 'react';
 import { ApiError, errorText, queryPath, request, type Page } from './api';
 import { statusText, type RunNode } from './run-api';
@@ -11,7 +12,7 @@ type Attempt = {
 };
 type Query = { nodeId: string; cursor?: string; serial: number };
 const kindName: Record<Attempt['kind'], string> = {
-  git: '仓库准备', agent: 'Agent', coordinator: '协调 Agent', publish: '正式交付', reconcile: '核对外部结果',
+  git: 'Warehouse preparation', agent: 'Agent', coordinator: 'Coordinator', publish: 'Official delivery', reconcile: 'Check external results',
 };
 
 export function RunAttemptHistory({ runId, nodes, onUnauthorized }: {
@@ -55,43 +56,43 @@ export function RunAttemptHistory({ runId, nodes, onUnauthorized }: {
 
   const nodeNames = new Map(nodes.map(node => [node.nodeId, node.name]));
   return <section className="panel repair-control" aria-labelledby="attempt-history-title">
-    <div className="row between"><h2 id="attempt-history-title">执行尝试历史</h2>
+    <div className="row between"><h2 id="attempt-history-title">Execution attempt history</h2>
       <button type="button" className="ghost" aria-expanded={open} onClick={() => {
         if (open) { reset(query.nodeId); setError(''); }
         setOpen(value => !value);
-      }}>{open ? '收起尝试历史' : '查看尝试历史'}</button></div>
+      }}>{open ? 'Collapse attempt history' : 'View attempt history'}</button></div>
     {open && <>
       <div className="row chat-history-tools">
-        <Field label="筛选节点"><select aria-label="筛选节点" value={query.nodeId} onChange={event => reset(event.target.value)}>
-          <option value="">全部节点</option>
+        <Field label="Filter nodes"><Select aria-label="Filter nodes" value={query.nodeId} onChange={event => reset(event.target.value)}>
+          <option value="">All nodes</option>
           {nodes.map(node => <option key={node.nodeId} value={node.nodeId}>{node.name}</option>)}
-        </select></Field>
-        <Button disabled={pending} onClick={() => reset(query.nodeId)}>刷新尝试历史</Button>
+        </Select></Field>
+        <Button disabled={pending} onClick={() => reset(query.nodeId)}>Refresh attempt history</Button>
       </div>
-      {pending && !page && <p role="status">正在读取尝试记录…</p>}
+      {pending && !page && <p role="status">Reading attempt record...</p>}
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {page?.items.length === 0 && <p className="subtle">没有匹配的尝试记录。</p>}
+      {page?.items.length === 0 && <p className="subtle">There are no matching attempts recorded.</p>}
       <div className="chat-section">
         {page?.items.map(item => <article key={item.attemptId} className="run-node">
           <div className="row between"><strong>{item.roleDisplayName ?? kindName[item.kind]}</strong>
             <span className={'pill ' + (item.state === 'succeeded' ? 'good' : item.state === 'failed' ? 'attn' : '')}>
-              {statusText(item.state)}{item.disposition === 'skipped' ? ' · 已跳过' : ''}
+              {statusText(item.state)}{item.disposition === 'skipped' ? ' · skipped' : ''}
             </span></div>
-          <div className="row chat-actions"><span>第 {item.attemptNumber} 次尝试</span>
-            {item.nodeId && <span className="subtle">{nodeNames.get(item.nodeId) ?? '节点'} · 第 {item.wave} 轮</span>}
-            {item.inputRequirementRevision != null && <span className="subtle">需求版本 {item.inputRequirementRevision}</span>}
-            {item.basedOnOlderRequirementRevision && <span className="pill attn">基于旧版本</span>}
-            {item.artifactIds.length > 0 && <span className="subtle">{item.artifactIds.length} 份产物</span>}
+          <div className="row chat-actions"><span>Attempt {item.attemptNumber}</span>
+            {item.nodeId && <span className="subtle">{nodeNames.get(item.nodeId) ?? 'Node'} · No. {item.wave}</span>}
+            {item.inputRequirementRevision != null && <span className="subtle">Requirement version {item.inputRequirementRevision}</span>}
+            {item.basedOnOlderRequirementRevision && <span className="pill attn">Based on an older version</span>}
+            {item.artifactIds.length > 0 && <span className="subtle">{item.artifactIds.length} artifacts</span>}
           </div>
           {item.reason && <p className="chat-text">{item.reason}</p>}
           {item.operatorActions?.map(operation => <p key={operation.action} className="subtle">
-            {operation.operatorDisplayName} · {operation.action === 'retry' ? '重试' : '跳过'} ·{' '}
-            <time dateTime={operation.operatedAt}>{new Date(operation.operatedAt).toLocaleString('zh-CN')}</time>
+            {operation.operatorDisplayName} · {operation.action === 'retry' ? 'Retry' : 'Skip'} ·{' '}
+            <time dateTime={operation.operatedAt}>{new Date(operation.operatedAt).toLocaleString('en-US')}</time>
           </p>)}
         </article>)}
       </div>
       {page?.nextCursor && <Button disabled={pending} onClick={() => setQuery(previous => ({ ...previous, cursor: page.nextCursor!, serial: previous.serial + 1 }))}>
-        {pending ? '读取中…' : '加载更多尝试'}
+        {pending ? 'Loading…' : 'Loading more attempts'}
       </Button>}
     </>}
   </section>;

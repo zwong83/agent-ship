@@ -29,14 +29,14 @@ class RunChatActions {
     }
 
     Applied apply(Actor actor, UUID run, Map<String, Object> locked, String action, JsonNode body) {
-        if (locked.get("finished_at") != null) throw unavailable("本次运行已经结束。");
+        if (locked.get("finished_at") != null) throw unavailable("This run has ended.");
         return switch (action) {
             case "message" -> message(actor, run, body);
             case "reply", "cancel-question" -> resolve(actor, run, locked, body, action.equals("reply"));
             case "retry", "skip" -> recoverRole(actor, run, body, action.equals("retry"));
             case "propose-change", "confirm-change", "describe" -> requirement(actor, run, locked, action, body);
             case "rerun" -> rerun(actor, run, locked, body);
-            default -> throw unavailable("当前运行不支持此操作。");
+            default -> throw unavailable("This operation is not supported for the current run.");
         };
     }
 
@@ -47,7 +47,7 @@ class RunChatActions {
         if (body.has("targetId")) throw ApiProblem.invalid();
         UUID message = UUID.randomUUID();
         if (!store.send(target, actor.id(), role, text, message)) {
-            throw RequestFields.conflict("CHAT_TARGET_UNAVAILABLE", "该轮次的指定 Agent 暂不可接收消息。");
+            throw RequestFields.conflict("CHAT_TARGET_UNAVAILABLE", "The designated Agent of this round is temporarily unable to receive messages.");
         }
         return new Applied(message, "chat_message", false);
     }
@@ -56,9 +56,9 @@ class RunChatActions {
         if (!reply) requireInitiator(actor, locked);
         if (body.has("nodeId") || body.has("wave") || body.has("targetRoleId")) throw ApiProblem.invalid();
         UUID question = RequestFields.id(body, "targetId");
-        String text = reply ? RequestFields.text(body, "text", 10_000) : "请根据已有信息继续。";
+        String text = reply ? RequestFields.text(body, "text", 10_000) : "Please continue based on the information you have.";
         if (!store.resolve(run, question, actor.id(), reply, text)) {
-            throw RequestFields.conflict("QUESTION_UNAVAILABLE", "该问题已处理或不再可处理。");
+            throw RequestFields.conflict("QUESTION_UNAVAILABLE", "The issue has been handled or is no longer handleable.");
         }
         return new Applied(question, "agent_question", true);
     }
@@ -66,17 +66,17 @@ class RunChatActions {
     private Applied recoverRole(Actor actor, UUID run, JsonNode body, boolean retry) {
         UUID task = RequestFields.id(body, "targetId");
         var role = store.failedRole(run, task);
-        if (role == null) throw unavailable("该角色没有可处理的失败尝试。");
+        if (role == null) throw unavailable("The character has no failed attempts to handle.");
         long current = ((Number) role.get("current_attempt")).longValue();
         if (body.has("expectedAttemptNumber") && RequestFields.number(body, "expectedAttemptNumber", 1, Integer.MAX_VALUE) != current) {
-            throw RequestFields.conflict("STALE_ATTEMPT", "角色尝试已变化，请刷新后重试。");
+            throw RequestFields.conflict("STALE_ATTEMPT", "The role attempt has changed, please refresh and try again.");
         }
         UUID attempt = (UUID) role.get("attempt_id");
         if (retry) {
             attempt = UUID.randomUUID();
             store.retryRole(task, current, attempt);
         } else {
-            if (!"agent".equals(role.get("kind"))) throw unavailable("协调角色必须交付最终产物，不能跳过。");
+            if (!"agent".equals(role.get("kind"))) throw unavailable("The coordination role must deliver the end product and cannot be skipped.");
             store.skipRole(task, current, actor.id());
         }
         store.resumeExecution((UUID) role.get("execution_id"));
@@ -88,7 +88,7 @@ class RunChatActions {
         long source = RequestFields.number(body, "expectedSourceRequirementVersion", 1, Long.MAX_VALUE);
         var node = node(run, body);
         var current = store.activeRequirement(node);
-        if (current == null) throw unavailable("当前没有可修改的需求节点。");
+        if (current == null) throw unavailable("There are currently no demand nodes that can be modified.");
         if (revision != ((Number) current.get("current_revision")).longValue()
                 || source != ((Number) current.get("source_version")).longValue()) throw staleRequirement();
         var target = new Revision(node, actor.id(), (UUID) locked.get("requirement_id"), revision, source,
@@ -134,7 +134,7 @@ class RunChatActions {
     private Applied rerun(Actor actor, UUID run, Map<String, Object> locked, JsonNode body) {
         requireInitiator(actor, locked);
         var target = node(run, body);
-        if (!store.canRerun(target)) throw unavailable("该节点或其下游已有不能安全替换的执行结果。");
+        if (!store.canRerun(target)) throw unavailable("This node or its downstream already has execution results that cannot be safely replaced.");
         store.rerun(target);
         return new Applied(target.node(), "workflow_node", true);
     }
@@ -152,15 +152,15 @@ class RunChatActions {
 
     private static void requireSourceOwner(Actor actor, Map<String, Object> locked) {
         requireInitiator(actor, locked);
-        if (!actor.id().equals(locked.get("current_owner"))) throw new ApiProblem(403, "FORBIDDEN", "需求负责人已变更，不能修改原需求。");
+        if (!actor.id().equals(locked.get("current_owner"))) throw new ApiProblem(403, "FORBIDDEN", "The person responsible for the requirement has changed and the original requirement cannot be modified.");
     }
 
     private static void requireInitiator(Actor actor, Map<String, Object> locked) {
-        if (!actor.id().equals(locked.get("initiator_id"))) throw new ApiProblem(403, "FORBIDDEN", "此操作只允许运行发起人。");
+        if (!actor.id().equals(locked.get("initiator_id"))) throw new ApiProblem(403, "FORBIDDEN", "This operation is only allowed for running initiators.");
     }
 
     private static ApiProblem staleRequirement() {
-        return RequestFields.conflict("STALE_VERSION", "需求版本已变化，请刷新后重新确认。");
+        return RequestFields.conflict("STALE_VERSION", "The required version has changed, please refresh and reconfirm.");
     }
 
     private static ApiProblem unavailable(String message) {

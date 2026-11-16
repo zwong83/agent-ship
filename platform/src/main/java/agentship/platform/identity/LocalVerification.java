@@ -32,7 +32,7 @@ public class LocalVerification {
     public boolean enabled() { return key != null; }
 
     public void requireAvailable() {
-        if (!enabled()) throw new ApiProblem(503, "TEMPORARILY_UNAVAILABLE", "验证渠道暂不可用。");
+        if (!enabled()) throw new ApiProblem(503, "TEMPORARILY_UNAVAILABLE", "The verification channel is temporarily unavailable.");
     }
 
     public String code(String reference, String channel) {

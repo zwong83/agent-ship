@@ -112,7 +112,7 @@ public class PlatformSecurity {
                 return;
             } catch (DataAccessException error) {
                 writeError(json, request, response,
-                        new ApiProblem(503, "TEMPORARILY_UNAVAILABLE", "平台暂不可用，请稍后重试。"));
+                        new ApiProblem(503, "TEMPORARILY_UNAVAILABLE", "The platform is temporarily unavailable, please try again later."));
                 return;
             }
             chain.doFilter(request, response);
@@ -133,7 +133,7 @@ public class PlatformSecurity {
             if (principal.isEmpty()) return;
 
             if (write && !publicWrite && !Tokens.equal(Tokens.csrf(token), request.getHeader("X-CSRF-Token"))) {
-                throw new ApiProblem(403, "FORBIDDEN", "请求来源或会话校验失败。");
+                throw new ApiProblem(403, "FORBIDDEN", "The request source or session verification failed.");
             }
             var authenticated = principal.get();
             request.setAttribute("actor", authenticated.actor());
@@ -151,7 +151,7 @@ public class PlatformSecurity {
             String key = address + path;
             if ((!authAttempts.containsKey(key) && authAttempts.size() >= 10_000)
                     || authAttempts.merge(key, 1, Integer::sum) > AUTH_REQUESTS_PER_MINUTE) {
-                throw new ApiProblem(429, "TOO_MANY_REQUESTS", "请求过多，请稍后重试。",
+                throw new ApiProblem(429, "TOO_MANY_REQUESTS", "Too many requests, please try again later.",
                         Map.of("retryAfterSeconds", 60));
             }
         }
@@ -175,7 +175,7 @@ public class PlatformSecurity {
         }
 
         private static ApiProblem forbiddenOrigin() {
-            return new ApiProblem(403, "FORBIDDEN", "请求来源或会话校验失败。");
+            return new ApiProblem(403, "FORBIDDEN", "The request source or session verification failed.");
         }
     }
 }

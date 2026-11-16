@@ -22,7 +22,7 @@ class ConfigStore {
                    repo.provider,repo.provider_repository_id,repo.display_name AS repository_name,
                    def.id AS agent_id,def.role_key,
                    av.display_name AS agent_display_name,lower(av.display_name) AS agent_sort_name,
-                   av.instruction,av.skill_ref,
+                   av.instruction,av.skill_ref,av.workspace_access,
                    (SELECT max(wv.version) FROM workflow_version wv WHERE wv.workflow_id=c.id AND wv.sealed_at IS NOT NULL) AS workflow_version,
                    EXISTS (SELECT 1 FROM configuration_deputy d
                            WHERE d.configuration_id=c.id AND d.account_id=:actor
@@ -37,7 +37,7 @@ class ConfigStore {
             LEFT JOIN repository repo ON repo.id=r.repository_id
             LEFT JOIN agent_definition def ON def.agent_config_id=g.id
             LEFT JOIN LATERAL (
-                SELECT display_name,instruction,skill_ref
+                SELECT display_name,instruction,skill_ref,workspace_access
                 FROM agent_version WHERE agent_id=def.id ORDER BY version DESC LIMIT 1
             ) av ON true
             """;
@@ -57,7 +57,7 @@ class ConfigStore {
     record Header(UUID id, UUID owner, long version) {}
     record Row(UUID id, UUID owner, long version, String name, String sortName, UUID project,
                String description, String provider, String repositoryId, String repositoryName,
-               UUID agentId, String roleKey, String agentName, String agentSortName, String instruction, String skillRef,
+               UUID agentId, String roleKey, String agentName, String agentSortName, String instruction, String skillRef, String workspaceAccess,
                boolean deputy, boolean formerDeputy, Long workflowVersion) {}
     record Identity(UUID id, String displayName, String username) {}
     record Project(UUID id, String name, String sortName) {}
@@ -68,7 +68,7 @@ class ConfigStore {
             rs.getString("sort_name"), id(rs,"project_id"), rs.getString("requirement_description"),
             rs.getString("provider"), rs.getString("provider_repository_id"), rs.getString("repository_name"),
             id(rs,"agent_id"), rs.getString("role_key"), rs.getString("agent_display_name"), rs.getString("agent_sort_name"),
-            rs.getString("instruction"), rs.getString("skill_ref"), rs.getBoolean("deputy"),
+            rs.getString("instruction"), rs.getString("skill_ref"), rs.getString("workspace_access"), rs.getBoolean("deputy"),
             rs.getBoolean("former_deputy"),rs.getObject("workflow_version",Long.class));
     private static final RowMapper<Identity> USER = (rs, row) ->
             new Identity(id(rs,"id"),rs.getString("display_name"),rs.getString("username"));
@@ -222,14 +222,14 @@ class ConfigStore {
                 Map.of("roleKey",roleKey),Boolean.class));
     }
 
-    void writeAgentVersion(UUID id, String name, String instruction, String skillRef) {
+    void writeAgentVersion(UUID id, String name, String instruction, String skillRef, String workspaceAccess) {
         jdbc.update("UPDATE agent_config SET name=:name WHERE id=:id",Map.of("id",id,"name",name));
         jdbc.update("""
-                INSERT INTO agent_version(agent_id,version,display_name,instruction,skill_ref)
-                SELECT :id,coalesce(max(version),0)+1,:name,:instruction,:skillRef
+                INSERT INTO agent_version(agent_id,version,display_name,instruction,skill_ref,workspace_access)
+                SELECT :id,coalesce(max(version),0)+1,:name,:instruction,:skillRef,:workspaceAccess
                 FROM agent_version WHERE agent_id=:id
                 """,new MapSqlParameterSource("id",id).addValue("name",name)
-                .addValue("instruction",instruction).addValue("skillRef",skillRef));
+                .addValue("instruction",instruction).addValue("skillRef",skillRef).addValue("workspaceAccess",workspaceAccess));
     }
 
     void bumpVersion(UUID id) {

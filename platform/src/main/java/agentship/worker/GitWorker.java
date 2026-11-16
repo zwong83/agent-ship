@@ -63,12 +63,12 @@ final class GitWorker implements AutoCloseable {
                     if(rejection.fenced()){job.fenced=true;break;}
                     if(journal.pending()){halted=true;break;}
                     journal.enqueue(job,"failure",Map.of("reasonCode","GIT_AUTHORIZATION_REJECTED",
-                            "message","平台已拒绝当前 Git 操作，请检查运行权限。","retryable",false));
+                            "message","The current Git operation has been denied by the platform, please check the running permission.","retryable",false));
                     try {journal.flush(job);}catch(PlatformRejection invalidReport){halted=true;}
                     break;
                 } catch(GitProvider.Failure failure) {
                     Map<String,Object> result=new LinkedHashMap<>();result.put("reasonCode",failure.code);
-                    result.put("message",failure.unknown?"外部操作结果尚未确认，系统将核对原操作。":"Git 准备未完成，请检查仓库和访问权限。");
+                    result.put("message",failure.unknown?"The external operation result has not been confirmed, and the system will check the original operation.":"Git preparation is not complete, please check the repository and access permissions.");
                     result.put("retryable",failure.unknown);
                     JsonNode operation=journal.lastOperation();
                     if(operation!=null)result.put("external",evidence(operation,failure.unknown?"unknown":"confirmed_failure",null,null,null));

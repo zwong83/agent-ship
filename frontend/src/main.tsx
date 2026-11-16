@@ -5,8 +5,16 @@ import { Auth } from './auth';
 import { Button } from './ui';
 import { Workspace, workspaceKinds, type WorkspaceRoute } from './workspace';
 import './style.css';
+import './futuristic.css';
+import './universal-theme.css';
+import './workflow-motion.css';
+import './configuration.css';
+import './node-settings.css';
+import './command-center.css';
+import './earth-fleet.css';
 
 function workspaceRoute(path: string): WorkspaceRoute | null {
+  if (/^\/dashboard\/?$/.test(path.toLowerCase())) return { kind: 'dashboard' };
   if (/^\/devices\/?$/.test(path.toLowerCase())) return { kind: 'devices' };
   const control = /^\/runs\/([\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})\/chat\/?$/.exec(path.toLowerCase());
   if (control) return { kind: 'repair', id: control[1] };
@@ -23,7 +31,6 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
-  const requestedPath = useRef<string | null>(workspaceRoute(window.location.pathname) ? window.location.pathname : null);
   const activePath = useRef(window.location.pathname);
   const popGuard = useRef<(() => boolean) | null>(null);
   const registerPopGuard = useCallback((guard: (() => boolean) | null) => { popGuard.current = guard; }, []);
@@ -62,15 +69,13 @@ function App() {
 
   useEffect(() => {
     if (!session) return;
-    if (session.user && !workspaceRoute(path)) navigate('/requirements', true);
+    if (session.user && !workspaceRoute(path)) navigate('/dashboard', true);
     else if (!session.user && path !== '/login' && path !== '/register') {
-      if (workspaceRoute(path)) requestedPath.current = path;
       navigate('/login', true);
     }
   }, [navigate, path, session]);
 
   const endSession = useCallback(() => {
-    requestedPath.current = null;
     setSession({ user: null, csrfToken: null });
     navigate('/login', true);
   }, [navigate]);
@@ -78,23 +83,22 @@ function App() {
   function login(current: Session) {
     setSession(current);
     if (current.user) {
-      navigate(requestedPath.current ?? '/requirements', true);
-      requestedPath.current = null;
-    }
+      navigate('/dashboard', true);
+      }
   }
 
   if (!session) return <main className="boot">
     <h1>AgentShip</h1>
     {error ? <div className="grid"><p role="alert" className="inline-error">{error}</p>
-      <div><Button onClick={() => { setError(''); setRetry(n => n + 1); }}>重试连接</Button></div>
-    </div> : <p role="status">正在读取会话…</p>}
+      <div><Button onClick={() => { setError(''); setRetry(n => n + 1); }}>Retry connection</Button></div>
+    </div> : <p role="status">Reading session...</p>}
   </main>;
 
   if (!session.user || !session.csrfToken) {
     return <Auth route={path === '/register' ? 'register' : 'login'} navigate={navigate} onLogin={login} />;
   }
 
-  return <Workspace key={session.user.id} route={workspaceRoute(path) ?? { kind: 'requirements' }}
+  return <Workspace key={session.user.id} route={workspaceRoute(path) ?? { kind: 'dashboard' }}
     session={{ user: session.user, csrfToken: session.csrfToken }} navigate={navigate} onSessionEnd={endSession} registerPopGuard={registerPopGuard} />;
 }
 

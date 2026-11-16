@@ -23,7 +23,7 @@ class JdbcRequirementEdits implements RequirementEdits {
         try {
             jdbc.update("UPDATE requirement SET name=:title,name_key=:nameKey,description=:description WHERE id=:requirement", args);
         } catch (DuplicateKeyException duplicate) {
-            throw new ApiProblem(409, "REQUIREMENT_EXISTS", "已有同名需求，请使用其他名称。");
+            throw new ApiProblem(409, "REQUIREMENT_EXISTS", "There is already a request with the same name, please use another name.");
         }
         jdbc.update("UPDATE configuration SET version=version+1,updated_at=statement_timestamp() WHERE id=:requirement", args);
     }

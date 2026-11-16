@@ -78,6 +78,6 @@ class RunCursor {
     }
 
     private static ApiProblem expired() {
-        return new ApiProblem(410,"CURSOR_EXPIRED","分页已失效，请重新查询");
+        return new ApiProblem(410,"CURSOR_EXPIRED","Pagination has expired, please try again");
     }
 }

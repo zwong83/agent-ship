@@ -41,11 +41,11 @@ class WorkflowStore {
             int nodeOrdinal = 0;
             for (WorkflowGraph.Node node : stage.nodes()) {
                 jdbc.update("""
-                        INSERT INTO workflow_node(workflow_id,workflow_version,node_id,stage_id,name,ordinal,kind,purpose,agent_order)
-                        VALUES (:workflow,:version,:node,:stage,:name,:ordinal,:kind,:purpose,:agentOrder)
+                        INSERT INTO workflow_node(workflow_id,workflow_version,node_id,stage_id,name,ordinal,kind,purpose,agent_order,collect_requirements)
+                        VALUES (:workflow,:version,:node,:stage,:name,:ordinal,:kind,:purpose,:agentOrder,:collectRequirements)
                         """, nodeArgs(versionArgs, node).addValue("stage", stage.id()).addValue("name", node.name())
                         .addValue("ordinal", ++nodeOrdinal).addValue("kind", node.type())
-                        .addValue("purpose", node.purpose()).addValue("agentOrder", node.agentOrder()));
+                        .addValue("purpose", node.purpose()).addValue("agentOrder", node.agentOrder()).addValue("collectRequirements", node.collectRequirements()));
             }
         }
         for (WorkflowGraph.Stage stage : graph.stages()) for (WorkflowGraph.Node node : stage.nodes()) {
@@ -57,9 +57,9 @@ class WorkflowStore {
                         """, args.addValue("dependency", dependency));
             }
             if (node.coordinatorId() != null) {
-                saveRole(args, node.type(), node.coordinatorId(), agents.get(node.coordinatorId()), "coordinator", 1);
+                saveRole(args, node, node.coordinatorId(), agents.get(node.coordinatorId()), "coordinator", 1);
                 int ordinal = 0;
-                for (UUID agent : node.agentIds()) saveRole(args, node.type(), agent, agents.get(agent), "subagent", ++ordinal);
+                for (UUID agent : node.agentIds()) saveRole(args, node, agent, agents.get(agent), "subagent", ++ordinal);
             }
             if (node.checkRoutes() != null) {
                 var routes = node.checkRoutes();
@@ -113,12 +113,27 @@ class WorkflowStore {
         return versions;
     }
 
-    private void saveRole(MapSqlParameterSource base, String kind, UUID agent, long version, String role, int ordinal) {
+    private void saveRole(MapSqlParameterSource base, WorkflowGraph.Node node, UUID agent, long version, String role, int ordinal) {
+        var args = new MapSqlParameterSource(base.getValues()).addValue("agent", agent)
+                .addValue("agentVersion", version).addValue("role", role);
+        String access = jdbc.queryForObject("SELECT workspace_access FROM agent_version WHERE agent_id=:agent AND version=:agentVersion", args, String.class);
+        if ("legacy".equals(access)) {
+            List<String> previous = jdbc.query("""
+                    SELECT r.workspace_access FROM workflow_role r
+                    WHERE r.workflow_id=:workflow AND r.workflow_version=(
+                        SELECT max(v.version) FROM workflow_version v WHERE v.workflow_id=:workflow AND v.version<:version AND v.sealed_at IS NOT NULL)
+                      AND r.node_id=:node AND r.agent_id=:agent AND r.role=:role
+                    """, args, (rs, index) -> rs.getString(1));
+            access = previous.isEmpty()
+                    ? ("coordinator".equals(role) || java.util.Set.of("frontend", "backend", "repair").contains(node.purpose() == null ? "" : node.purpose()) ? "write" : "read_only")
+                    : previous.getFirst();
+        }
+        if ("check".equals(node.type()) && "coordinator".equals(role)) access = "read_only";
         jdbc.update("""
-                INSERT INTO workflow_role(workflow_id,workflow_version,node_id,node_kind,agent_id,agent_version,role,ordinal)
-                VALUES (:workflow,:version,:node,:kind,:agent,:agentVersion,:role,:ordinal)
-                """, new MapSqlParameterSource(base.getValues()).addValue("kind", kind).addValue("agent", agent)
-                .addValue("agentVersion", version).addValue("role", role).addValue("ordinal", ordinal));
+                INSERT INTO workflow_role(workflow_id,workflow_version,node_id,node_kind,agent_id,agent_version,role,ordinal,workspace_access)
+                VALUES (:workflow,:version,:node,:kind,:agent,:agentVersion,:role,:ordinal,:workspaceAccess)
+                """, new MapSqlParameterSource(base.getValues()).addValue("kind", node.type()).addValue("agent", agent)
+                .addValue("agentVersion", version).addValue("role", role).addValue("ordinal", ordinal).addValue("workspaceAccess", access));
     }
 
     WorkflowGraph read(UUID workflow, Long version) {
@@ -162,12 +177,12 @@ class WorkflowStore {
         });
         Map<UUID, List<WorkflowGraph.Node>> nodes = new LinkedHashMap<>();
         jdbc.query("""
-                SELECT node_id,stage_id,name,kind,purpose,agent_order FROM workflow_node
+                SELECT node_id,stage_id,name,kind,purpose,agent_order,collect_requirements FROM workflow_node
                 WHERE workflow_id=:workflow AND workflow_version=:version ORDER BY ordinal
                 """, args, rs -> {
             UUID id = rs.getObject("node_id", UUID.class);
             boolean end = rs.getString("kind").equals("end");
-            var node = new WorkflowGraph.Node(id, rs.getString("name"), rs.getString("kind"), rs.getString("purpose"),
+            var node = new WorkflowGraph.Node(id, rs.getString("name"), rs.getString("kind"), rs.getString("purpose"), rs.getBoolean("collect_requirements"),
                     dependencies.getOrDefault(id, List.of()), coordinators.get(id),
                     end ? null : children.getOrDefault(id, List.of()), rs.getString("agent_order"), checks.get(id), routes.get(id));
             nodes.computeIfAbsent(rs.getObject("stage_id", UUID.class), ignored -> new ArrayList<>()).add(node);
@@ -187,6 +202,6 @@ class WorkflowStore {
     }
 
     private static ApiProblem unavailableAgent() {
-        return new ApiProblem(403, "AGENT_UNAVAILABLE", "流程包含无权使用或不存在的 Agent，请重新选择");
+        return new ApiProblem(403, "AGENT_UNAVAILABLE", "The process contains an Agent that you do not have permission to use or does not exist. Please select again.");
     }
 }

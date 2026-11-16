@@ -182,7 +182,7 @@ class JdbcChatOperatorStore implements ChatOperatorStore {
                 WHERE actor_kind='account' AND actor_id=:actor AND scope=:scope AND request_key=:key
                 """, args);
         if (!MessageDigest.isEqual(command.digest(), (byte[]) existing.get("request_digest"))) {
-            throw new ApiProblem(409, "IDEMPOTENCY_CONFLICT", "同一请求标识不能用于不同操作。");
+            throw new ApiProblem(409, "IDEMPOTENCY_CONFLICT", "The same request ID cannot be used for different operations.");
         }
         return (UUID) existing.get("result_id");
     }

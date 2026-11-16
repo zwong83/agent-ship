@@ -46,7 +46,7 @@ class ConfigService {
                     return value;
                 }
             }
-            throw invalid("配置类型无效");
+            throw invalid("Invalid configuration type");
         }
     }
 
@@ -54,7 +54,7 @@ class ConfigService {
     record OwnershipReceipt(boolean accepted, boolean duplicate, UUID receiptId) {}
     record AgentChoice(UUID id, String name, String availability, String description) {}
     private record Draft(String name, long version, UUID project, String description,
-                         String roleKey, String skillRef,
+                         String roleKey, String skillRef, @JsonInclude(JsonInclude.Include.NON_NULL) String workspaceAccess,
                          @JsonInclude(JsonInclude.Include.NON_NULL) WorkflowGraph workflow) {}
     private record OwnerCommand(String action, long version, String username, UUID userId) {}
 
@@ -87,11 +87,11 @@ class ConfigService {
         if (!PURPOSES.contains(purpose) || ("start".equals(purpose) && kind != Kind.REQUIREMENT)
                 || ("use".equals(purpose) && kind != Kind.FLOW)
                 || (requirement != null && !"use".equals(purpose)) || (project != null && kind != Kind.REQUIREMENT)) {
-            throw invalid("配置类型与查询用途不匹配");
+            throw invalid("Configuration type does not match query purpose");
         }
         if ("use".equals(purpose)) {
             if (requirement == null) {
-                throw invalid("请选择需要启动的需求");
+                throw invalid("Please select the requirements that need to be activated");
             }
             ConfigStore.Row context = visible(Kind.REQUIREMENT,requirement,actor.id(),false);
             if (!context.owner().equals(actor.id())) {
@@ -160,11 +160,11 @@ class ConfigService {
             case AGENT -> {
                 store.lockName("agent:" + draft.roleKey());
                 if (store.roleKeyExists(draft.roleKey())) {
-                    throw new ApiProblem(409,"NAME_UNAVAILABLE","该角色标识不可用");
+                    throw new ApiProblem(409,"NAME_UNAVAILABLE","The role ID is not available");
                 }
                 store.createBase(kind,id,actor.id());
                 store.createAgent(id,draft.name(),draft.roleKey());
-                store.writeAgentVersion(id,draft.name(),draft.description(),draft.skillRef());
+                store.writeAgentVersion(id,draft.name(),draft.description(),draft.skillRef(),draft.workspaceAccess() == null ? "legacy" : draft.workspaceAccess());
             }
         }
         store.finish(actor.id(),scope,requestKey,"configuration",id);
@@ -185,7 +185,7 @@ class ConfigService {
         switch (kind) {
             case REQUIREMENT -> {
                 if (!draft.project().equals(current.project())) {
-                    throw invalid("已有需求的项目不可更改");
+                    throw invalid("Items that are already in demand cannot be changed");
                 }
                 String key = nameKey(draft.name());
                 requireUniqueRequirement(key,id,actor.id());
@@ -197,9 +197,9 @@ class ConfigService {
             }
             case AGENT -> {
                 if (!draft.roleKey().equals(current.roleKey())) {
-                    throw invalid("已有 Agent 的角色标识不可更改");
+                    throw invalid("The role ID of an existing Agent cannot be changed.");
                 }
-                store.writeAgentVersion(current.agentId(),draft.name(),draft.description(),draft.skillRef());
+                store.writeAgentVersion(current.agentId(),draft.name(),draft.description(),draft.skillRef(),draft.workspaceAccess() == null ? current.workspaceAccess() : draft.workspaceAccess());
             }
         }
         store.bumpVersion(id);
@@ -262,7 +262,7 @@ class ConfigService {
 
     private void requireCurrentSession(Actor actor) {
         if (!store.currentSession(actor)) {
-            throw new ApiProblem(401,"UNAUTHENTICATED","请重新登录");
+            throw new ApiProblem(401,"UNAUTHENTICATED","Please log in again");
         }
     }
 
@@ -272,7 +272,7 @@ class ConfigService {
             return row;
         }
         if (edit && row.formerDeputy()) {
-            throw new ApiProblem(403,"ACCESS_REVOKED","你已被移除，无法继续编辑此配置");
+            throw new ApiProblem(403,"ACCESS_REVOKED","You have been removed and cannot continue to edit this configuration");
         }
         throw notFound();
     }
@@ -286,21 +286,21 @@ class ConfigService {
         store.lockName("requirement:" + key);
         store.requirementName(key).filter(row -> !row.id().equals(except)).ifPresent(row -> {
             if (row.owner().equals(actor)) {
-                throw new ApiProblem(409,"REQUIREMENT_EXISTS","请选择已有的同名需求",
+                throw new ApiProblem(409,"REQUIREMENT_EXISTS","Please select an existing requirement with the same name",
                         Map.of("existingRequirementId",row.id()));
             }
-            throw new ApiProblem(409,"NAME_UNAVAILABLE","该名称不可用，请换一个名称");
+            throw new ApiProblem(409,"NAME_UNAVAILABLE","The name is not available, please change it.");
         });
     }
 
     private ConfigStore.Receipt reserve(Actor actor, String scope, String key, Object payload) {
         if (key == null || key.isBlank() || key.length() > 200 || key.indexOf(0) >= 0) {
-            throw invalid("请求标识无效");
+            throw invalid("Invalid request id");
         }
         byte[] digest = digest(payload);
         ConfigStore.Receipt receipt = store.reserve(actor.id(),scope,key,digest);
         if (!MessageDigest.isEqual(digest,receipt.digest()) || (!receipt.fresh() && receipt.resultId() == null)) {
-            throw new ApiProblem(409,"IDEMPOTENCY_CONFLICT","此请求标识已用于不同请求");
+            throw new ApiProblem(409,"IDEMPOTENCY_CONFLICT","This request ID has been used in a different request");
         }
         return receipt;
     }
@@ -326,6 +326,7 @@ class ConfigService {
             case FLOW -> data.put("stages",workflows.read(row.id(),row.workflowVersion()).stages());
             case AGENT -> {
                 data.put("roleKey",row.roleKey());
+                data.put("workspaceAccess",row.workspaceAccess());
                 data.put("description",row.instruction());
                 if (row.skillRef() != null) {
                     data.put("skillRef",row.skillRef());
@@ -366,35 +367,42 @@ class ConfigService {
 
     private static Draft draft(Kind kind, JsonNode body, boolean update) {
         if (!body.isObject() || !body.path("data").isObject()) {
-            throw invalid("配置数据无效");
+            throw invalid("Configuration data is invalid");
         }
         long version = update ? version(body) : 0;
-        String name = string(body.get("name"),120,true,"名称");
+        String name = string(body.get("name"),120,true,"Name");
         JsonNode data = body.path("data");
         return switch (kind) {
             case REQUIREMENT -> {
                 if (!data.has("description")) {
-                    throw invalid("请提供需求描述字段");
+                    throw invalid("Please provide the requirement description field");
                 }
-                yield new Draft(name,version,uuid(data.get("projectId"),"项目"),
-                        optional(data.get("description"),16000,"需求描述"),null,null,null);
+                yield new Draft(name,version,uuid(data.get("projectId"),"project"),
+                        optional(data.get("description"),16000,"Requirement description"),null,null,null,null);
             }
             case FLOW -> {
-                yield new Draft(name,version,null,null,null,null,WorkflowGraph.parse(data));
+                yield new Draft(name,version,null,null,null,null,null,WorkflowGraph.parse(data));
             }
             case AGENT -> {
                 if (!data.hasNonNull("description")) {
-                    throw invalid("请提供 Agent 说明");
+                    throw invalid("Please provide Agent description");
                 }
-                yield new Draft(name,version,null,string(data.get("description"),8000,false,"Agent 说明"),
-                        string(data.get("roleKey"),150,true,"角色标识"),optional(data.get("skillRef"),150,"Skill"),null);
+                yield new Draft(name,version,null,string(data.get("description"),8000,false,"Agent Description"),
+                        string(data.get("roleKey"),150,true,"Role ID"),optional(data.get("skillRef"),150,"Skill"),workspaceAccess(data),null);
             }
         };
     }
 
+    private static String workspaceAccess(JsonNode data) {
+        if (!data.has("workspaceAccess")) return null;
+        String access = string(data.get("workspaceAccess"),20,true,"Workspace access");
+        if (!Set.of("read_only", "write", "legacy").contains(access)) throw invalid("Invalid workspace access");
+        return access;
+    }
+
     private static OwnerCommand ownershipCommand(JsonNode body) {
         if (!body.isObject()) {
-            throw invalid("负责人请求无效");
+            throw invalid("The person in charge's request is invalid");
         }
         long version = version(body);
         String action = body.path("action").asText();
@@ -402,31 +410,31 @@ class ConfigService {
             case "add_deputy","transfer" -> {
                 JsonNode username = body.path("username");
                 if (body.size() != 3 || !username.isTextual() || !USERNAME.matcher(username.textValue()).matches()) {
-                    throw invalid("请输入完整用户名");
+                    throw invalid("Please enter full username");
                 }
                 yield new OwnerCommand(action,version,username.textValue().toLowerCase(Locale.ROOT),null);
             }
             case "remove_deputy" -> {
                 if (body.size() != 3) {
-                    throw invalid("副负责人请求无效");
+                    throw invalid("The request of the deputy director is invalid");
                 }
-                yield new OwnerCommand(action,version,null,uuid(body.get("userId"),"副负责人"));
+                yield new OwnerCommand(action,version,null,uuid(body.get("userId"),"Co-owner"));
             }
-            default -> throw invalid("负责人操作无效");
+            default -> throw invalid("The person in charge's operation is invalid");
         };
     }
 
     private static long version(JsonNode body) {
         JsonNode version = body.path("expectedVersion");
         if (!version.isIntegralNumber() || !version.canConvertToLong() || version.longValue() < 1) {
-            throw invalid("配置版本无效");
+            throw invalid("Invalid configuration version");
         }
         return version.longValue();
     }
 
     private static void requireVersion(ConfigStore.Header header, long version) {
         if (version != header.version()) {
-            throw new ApiProblem(409,"STALE_VERSION","配置已更新，请刷新后再提交",
+            throw new ApiProblem(409,"STALE_VERSION","The configuration has been updated, please refresh before submitting.",
                     Map.of("currentVersion",header.version()));
         }
     }
@@ -437,11 +445,11 @@ class ConfigService {
 
     private static String string(JsonNode value, int max, boolean trim, String label) {
         if (value == null || !value.isTextual()) {
-            throw invalid(label + "无效");
+            throw invalid(label + "invalid");
         }
         String text = trim ? value.textValue().strip() : value.textValue();
         if ((trim && text.isBlank()) || text.codePointCount(0,text.length()) > max || text.indexOf(0) >= 0) {
-            throw invalid(label + "无效");
+            throw invalid(label + "invalid");
         }
         return text;
     }
@@ -449,15 +457,15 @@ class ConfigService {
     private static UUID uuid(JsonNode value, String label) {
         try {
             if (value == null || !value.isTextual()) {
-                throw invalid(label + "无效");
+                throw invalid(label + "invalid");
             }
             UUID id = UUID.fromString(value.textValue());
             if (!id.toString().equalsIgnoreCase(value.textValue())) {
-                throw invalid(label + "无效");
+                throw invalid(label + "invalid");
             }
             return id;
         } catch (IllegalArgumentException invalidId) {
-            throw invalid(label + "无效");
+            throw invalid(label + "invalid");
         }
     }
 
@@ -467,7 +475,7 @@ class ConfigService {
         }
         String normalized = query.strip().toLowerCase(Locale.ROOT);
         if (normalized.length() > 200 || normalized.indexOf(0) >= 0) {
-            throw invalid("搜索词无效");
+            throw invalid("Invalid search term");
         }
         return normalized;
     }
@@ -475,7 +483,7 @@ class ConfigService {
     private static String nameKey(String name) {
         String key = Normalizer.normalize(name,Normalizer.Form.NFKC).strip().toLowerCase(Locale.ROOT);
         if (key.isBlank()) {
-            throw invalid("名称无效");
+            throw invalid("Invalid name");
         }
         return key;
     }
@@ -494,7 +502,7 @@ class ConfigService {
             return 25;
         }
         if (size < 1 || (strict && size > 100)) {
-            throw invalid("分页大小无效");
+            throw invalid("Invalid paging size");
         }
         return Math.min(size,100);
     }
@@ -504,14 +512,14 @@ class ConfigService {
     }
 
     private static ApiProblem forbidden() {
-        return new ApiProblem(403,"FORBIDDEN","当前账号没有此操作权限");
+        return new ApiProblem(403,"FORBIDDEN","The current account does not have this operation permission");
     }
 
     private static ApiProblem notFound() {
-        return new ApiProblem(404,"NOT_FOUND","配置不存在或不可访问");
+        return new ApiProblem(404,"NOT_FOUND","Configuration does not exist or is inaccessible");
     }
 
     private static ApiProblem memberUnavailable() {
-        return new ApiProblem(404,"MEMBER_UNAVAILABLE","该用户不可用");
+        return new ApiProblem(404,"MEMBER_UNAVAILABLE","This user is unavailable");
     }
 }

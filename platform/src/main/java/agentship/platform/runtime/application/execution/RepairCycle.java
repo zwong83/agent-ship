@@ -53,12 +53,12 @@ public class RepairCycle {
 
     private void requireState(Map<String, Object> run, UUID check, String state) {
         boolean available = run.get("finished_at") == null && store.actionAvailable(run, check, state);
-        if (!available) throw RequestFields.conflict("CHECK_ACTION_UNAVAILABLE", "当前检查状态不允许此操作");
+        if (!available) throw RequestFields.conflict("CHECK_ACTION_UNAVAILABLE", "The current inspection status does not allow this operation");
     }
 
     private void startRound(Map<String, Object> run, UUID check, UUID actor) {
         int inserted = store.startRound(run, check, actor);
-        if (inserted != 1) throw RequestFields.conflict("CHECK_ACTION_UNAVAILABLE", "当前检查已安排修复或状态已变化");
+        if (inserted != 1) throw RequestFields.conflict("CHECK_ACTION_UNAVAILABLE", "The current inspection is scheduled for repair or the status has changed");
         resetUsedRoute(run, check);
     }
 

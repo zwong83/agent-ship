@@ -16,7 +16,7 @@ record RunStart(UUID requirementId, long requirementVersion, UUID workflowId, lo
         if (!Set.of("feature","refactor","hotfix","fix").contains(type)) throw ApiProblem.invalid();
         String namespace = body.has("githubNamespace") ? text(body,"githubNamespace") : null;
         if (namespace != null && !namespace.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?")) {
-            throw new ApiProblem(400,"INVALID_REQUEST","请填写有效的 GitHub 用户名或组织名");
+            throw new ApiProblem(400,"INVALID_REQUEST","Please fill in a valid GitHub username or organization name");
         }
         JsonNode proof = body.get("deviceProof");
         if (proof == null || !proof.isObject()) throw ApiProblem.invalid();

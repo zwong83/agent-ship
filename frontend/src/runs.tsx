@@ -1,3 +1,4 @@
+import { WorkflowMap } from './workflow-map';
 import { useEffect, useState } from 'react';
 import { ApiError, errorText, queryPath, request, type Page } from './api';
 import { Button, Field, Heading } from './ui';
@@ -6,7 +7,7 @@ import { statusText, workTypeLabels, type CheckHistoryEntry, type GitContext, ty
 import { RunArtifactArchive, type ArchiveControls } from './run-artifact-archive';
 import { RunAttemptHistory } from './run-attempt-history';
 
-type Props = { id?: string; csrf: string; navigate: (path: string) => void; onUnauthorized: () => void };
+type Props = { embedded?: boolean; id?: string; csrf: string; navigate: (path: string) => void; onUnauthorized: () => void };
 
 function waitingForDevice(run: RunSummary) {
   return run.deviceStatus.connectivity === 'offline'
@@ -16,7 +17,7 @@ function waitingForDevice(run: RunSummary) {
 function statusTone(state: string) {
   if (['complete', 'completed', 'succeeded'].includes(state)) return 'good';
   if (['needs_attention', 'failed', 'waiting_reply'].includes(state)) return 'attn';
-  if (['running', 'leased', 'ready'].includes(state)) return 'active';
+  if (['running', 'leased'].includes(state)) return 'active';
   return '';
 }
 
@@ -24,8 +25,8 @@ function StatusPill({ state, label }: { state: string; label?: string }) {
   return <span className={'pill ' + statusTone(state)}>{label ?? statusText(state)}</span>;
 }
 
-export function RunsPage({ id, csrf, navigate, onUnauthorized }: Props) {
-  return id ? <RunDetailPage key={id} id={id} csrf={csrf} navigate={navigate} onUnauthorized={onUnauthorized} /> : <RunList navigate={navigate} onUnauthorized={onUnauthorized} />;
+export function RunsPage({ id, csrf, navigate, onUnauthorized, embedded }: Props) {
+  return id ? <RunDetailPage embedded={embedded} key={id} id={id} csrf={csrf} navigate={navigate} onUnauthorized={onUnauthorized} /> : <RunList navigate={navigate} onUnauthorized={onUnauthorized} />;
 }
 
 function RunList({ navigate, onUnauthorized }: Pick<Props, 'navigate' | 'onUnauthorized'>) {
@@ -48,22 +49,22 @@ function RunList({ navigate, onUnauthorized }: Pick<Props, 'navigate' | 'onUnaut
     return () => control.abort();
   }, [query, cursor, refresh, onUnauthorized]);
   return <>
-    <Heading label="MISSION CONTROL" title="运行看板" text="查看需求运行与已固定的流程快照。每一步状态都来自实际运行记录。"
-      actions={<Button variant="accent" onClick={() => navigate('/runs/new')}>发起运行</Button>} />
-    <section className="panel"><div className="run-toolbar"><Field label="搜索运行需求"><input type="search" value={query} placeholder="输入需求名称" onChange={e => { setQuery(e.target.value); setCursor(undefined); setPage(null); }} /></Field><Button onClick={() => { setCursor(undefined); setRefresh(n => n + 1); }}>刷新运行</Button></div>
+    <Heading label="MISSION CONTROL" title="Run dashboard" text="View process snapshots of demand runs and pinned processes. The status of each step comes from actual running records."
+      actions={<Button variant="accent" onClick={() => navigate('/runs/new')}>Start a run</Button>} />
+    <section className="panel"><div className="run-toolbar"><Field label="Search operational requirements"><input type="search" value={query} placeholder="Enter the requirement name" onChange={e => { setQuery(e.target.value); setCursor(undefined); setPage(null); }} /></Field><Button onClick={() => { setCursor(undefined); setRefresh(n => n + 1); }}>refresh run</Button></div>
       {error && <p role="alert" className="inline-error">{error}</p>}
-      {pending && !page && <p role="status">正在读取运行…</p>}
-      {page?.items.length === 0 && <div className="empty"><h2>还没有运行</h2><p>选择一个需求和流程，发起你的第一次运行。</p></div>}
+      {pending && !page && <p role="status">Reading and running...</p>}
+      {page?.items.length === 0 && <div className="empty"><h2>Not running yet</h2><p>Choose a requirement and process to launch your first run.</p></div>}
       <div className="run-list">{page?.items.map(run => <button type="button" className="run-card" key={run.id} onClick={() => navigate('/runs/' + run.id)}>
-        <span className="run-card-icon" aria-hidden="true">↗</span><span className="run-card-main"><strong>{run.requirementName}</strong><small>{workTypeLabels[run.workType]} · 流程 v{run.workflowVersion} · {run.deviceStatus.name}</small></span>
-        {waitingForDevice(run) ? <span className="pill attn">等待发起电脑上线</span> : <StatusPill state={run.state} />}
+        <span className="run-card-icon" aria-hidden="true">↗</span><span className="run-card-main"><strong>{run.requirementName}</strong><small>{workTypeLabels[run.workType]} · Process v{run.workflowVersion} · {run.deviceStatus.name}</small></span>
+        {waitingForDevice(run) ? <span className="pill attn">Waiting for the initiating computer to come online</span> : <StatusPill state={run.state} />}
       </button>)}</div>
-      {page?.nextCursor && <Button disabled={pending} onClick={() => setCursor(page.nextCursor!)}>加载更多运行</Button>}
+      {page?.nextCursor && <Button disabled={pending} onClick={() => setCursor(page.nextCursor!)}>load more runs</Button>}
     </section>
   </>;
 }
 
-function RunDetailPage({ id, csrf, navigate, onUnauthorized }: Props & { id: string }) {
+function RunDetailPage({ id, csrf, navigate, onUnauthorized, embedded }: Props & { id: string }) {
   const [run, setRun] = useState<RunDetail>();
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
@@ -96,31 +97,33 @@ function RunDetailPage({ id, csrf, navigate, onUnauthorized }: Props & { id: str
     && ['AGENT_EXECUTION_PENDING', 'AGENT_DISPATCH_PENDING'].includes(run.blockerCode ?? '')
     && nodes.every(node => node.state === 'blocked' && node.tasks.length === 0);
   return <>
-    <Heading label="MISSION TIMELINE" title={run?.requirementName ?? '运行详情'} text="运行使用启动时固定的阶段、节点与 Agent 版本。"
+    <Heading label="MISSION TIMELINE" title={run?.requirementName ?? 'Run details'} text="The run uses the stage, node, and agent versions that are fixed at startup."
       actions={<div className="row">
-        <Button onClick={() => navigate('/runs')}>返回运行看板</Button>
-        <Button onClick={() => setRefresh(n => n + 1)}>刷新运行</Button>
-        {run?.allowedActions.includes('open_repair_control') &&
-          <Button variant="accent" onClick={() => navigate('/runs/' + encodeURIComponent(id) + '/chat')}>运行操作</Button>}
+        <Button onClick={() => navigate('/requirements')}>All requirements</Button>
+        <Button onClick={() => setRefresh(n => n + 1)}>refresh run</Button>
+        {!embedded && run?.allowedActions.includes('open_repair_control') &&
+          <Button variant="accent" onClick={() => navigate('/runs/' + encodeURIComponent(id) + '/chat')}>Run controls</Button>}
       </div>} />
     {error && <p role="alert" className="inline-error">{error}</p>}
-    {!run && !error && <p role="status">正在读取运行…</p>}
+    {!run && !error && <p role="status">Reading and running...</p>}
     {run && <>
-      <section className={'run-status panel ' + (offline ? 'is-offline' : statusTone(run.state))} aria-label="当前运行状态"><span className="status-orbit" aria-hidden="true" /><div><p className="eyebrow">{run.mode === 'demo' ? 'DEVELOPMENT MODE · 本地演示' : 'CODEX MODE · 本机执行'}</p><h2>{offline ? '等待发起电脑上线' : gitReady ? '仓库已就绪，等待 Agent 执行' : run.state === 'waiting' && pendingReply ? '等待回复' : statusText(run.state)}</h2>
-        <p>{offline ? '运行进度已保存。原电脑上线后可继续本次运行。' : run.blocker ?? (run.state === 'completed' ? '本次运行已到达流程的结束节点。' : '以下为平台记录的当前运行状态。')}</p>
-        {run.state === 'queued' && <small>启动记录已创建，Git 准备尚未完成，Agent 节点尚未执行。</small>}
+      <section className={'run-status panel ' + (offline ? 'is-offline' : statusTone(run.state))} aria-label="Current running status"><span className="status-orbit" aria-hidden="true" /><div><p className="eyebrow">{run.mode === 'demo' ? 'DEVELOPMENT MODE · Local demo' : 'CODEX MODE · Native execution'}</p><h2>{offline ? 'Waiting for the initiating computer to come online' : gitReady ? 'The warehouse is ready, waiting for Agent execution' : run.state === 'waiting' && pendingReply ? 'Waiting for reply' : statusText(run.state)}</h2>
+        <p>{offline ? 'Run progress saved. This run can be continued after the original computer comes online.' : run.blocker ?? (run.state === 'completed' ? 'This run has reached the end node of the process.' : 'The following is the current operating status recorded by the platform.')}</p>
+        {run.state === 'queued' && <small>The startup record has been created, the Git preparation has not been completed, and the Agent node has not yet been executed.</small>}
         {gitReady && <small>{run.mode === 'codex' && run.deviceStatus.codexStatus === 'unavailable'
-          ? '发起电脑未检测到 Codex CLI。请检查安装后重新连接。'
-          : <>在「本机设备」选择启用 Agent 的模式，并用相同设备目录启动执行程序。 <Button variant="tiny" onClick={() => navigate('/devices')}>查看设备设置</Button></>}</small>}
+          ? 'The initiating computer does not detect the Codex CLI. Please check and reconnect after installation.'
+          : <>Select the Agent-enabled mode in "Local Device" and start the executable program using the same device directory. <Button variant="tiny" onClick={() => navigate('/devices')}>View device settings</Button></>}</small>}
       </div></section>
-      <div className="run-facts"><div><small>工作类型</small><strong>{workTypeLabels[run.workType]}</strong></div><div><small>固定流程版本</small><strong>v{run.workflowVersion}</strong></div><div><small>需求修订</small><strong>r{run.requirementRevision}</strong></div><div><small>发起电脑</small><strong>{run.deviceStatus.name}</strong></div></div>
-      <RunTimeline stages={run.stages} nodes={nodes} archive={{ runId: id, csrf, local: run.mode === 'demo',
+      <div className="run-facts"><div><small>Work type</small><strong>{workTypeLabels[run.workType]}</strong></div><div><small>Fixed process version</small><strong>v{run.workflowVersion}</strong></div><div><small>Requirements revision</small><strong>r{run.requirementRevision}</strong></div><div><small>launch computer</small><strong>{run.deviceStatus.name}</strong></div></div>
+      <WorkflowMap stages={run.stages.map(stage => ({ ...stage, nodes: stage.nodes.map(node => ({ id: node.nodeId, name: node.name, type: node.type, dependencies: node.dependencies ?? [] })) }))}
+        execution={{ states: Object.fromEntries(nodes.map(node => [node.nodeId, node.state])), executing: !offline && run.state === 'running' }} />
+      <RunTimeline executing={!offline && run.state === 'running'} stages={run.stages} nodes={nodes} archive={{ runId: id, csrf, local: run.mode === 'demo',
         allowed: run.allowedActions.includes('archive_deliverable'), refresh: () => setRefresh(value => value + 1) }} />
       <RunAttemptHistory runId={id} nodes={nodes} onUnauthorized={onUnauthorized} />
-      {(run.git || run.gitPlan) && <section className="panel run-git"><h2>{run.git ? '已准备的仓库与分支' : '待执行的 Git 计划'}</h2>
+      {(run.git || run.gitPlan) && <section className="panel run-git"><h2>{run.git ? 'Prepared warehouses and branches' : 'Git plans to be executed'}</h2>
         {run.git ? <GitEvidence git={run.git} mode={run.mode} /> : run.gitPlan && <>
-          <dl><div><dt>仓库</dt><dd>{run.gitPlan.repositoryName} {run.gitPlan.createRepository ? '（待新建 · 公开）' : '（沿用需求仓库）'}</dd></div><div><dt>基础分支</dt><dd>{run.gitPlan.baseBranch ?? '仓库默认分支（待读取）'}</dd></div><div><dt>工作分支</dt><dd>{run.gitPlan.workBranch}</dd></div></dl>
-          <p className="subtle">{run.gitPlan.ensureDev ? '若 dev 不存在，先从仓库默认分支创建 dev。' : '使用仓库的实际默认分支。'} 此处为计划，尚未确认仓库或分支已经创建。</p>
+          <dl><div><dt>storehouse</dt><dd>{run.gitPlan.repositoryName} {run.gitPlan.createRepository ? '(To be created · Open to the public)' : '(Inherit the demand warehouse)'}</dd></div><div><dt>base branch</dt><dd>{run.gitPlan.baseBranch ?? 'Warehouse default branch (to be read)'}</dd></div><div><dt>working branch</dt><dd>{run.gitPlan.workBranch}</dd></div></dl>
+          <p className="subtle">{run.gitPlan.ensureDev ? 'If dev does not exist, create dev from the default branch of the warehouse first.' : 'Use the actual default branch of the repository.'} This is a plan, there is no confirmation that the warehouse or branch has been created.</p>
         </>}
       </section>}
       {run.gitPreparation && <GitProgress preparation={run.gitPreparation} />}
@@ -128,34 +131,34 @@ function RunDetailPage({ id, csrf, navigate, onUnauthorized }: Props & { id: str
   </>;
 }
 
-function RunTimeline({ stages, nodes, archive }: { stages: RunDetail['stages']; nodes: RunNode[]; archive: ArchiveControls }) {
+function RunTimeline({ stages, nodes, archive, executing }: { stages: RunDetail['stages']; nodes: RunNode[]; archive: ArchiveControls; executing: boolean }) {
   const nodeById = new Map(nodes.map(node => [node.nodeId, node]));
   const resolved = (node: RunNode) => ['complete', 'skipped'].includes(node.state);
   const completed = nodes.filter(node => node.state === 'complete').length;
   const skipped = nodes.filter(node => node.state === 'skipped').length;
-  return <section className="run-timeline" aria-label="固定流程阶段">
+  return <section className="run-timeline" aria-label="fixed workflow stages">
     {nodes.length > 0 && <header className="run-progress panel">
-      <div className="row between"><div><p className="eyebrow">EXECUTION SEQUENCE</p><h2>节点执行进度</h2></div>
-        <span className="mono">{completed} / {nodes.length} 已完成{skipped > 0 && ` · ${skipped} 已跳过`}</span></div>
-      <progress aria-label="已完成或跳过的节点" value={completed + skipped} max={nodes.length} />
+      <div className="row between"><div><p className="eyebrow">EXECUTION SEQUENCE</p><h2>Node execution progress</h2></div>
+        <span className="mono">{completed} / {nodes.length} Completed{skipped > 0 && ` · ${skipped} skipped`}</span></div>
+      <progress aria-label="Completed or skipped nodes" value={completed + skipped} max={nodes.length} />
     </header>}
     {stages.map((stage, index) => <article key={stage.id} className="panel run-stage">
-      <header className="step-heading"><span>{String(index + 1).padStart(2, '0')}</span><h2>{stage.name}</h2><small>{stage.nodes.filter(resolved).length} / {stage.nodes.length} 已处理</small></header>
-      <div className="run-nodes">{stage.nodes.map(node => <RunNodeCard key={node.nodeId} node={node} nodeById={nodeById} archive={archive} />)}</div>
+      <header className="step-heading"><span>{String(index + 1).padStart(2, '0')}</span><h2>{stage.name}</h2><small>{stage.nodes.filter(resolved).length} / {stage.nodes.length} Processed</small></header>
+      <div className="run-nodes">{stage.nodes.map(node => <RunNodeCard executing={executing} key={node.nodeId} node={node} nodeById={nodeById} archive={archive} />)}</div>
     </article>)}
   </section>;
 }
 
 const nodeTypeLabels: Record<RunNode['type'], string> = {
-  work: '执行节点', check: '检查节点', publish: '发布节点', end: '结束节点',
+  work: 'execution node', check: 'Check node', publish: 'Publish node', end: 'End node',
 };
 
 const checkLabels: Record<RunCheckStatus['status'], string> = {
-  pending: '等待检查', pass: '通过', repair: '需修复', unresolved: '待确认', limit_reached: '已达自动修复上限', stopped: '已停止',
+  pending: 'Waiting for inspection', pass: 'Pass', repair: 'Needs repair', unresolved: 'To be confirmed', limit_reached: 'The automatic repair limit has been reached', stopped: 'Stopped',
 };
 
 const repairRoundLabels: Record<NonNullable<CheckHistoryEntry['repairRound']>['state'], string> = {
-  queued: '等待修复', running: '修复中', complete: '修复完成', failed: '修复失败', stopped: '修复已停止',
+  queued: 'Waiting for repair', running: 'Under repair', complete: 'Repair completed', failed: 'Repair failed', stopped: 'Repair stopped',
 };
 
 function CheckCycle({ check, nodeState }: { check: RunCheckStatus; nodeState: string }) {
@@ -167,61 +170,61 @@ function CheckCycle({ check, nodeState }: { check: RunCheckStatus; nodeState: st
 
   if (check.status === 'limit_reached') {
     tone = 'attn';
-    note = '本检查的修复路线已暂停，等待人工处理。';
+    note = 'The repair route for this inspection has been suspended, waiting for manual processing.';
   } else if (check.status === 'unresolved') {
     tone = 'attn';
-    note = '需要有效的检查结论才能选择后续路线。';
+    note = 'Valid inspection conclusions are required to select subsequent routes.';
   } else if (check.status === 'repair' && round) {
     label = repairRoundLabels[round.state];
     if (round.state === 'running' || round.state === 'queued') {
       tone = 'active';
-      note = '修复完成后会回到本检查节点复查。';
+      note = 'After the repair is completed, we will return to this check node for review.';
     } else if (round.state === 'failed') tone = 'attn';
   } else if (check.status === 'pending') {
     const recheck = check.checkWave > 1;
     const running = nodeState === 'running';
-    label = recheck ? (running ? '复查中' : '等待复查') : (running ? '检查中' : checkLabels.pending);
+    label = recheck ? (running ? 'Under review' : 'Waiting for review') : (running ? 'Under inspection' : checkLabels.pending);
     if (running) tone = 'active';
   } else if (check.status === 'pass') tone = 'good';
 
-  return <section className="check-cycle" aria-label="检查与修复">
-    <div className="row between"><h4>检查与修复</h4><span className={'pill ' + tone}>{label}</span></div>
+  return <section className="check-cycle" aria-label="Inspect and repair">
+    <div className="row between"><h4>Inspect and repair</h4><span className={'pill ' + tone}>{label}</span></div>
     <dl className="check-cycle-counts">
-      <div><dt>检查次数</dt><dd>第 {check.checkWave} 次</dd></div>
-      <div><dt>自动修复</dt><dd>{check.automaticRepairCount} / {check.automaticRepairLimit} 轮</dd></div>
-      {check.manualRepairCount > 0 && <div><dt>人工追加</dt><dd>{check.manualRepairCount} 轮</dd></div>}
+      <div><dt>Check times</dt><dd>Attempt {check.checkWave}</dd></div>
+      <div><dt>Automatic repair</dt><dd>{check.automaticRepairCount} / {check.automaticRepairLimit}</dd></div>
+      {check.manualRepairCount > 0 && <div><dt>Manual addition</dt><dd>{check.manualRepairCount}</dd></div>}
     </dl>
-    {check.automaticRepairLimit > 0 && <progress aria-label="已使用的自动修复轮次" value={check.automaticRepairCount} max={check.automaticRepairLimit} />}
+    {check.automaticRepairLimit > 0 && <progress aria-label="Auto-repair rounds used" value={check.automaticRepairCount} max={check.automaticRepairLimit} />}
     {note && <p className={'check-cycle-note ' + tone}>{note}</p>}
     {history.length > 0 && <details className="check-history">
-      <summary>检查记录 · {history.length} 次</summary>
+      <summary>Inspection records · {history.length}</summary>
       <ol>{[...history].sort((first, second) => second.wave - first.wave).map(entry => <li key={entry.wave}>
-        <div className="row between"><strong>第 {entry.wave} 次检查</strong><span>{checkLabels[entry.outcome]}</span></div>
-        {entry.repairRound && <p>第 {entry.repairRound.number} 轮{entry.repairRound.kind === 'manual' ? '人工追加' : '自动修复'} · {repairRoundLabels[entry.repairRound.state]}</p>}
-        {entry.testedCommit && <p className="check-candidate"><span>被测提交</span><code>{entry.testedCommit}</code></p>}
+        <div className="row between"><strong>Attempt {entry.wave} inspections</strong><span>{checkLabels[entry.outcome]}</span></div>
+        {entry.repairRound && <p>Attempt {entry.repairRound.number}{entry.repairRound.kind === 'manual' ? 'Manual addition' : 'Automatic repair'} · {repairRoundLabels[entry.repairRound.state]}</p>}
+        {entry.testedCommit && <p className="check-candidate"><span>Submission under test</span><code>{entry.testedCommit}</code></p>}
         {entry.completedAt && <time dateTime={entry.completedAt}>{new Date(entry.completedAt).toLocaleString()}</time>}
       </li>)}</ol>
     </details>}
   </section>;
 }
 
-function RunNodeCard({ node, nodeById, archive }: { node: RunNode; nodeById: Map<string, RunNode>; archive: ArchiveControls }) {
+function RunNodeCard({ node, nodeById, archive, executing }: { node: RunNode; nodeById: Map<string, RunNode>; archive: ArchiveControls; executing: boolean }) {
   const dependencies = (node.dependencies ?? []).map(id => nodeById.get(id)).filter(dep => dep != null);
   const waiting = dependencies.some(dep => !['complete', 'skipped'].includes(dep.state));
-  return <section className={'run-node ' + statusTone(node.state) + (node.type === 'end' ? ' end-node' : '')}>
+  return <section className={'run-node ' + (!executing && statusTone(node.state) === 'active' ? '' : statusTone(node.state)) + (node.type === 'end' ? ' end-node' : '')}>
     <div className="row between"><h3>{node.name}</h3><StatusPill state={node.state} /></div>
     <p className="subtle node-meta">{nodeTypeLabels[node.type]}
-      {node.inputRequirementRevision != null && ` · 需求 r${node.inputRequirementRevision}`}
-      {node.basedOnOlderRequirementRevision && ' · 使用旧需求版本'}
-      {node.wave > 1 && !node.check && ` · 第 ${node.wave} 轮`}
+      {node.inputRequirementRevision != null && ` · Requirements r${node.inputRequirementRevision}`}
+      {node.basedOnOlderRequirementRevision && ' · Use old requirements version'}
+      {node.wave > 1 && !node.check && ` · No. ${node.wave}`}
     </p>
-    {dependencies.length > 0 && <p className="node-dependencies">{node.state === 'blocked' && waiting ? '等待前置' : '前置节点'} · {dependencies.map(dep => dep.name).join('、')}</p>}
+    {dependencies.length > 0 && <p className="node-dependencies">{node.state === 'blocked' && waiting ? 'Wait for prefix' : 'Predecessor node'} · {dependencies.map(dep => dep.name).join('、')}</p>}
     {node.check && <CheckCycle check={node.check} nodeState={node.state} />}
-    {node.type === 'end' ? <p className="subtle">{node.state === 'complete' ? '已到达结束节点' : '等待本次运行的所有执行路线结束'}</p>
+    {node.type === 'end' ? <p className="subtle">{node.state === 'complete' ? 'End node reached' : 'Wait for all execution routes of this run to end'}</p>
       : <NodeRoles node={node} />}
     {node.reason && <p className="node-reason">{node.reason}</p>}
     {!!node.artifacts?.length ? <NodeArtifacts artifacts={node.artifacts} archive={{ ...archive, allowed: archive.allowed && node.state === 'complete' }} />
-      : node.artifactIds.length > 0 && <small>已记录 {node.artifactIds.length} 项产物</small>}
+      : node.artifactIds.length > 0 && <small>Recorded {node.artifactIds.length} item product</small>}
   </section>;
 }
 
@@ -232,37 +235,37 @@ function NodeRoles({ node }: { node: RunNode }) {
   const tasksByRole = new Map(node.tasks.map(task => [task.roleId, task]));
   const otherTasks = node.tasks.filter(task => !task.roleId || !roleIds.has(task.roleId));
   return <>
-    {node.agentOrder && roles.some(role => role.kind === 'agent') && <p className="node-order">子 Agent {node.agentOrder === 'serial' ? '串行' : '并行'}</p>}
-    {(roles.length > 0 || otherTasks.length > 0) && <ul className="run-roles" aria-label="节点角色与任务">
+    {node.agentOrder && roles.some(role => role.kind === 'agent') && <p className="node-order">Sub-agent {node.agentOrder === 'serial' ? 'serial' : 'parallel'}</p>}
+    {(roles.length > 0 || otherTasks.length > 0) && <ul className="run-roles" aria-label="Node roles and tasks">
       {rolesInOrder.map(role => <RoleTaskRow key={role.roleId} name={role.displayName} version={role.agentVersion}
-        label={role.kind === 'coordinator' ? '协调' : role.sequence != null ? `Agent ${role.sequence}` : 'Agent'} task={tasksByRole.get(role.roleId)} />)}
-      {otherTasks.map(task => <RoleTaskRow key={task.taskId} name={task.roleDisplayName ?? '运行任务'} label="任务" task={task} />)}
+        label={role.kind === 'coordinator' ? 'coordination' : role.sequence != null ? `Agent ${role.sequence}` : 'Agent'} task={tasksByRole.get(role.roleId)} />)}
+      {otherTasks.map(task => <RoleTaskRow key={task.taskId} name={task.roleDisplayName ?? 'Run tasks'} label="Task" task={task} />)}
     </ul>}
-    {node.tasks.length === 0 && node.state !== 'skipped' && <p className="node-empty-task">尚未派发执行任务</p>}
+    {node.tasks.length === 0 && node.state !== 'skipped' && <p className="node-empty-task">No execution tasks have been dispatched yet</p>}
   </>;
 }
 
 function RoleTaskRow({ name, version, label, task }: { name: string; version?: number; label: string; task?: RunTask }) {
   const state = task?.disposition ?? task?.state ?? 'pending';
-  const stateLabel = !task ? '待派发' : state === 'queued' ? '待设备领取' : statusText(state);
+  const stateLabel = !task ? 'To be distributed' : state === 'queued' ? 'Waiting for equipment collection' : statusText(state);
   return <li className="run-role">
     <div className="run-role-identity"><span className="role-marker">{label}</span><strong>{name}</strong>{version != null && <small>v{version}</small>}</div>
-    <div className="run-role-state"><StatusPill state={state} label={stateLabel} />{task && <small>第 {task.attemptNumber} 次</small>}</div>
+    <div className="run-role-state"><StatusPill state={state} label={stateLabel} />{task && <small>Attempt {task.attemptNumber}</small>}</div>
     {task?.reason && <p>{task.reason}</p>}
   </li>;
 }
 
 const artifactKindLabels: Record<RunArtifact['kind'], string> = {
-  product: '交付产物', code: '代码产物', test: '测试产物', publication: '发布证据', other: '节点产物',
+  product: 'Deliver product', code: 'code artifacts', test: 'Test product', publication: 'release evidence', other: 'node product',
 };
 
 function NodeArtifacts({ artifacts, archive }: { artifacts: RunArtifact[]; archive: ArchiveControls }) {
   return <div className="node-artifacts">
-    <h4>已记录产物</h4>
+    <h4>Recorded product</h4>
     <ul>{artifacts.map(artifact => <li key={artifact.id}>
       <strong>{artifact.title || artifactKindLabels[artifact.kind]}</strong>
-      {artifact.sourceRef && <p><span>{artifact.sourceRef.startsWith('local-git:') ? '本机引用' : '引用'}</span><code>{artifact.sourceRef}</code></p>}
-      {artifact.commit && <p><span>提交</span><code>{artifact.commit}</code></p>}
+      {artifact.sourceRef && <p><span>{artifact.sourceRef.startsWith('local-git:') ? 'native reference' : 'Quote'}</span><code>{artifact.sourceRef}</code></p>}
+      {artifact.commit && <p><span>submit</span><code>{artifact.commit}</code></p>}
       <RunArtifactArchive artifact={artifact} controls={archive} />
     </li>)}</ul>
   </div>;
@@ -274,30 +277,30 @@ function GitEvidence({ git, mode }: { git: GitContext; mode: 'demo' | 'codex' })
     && !['.', '..'].includes(repository.displayName.split('/')[1]);
   const href = mode === 'codex' && repository.provider === 'github' && safeName ? 'https://github.com/' + repository.displayName : null;
   return <>
-    {mode === 'demo' && <p className="git-mode-note">本地演示仓库 · 未在 GitHub 创建远程仓库</p>}
-    <dl><div><dt>仓库</dt><dd>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{repository.displayName}</a> : repository.displayName}</dd></div>
-      <div><dt>仓库默认分支</dt><dd>{repository.defaultBranch ?? '尚未记录'}</dd></div>
-      <div><dt>基础分支</dt><dd>{git.baseBranch}</dd></div><div><dt>工作分支</dt><dd>{git.workBranch}</dd></div>
-      <div><dt>基础提交</dt><dd><code>{git.baseCommit}</code></dd></div><div><dt>工作分支提交</dt><dd>{git.headCommit ? <code>{git.headCommit}</code> : '尚未记录'}</dd></div></dl>
+    {mode === 'demo' && <p className="git-mode-note">Local demo repository · No remote repository created on GitHub</p>}
+    <dl><div><dt>storehouse</dt><dd>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{repository.displayName}</a> : repository.displayName}</dd></div>
+      <div><dt>Warehouse default branch</dt><dd>{repository.defaultBranch ?? 'Not recorded yet'}</dd></div>
+      <div><dt>base branch</dt><dd>{git.baseBranch}</dd></div><div><dt>working branch</dt><dd>{git.workBranch}</dd></div>
+      <div><dt>Basic submission</dt><dd><code>{git.baseCommit}</code></dd></div><div><dt>Working branch commit</dt><dd>{git.headCommit ? <code>{git.headCommit}</code> : 'Not recorded yet'}</dd></div></dl>
   </>;
 }
 
 function GitProgress({ preparation }: { preparation: GitPreparation }) {
-  const stateLabels: Record<GitPreparation['state'], string> = { queued: '待设备领取', preparing: '正在准备', ready: '准备完成', needs_attention: '待人工处理' };
-  const stepLabels: Record<GitPreparation['steps'][number]['state'], string> = { intended: '待开始', dispatching: '正在处理', unknown: '结果待核对', succeeded: '已确认', failed: '失败' };
-  const effectLabels: Record<GitPreparation['steps'][number]['effect'], string> = { create_repository: '创建仓库', create_base_branch: '准备基础分支', create_work_branch: '创建工作分支' };
+  const stateLabels: Record<GitPreparation['state'], string> = { queued: 'Waiting for equipment collection', preparing: 'Preparing', ready: 'Ready to complete', needs_attention: 'Needs attention' };
+  const stepLabels: Record<GitPreparation['steps'][number]['state'], string> = { intended: 'To be started', dispatching: 'Processing', unknown: 'Result to be verified', succeeded: 'Confirmed', failed: 'Failed' };
+  const effectLabels: Record<GitPreparation['steps'][number]['effect'], string> = { create_repository: 'Create warehouse', create_base_branch: 'Prepare base branch', create_work_branch: 'Create a working branch' };
   const unknown = preparation.steps.some(step => step.state === 'unknown');
   return <section className="panel git-preparation" aria-labelledby="git-preparation-title">
-    <div className="row between"><h2 id="git-preparation-title">Git 准备记录</h2><span className={'pill ' + (preparation.state === 'ready' ? 'good' : preparation.state === 'needs_attention' ? 'attn' : '')}>{stateLabels[preparation.state]}</span></div>
-    <p className="subtle">{preparation.mode === 'demo' ? '本地演示执行' : 'GitHub 执行'} · 第 {preparation.attemptNumber} 次准备</p>
+    <div className="row between"><h2 id="git-preparation-title">Git preparation record</h2><span className={'pill ' + (preparation.state === 'ready' ? 'good' : preparation.state === 'needs_attention' ? 'attn' : '')}>{stateLabels[preparation.state]}</span></div>
+    <p className="subtle">{preparation.mode === 'demo' ? 'Local demo execution' : 'GitHub execution'} · No. {preparation.attemptNumber} Preparation</p>
     {preparation.message && <p className="git-preparation-message">{preparation.message}</p>}
-    {unknown && <p className="git-reconcile-note">有操作尚未确认结果，系统需先核对仓库与分支的实际状态。不要重复创建仓库或分支。</p>}
-    {preparation.state === 'needs_attention' && <p className="subtle">本次准备已暂停。请保留当前执行程序和运行记录，等待核对处理。</p>}
+    {unknown && <p className="git-reconcile-note">There are operations whose results have not yet been confirmed. The system needs to first check the actual status of the warehouse and branches. Don't create duplicate repositories or branches.</p>}
+    {preparation.state === 'needs_attention' && <p className="subtle">This preparation has been suspended. Please keep the current execution program and running records and wait for verification and processing.</p>}
     <ol className="git-steps">{preparation.steps.map(step => <li key={step.operationKey} className={'git-step ' + step.state}>
       <div className="row between"><h3>{effectLabels[step.effect]}</h3><span className="pill">{stepLabels[step.state]}</span></div>
       <p className="git-target">{step.targetId}</p>
-      {step.providerResultId && <p className="git-step-evidence"><span>已记录结果</span><code>{step.providerResultId}</code></p>}
-      {step.observedAt && <small>核对时间 {new Date(step.observedAt).toLocaleString()}</small>}
+      {step.providerResultId && <p className="git-step-evidence"><span>Results recorded</span><code>{step.providerResultId}</code></p>}
+      {step.observedAt && <small>Check time {new Date(step.observedAt).toLocaleString()}</small>}
     </li>)}</ol>
   </section>;
 }

@@ -54,7 +54,7 @@ public class RunService implements RunDetailsQuery {
                     WHERE actor_kind='account' AND actor_id=:actor AND scope='run:start' AND request_key=:key
                     """,receiptArgs);
             if (!MessageDigest.isEqual(digest,(byte[])receipt.get("request_digest"))) {
-                throw new ApiProblem(409,"IDEMPOTENCY_CONFLICT","同一提交标识不能用于不同的启动内容");
+                throw new ApiProblem(409,"IDEMPOTENCY_CONFLICT","The same commit ID cannot be used for different startup content");
             }
             // A lost response can be retried after its challenge was consumed, but revoked start rights never revive.
             lockRequirement(actor,command.requirementId());
@@ -136,15 +136,15 @@ public class RunService implements RunDetailsQuery {
                 SELECT r.*,c.version,c.owner_id FROM requirement r JOIN configuration c ON c.id=r.id
                 WHERE r.id=:id FOR UPDATE OF c,r
                 """,Map.of("id",requirement));
-        if(rows.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","需求不存在或没有访问权限");
+        if(rows.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","The requirement does not exist or there is no access rights");
         var value=rows.getFirst();
         if(!actor.id().equals(value.get("owner_id"))) {
             Boolean deputy=jdbc.queryForObject("""
                     SELECT EXISTS(SELECT 1 FROM configuration_deputy WHERE configuration_id=:id
                     AND account_id=:actor AND revoked_at IS NULL)
                     """,Map.of("id",requirement,"actor",actor.id()),Boolean.class);
-            if(!Boolean.TRUE.equals(deputy)) throw new ApiProblem(404,"NOT_FOUND","需求不存在或没有访问权限");
-            throw new ApiProblem(403,"FORBIDDEN","只有当前需求主负责人可以启动运行");
+            if(!Boolean.TRUE.equals(deputy)) throw new ApiProblem(404,"NOT_FOUND","The requirement does not exist or there is no access rights");
+            throw new ApiProblem(403,"FORBIDDEN","Only the person in charge of the current demand can start the operation");
         }
         return value;
     }
@@ -153,13 +153,13 @@ public class RunService implements RunDetailsQuery {
         var args=Map.of("workflow",command.workflowId(),"actor",actor.id());
         var rows=jdbc.queryForList("SELECT id FROM configuration WHERE id=:workflow AND kind='workflow' FOR UPDATE",args);
         if(rows.isEmpty() || !Boolean.TRUE.equals(jdbc.queryForObject("SELECT configuration_can_use(:workflow,:actor)",args,Boolean.class))) {
-            throw new ApiProblem(403,"FORBIDDEN","所选流程不可使用，请重新选择");
+            throw new ApiProblem(403,"FORBIDDEN","The selected process is not available, please select again");
         }
         Long version=jdbc.queryForObject("SELECT max(version) FROM workflow_version WHERE workflow_id=:workflow AND sealed_at IS NOT NULL",args,Long.class);
         if(version==null || version!=command.workflowVersion()) stale();
         Integer publications=jdbc.queryForObject("SELECT count(*) FROM workflow_node WHERE workflow_id=:workflow AND workflow_version=:version AND kind='publish'",
                 Map.of("workflow",command.workflowId(),"version",command.workflowVersion()),Integer.class);
-        if(publications!=null && publications>0) throw new ApiProblem(409,"ACTION_NOT_ALLOWED","开发环境暂不支持正式发布流程");
+        if(publications!=null && publications>0) throw new ApiProblem(409,"ACTION_NOT_ALLOWED","The development environment does not currently support the official release process.");
     }
 
     private void recheckAgents(Actor actor,RunStart command) {
@@ -169,11 +169,11 @@ public class RunService implements RunDetailsQuery {
                 WHERE w.workflow_id=:workflow AND w.workflow_version=:version ORDER BY a.agent_config_id
                 """,args,(rs,row)->rs.getObject("agent_config_id",UUID.class));
         for(UUID agent:agents) {
-            if(agent==null) throw new ApiProblem(403,"AGENT_UNAVAILABLE","流程中有不可使用的 Agent，请调整流程后重试");
+            if(agent==null) throw new ApiProblem(403,"AGENT_UNAVAILABLE","There is an unavailable Agent in the process. Please adjust the process and try again.");
             var access=Map.of("id",agent,"actor",actor.id());
             jdbc.queryForList("SELECT id FROM configuration WHERE id=:id FOR UPDATE",access);
             if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT configuration_can_use(:id,:actor)",access,Boolean.class))) {
-                throw new ApiProblem(403,"AGENT_UNAVAILABLE","流程中有不可使用的 Agent，请调整流程后重试");
+                throw new ApiProblem(403,"AGENT_UNAVAILABLE","There is an unavailable Agent in the process. Please adjust the process and try again.");
             }
         }
     }
@@ -181,15 +181,15 @@ public class RunService implements RunDetailsQuery {
     private void validateRequirement(Map<String,Object> requirement,RunStart command) {
         boolean linked=requirement.get("repository_id")!=null;
         if(!linked && (!command.workType().equals("feature") || command.githubNamespace()==null)) {
-            throw new ApiProblem(400,"INVALID_REQUEST","新需求固定为新功能，并需要填写 GitHub 用户名或组织名");
+            throw new ApiProblem(400,"INVALID_REQUEST","New requirements are fixed as new features and need to fill in the GitHub user name or organization name");
         }
-        if(linked && command.githubNamespace()!=null) throw new ApiProblem(400,"INVALID_REQUEST","已有仓库的需求会沿用关联仓库，请移除 GitHub 命名空间");
+        if(linked && command.githubNamespace()!=null) throw new ApiProblem(400,"INVALID_REQUEST","Requirements for existing warehouses will inherit the associated warehouse, please remove the GitHub namespace");
         String description=(String)requirement.get("description");
         if(description==null || description.isBlank()) {
             Boolean deferred=jdbc.queryForObject("""
-                    SELECT EXISTS(SELECT 1 FROM workflow_node WHERE workflow_id=:workflow AND workflow_version=:version AND purpose='requirement')
+                    SELECT EXISTS(SELECT 1 FROM workflow_node WHERE workflow_id=:workflow AND workflow_version=:version AND collect_requirements)
                     """,Map.of("workflow",command.workflowId(),"version",command.workflowVersion()),Boolean.class);
-            if(!Boolean.TRUE.equals(deferred)) throw new ApiProblem(400,"REQUIREMENT_DESCRIPTION_REQUIRED","该流程没有需求阶段，请先补充需求说明再启动");
+            if(!Boolean.TRUE.equals(deferred)) throw new ApiProblem(400,"REQUIREMENT_DESCRIPTION_REQUIRED","This process does not have a requirements stage. Please add a requirement description before starting.");
         }
     }
 
@@ -197,7 +197,7 @@ public class RunService implements RunDetailsQuery {
         sessions.requireActive(actor.id(), actor.sessionId());
     }
     private static Map<String,Object> receipt(UUID run) { return Map.of("runId",run,"state","queued","version",1); }
-    private static void stale() { throw new ApiProblem(409,"VERSION_CONFLICT","需求或流程已更新，请刷新后重新启动"); }
+    private static void stale() { throw new ApiProblem(409,"VERSION_CONFLICT","The requirement or process has been updated, please refresh and restart"); }
 
     private byte[] fingerprint(RunStart command) {
         try { return MessageDigest.getInstance("SHA-256").digest(mapper.writeValueAsBytes(canonical(mapper.valueToTree(command)))); }

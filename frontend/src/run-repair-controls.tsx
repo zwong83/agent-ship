@@ -17,11 +17,11 @@ type Target = {
   actions: Action[];
 };
 
-const actionLabel: Record<Action, string> = { repair: '再修一轮', recheck: '重新检查', stop: '停止本次运行' };
+const actionLabel: Record<Action, string> = { repair: 'One more round of practice', recheck: 'recheck', stop: 'Stop this run' };
 const proof = (lease: Lease) => ({ tabId: lease.tabId, epoch: lease.epoch, leaseCredential: lease.credential });
 
-export function RunRepairControls({ runId, csrf, navigate, onUnauthorized }: {
-  runId: string; csrf: string; navigate: (path: string) => void; onUnauthorized: () => void;
+export function RunRepairControls({ runId, csrf, navigate, onUnauthorized, embedded = false }: {
+  embedded?: boolean; runId: string; csrf: string; navigate: (path: string) => void; onUnauthorized: () => void;
 }) {
   const path = `/runs/${runId}`;
   const [tab] = useState(() => crypto.randomUUID());
@@ -47,7 +47,7 @@ export function RunRepairControls({ runId, csrf, navigate, onUnauthorized }: {
 
   const loseLease = useCallback(() => {
     saveLease(undefined);
-    setLeaseError('操作权已失效，请重新获取。');
+    setLeaseError('The operation right has expired, please obtain it again.');
   }, [saveLease]);
 
   function release(value: Lease) {
@@ -81,7 +81,7 @@ export function RunRepairControls({ runId, csrf, navigate, onUnauthorized }: {
         if (err instanceof ApiError && err.status === 401) onUnauthorized();
         else if (err instanceof ApiError && [403, 404, 409].includes(err.status)) {
           loseLease();
-        } else setLeaseError('连接暂时中断，恢复连接后可继续操作。');
+        } else setLeaseError('The connection is temporarily interrupted. You can continue operations after the connection is restored.');
       } finally { sending = false; }
     }, 10_000);
     window.addEventListener('pagehide', leave);
@@ -140,7 +140,7 @@ export function RunRepairControls({ runId, csrf, navigate, onUnauthorized }: {
       if (err instanceof ApiError && err.status === 401) onUnauthorized();
       else if (err instanceof ApiError && err.problem?.code === 'CHAT_OCCUPIED') {
         const holder = err.problem.details?.holderName;
-        setOccupied(typeof holder === 'string' ? `${holder} 正在使用运行操作页。` : '运行操作页正在使用中。');
+        setOccupied(typeof holder === 'string' ? `${holder} Using the run action page.` : 'The run action page is in use.');
       } else setLeaseError(errorText(err));
     } finally {
       acquiring.current = false;
@@ -151,14 +151,14 @@ export function RunRepairControls({ runId, csrf, navigate, onUnauthorized }: {
   async function apply(target: Target, action: Action) {
     const value = current.current;
     if (!value || leaseError || command.pending) return;
-    if (action === 'stop' && !window.confirm('确定停止本次运行？')) return;
-    await submit(`${path}/actions`, { action, targetId: target.nodeId, wave: target.wave, ...proof(value) }, `已提交${actionLabel[action]}。`);
+    if (action === 'stop' && !window.confirm('Are you sure you want to stop this run?')) return;
+    await submit(`${path}/actions`, { action, targetId: target.nodeId, wave: target.wave, ...proof(value) }, `Submitted: ${actionLabel[action]}.`);
   }
 
   async function chatAction(action: ChatCommand) {
     const value = current.current;
     if (!value || leaseError || command.pending) return false;
-    return submit(`${path}/actions`, { ...action, ...proof(value) }, '已提交操作。');
+    return submit(`${path}/actions`, { ...action, ...proof(value) }, 'Action submitted.');
   }
 
   async function submit(url: string, body: object, success: string) {
@@ -180,46 +180,46 @@ export function RunRepairControls({ runId, csrf, navigate, onUnauthorized }: {
   }
 
   return <>
-    <Heading label="RUN CONTROL" title="运行操作" text="与运行中的 Agent 协作，处理待答问题、失败角色和检查。"
-      actions={<Button onClick={() => navigate('/runs')}>返回运行看板</Button>} />
+    <Heading label="AGENT CHANNEL" title="Agent chat" text="Collaborate with running Agents to handle open questions, failed roles, and checks."
+      actions={embedded ? undefined : <Button onClick={() => navigate('/requirements')}>Back to requirements</Button>} />
     <section className="panel repair-control">
-      <div className="row between"><h2>本页操作权</h2><span className={'pill ' + (lease && !leaseError ? 'good' : 'attn')}>{lease && !leaseError ? '当前页持有' : '待获取'}</span></div>
-      <p className="subtle">同一运行同一时间只允许一个标签页操作。</p>
+      <div className="row between"><h2>Chat session</h2><span className={'pill ' + (lease && !leaseError ? 'good' : 'attn')}>{lease && !leaseError ? 'Connected' : 'Not connected'}</span></div>
+      <p className="subtle">Connect to chat with agents and manage execution. Only one operator can control a run at a time.</p>
       {leaseError && <p role="alert" className="inline-error">{leaseError}</p>}
-      {!lease && <Button variant="accent" disabled={loadingLease} onClick={() => void acquire()}>{loadingLease ? '正在获取…' : '获取操作权'}</Button>}
+      {!lease && <Button variant="accent" disabled={loadingLease} onClick={() => void acquire()}>{loadingLease ? 'Getting…' : 'Connect to agents'}</Button>}
       {lease && <Button disabled={command.pending} onClick={async () => {
         const value = current.current;
         if (!value) return;
         const result = await release(value);
         if (result?.ok || result && [403, 404, 409].includes(result.status)) { saveLease(undefined); setLeaseError(''); }
-        else setLeaseError('暂未确认释放，请检查连接后重试。');
-      }}>释放操作权</Button>}
+        else setLeaseError('The release has not been confirmed yet, please check the connection and try again.');
+      }}>Disconnect chat</Button>}
     </section>
     {message && <p role="status">{message}</p>}
     {error && <p role="alert" className="inline-error">{error}</p>}
     {lease && <RunChat key={lease.epoch} path={path} lease={lease} refresh={refresh} disabled={command.pending || !!leaseError}
       onAction={chatAction} onLeaseLost={loseLease} onUnauthorized={onUnauthorized} />}
-    {lease && <section className="panel repair-control"><h2>待人工处理</h2>
-      {!targets && <p role="status">正在读取检查状态…</p>}
-      {targets?.length === 0 && <p className="subtle">当前没有需要处理的检查。</p>}
+    {lease && <section className="panel repair-control"><h2>Needs attention</h2>
+      {!targets && <p role="status">Reading check status...</p>}
+      {targets?.length === 0 && <p className="subtle">There are currently no checks to process.</p>}
       {targets?.map(target => <article className="run-node" key={target.nodeId}>
-        <div className="row between"><h3>{target.name}</h3><span className="pill attn">{target.status === 'limit_reached' ? '已达修复上限' : '检查结论待确认'}</span></div>
-        <p className="subtle">检查第 {target.wave} 次 · 自动修复 {target.automaticRepairCount} / {target.automaticRepairLimit} 轮 · 人工修复 {target.manualRepairCount} 轮</p>
+        <div className="row between"><h3>{target.name}</h3><span className="pill attn">{target.status === 'limit_reached' ? 'The repair limit has been reached' : 'Inspection conclusion to be confirmed'}</span></div>
+        <p className="subtle">Check the section {target.wave} times · Automatic repair {target.automaticRepairCount} / {target.automaticRepairLimit} Wheel · Manual repair {target.manualRepairCount}</p>
         <div className="row">{target.actions.map(action => <Button key={action} variant={action === 'stop' ? undefined : 'accent'}
           disabled={command.pending || !!leaseError} onClick={() => void apply(target, action)}>{actionLabel[action]}</Button>)}</div>
       </article>)}
     </section>}
-    {guests && <section className="panel repair-control"><h2>操作页访客</h2>
+    {guests && <section className="panel repair-control"><h2>Action page visitors</h2>
       <form className="row" onSubmit={async event => {
         event.preventDefault();
-        if (username.trim() && await submit(`${path}/chat/access`, { action: 'grant', username: username.trim() }, '已添加访客。')) setUsername('');
+        if (username.trim() && await submit(`${path}/chat/access`, { action: 'grant', username: username.trim() }, 'Visitor added.')) setUsername('');
       }}>
-        <Field label="注册用户名"><input value={username} maxLength={100} onChange={event => setUsername(event.target.value)} /></Field>
-        <button type="submit" className="ghost" disabled={command.pending || !username.trim()}>添加访客</button>
+        <Field label="Register username"><input value={username} maxLength={100} onChange={event => setUsername(event.target.value)} /></Field>
+        <button type="submit" className="ghost" disabled={command.pending || !username.trim()}>Add guest</button>
       </form>
       <ul>{guests.map(guest => <li key={guest.id} className="row between"><span>{guest.displayName} · @{guest.username}</span>
-        <Button disabled={command.pending} onClick={() => void submit(`${path}/chat/access`, { action: 'revoke', userId: guest.id }, '已撤销访客权限。')}>撤销</Button></li>)}</ul>
-      <Field label="操作页链接"><input readOnly value={window.location.origin + path + '/chat'} /></Field>
+        <Button disabled={command.pending} onClick={() => void submit(`${path}/chat/access`, { action: 'revoke', userId: guest.id }, 'Guest privileges have been revoked.')}>Cancel</Button></li>)}</ul>
+      <Field label="Action page link"><input readOnly value={window.location.origin + path + '/chat'} /></Field>
     </section>}
     {occupied && <OccupiedDialog message={occupied} close={() => setOccupied('')} />}
   </>;
@@ -229,8 +229,8 @@ function OccupiedDialog({ message, close }: { message: string; close: () => void
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   return <dialog className="flow-confirm" ref={dialog} onCancel={close} aria-labelledby="repair-occupied-title">
-    <h2 id="repair-occupied-title">运行操作页已被占用</h2>
+    <h2 id="repair-occupied-title">The run operation page is already occupied</h2>
     <p role="alert">{message}</p>
-    <Button onClick={close}>知道了</Button>
+    <Button onClick={close}>knew</Button>
   </dialog>;
 }

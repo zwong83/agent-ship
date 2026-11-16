@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { Select } from './select';
+import { AgentFields } from './agent-fields';
+import { RequirementHub } from './requirement-hub';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, configPath, errorText, queryPath, request, type ConfigData, type ConfigDetail,
   type ConfigSummary, type ObjectKind, type Page, type Project, type SelfContact, type Session } from './api';
 import { Button, Field, Heading, formData } from './ui';
@@ -10,14 +13,16 @@ import { RunsPage } from './runs';
 import { DevicesPage } from './devices';
 import { RunRepairControls } from './run-repair-controls';
 
+const Dashboard = lazy(() => import('./dashboard').then(module => ({ default: module.Dashboard })));
+
 export const workspaceKinds: Record<ObjectKind, { label: string; singular: string; description: string }> = {
-  requirements: { label: '需求', singular: '需求', description: '登记交付目标，并与指定的副负责人协作。' },
-  flows: { label: '流程配置', singular: '流程配置', description: '编排阶段、节点与协作角色，让每一步交付有序衔接。' },
-  agents: { label: 'Agent 配置', singular: 'Agent 配置', description: '维护 Agent 的角色标识、说明和技能引用。' },
+  requirements: { label: 'Requirements', singular: 'requirement', description: 'Register delivery goals and collaborate with assigned co-owner.' },
+  flows: { label: 'Workflows', singular: 'workflow', description: 'Orchestrate stages, nodes and collaborative roles to ensure orderly connection of each step of delivery.' },
+  agents: { label: 'Agents', singular: 'agent', description: 'Maintain the Agent\'s role ID, description, and skill references.' },
 };
 
 type ConfigRoute = { kind: ObjectKind; id?: string; creating?: boolean };
-export type WorkspaceRoute = ConfigRoute | { kind: 'runs'; id?: string; creating?: boolean } | { kind: 'devices' } | { kind: 'repair'; id: string };
+export type WorkspaceRoute = ConfigRoute | { kind: 'dashboard' } | { kind: 'runs'; id?: string; creating?: boolean } | { kind: 'devices' } | { kind: 'repair'; id: string };
 
 type WorkspaceProps = {
   session: Session & { user: NonNullable<Session['user']>; csrfToken: string };
@@ -34,13 +39,13 @@ export function Workspace({ session, route, navigate, onSessionEnd, registerPopG
   const logoutKey = useRef<string | null>(null);
   const flowDirty = useRef(false);
   const onFlowDirtyChange = useCallback((value: boolean) => { flowDirty.current = value; }, []);
-  const confirmLeave = useCallback(() => !flowDirty.current || window.confirm('当前页面有未完成的操作或未保存的修改。确定离开并继续？'), []);
+  const confirmLeave = useCallback(() => !flowDirty.current || window.confirm('There are unfinished operations or unsaved modifications on the current page. Are you sure you want to leave and continue?'), []);
   useEffect(() => { registerPopGuard(confirmLeave); return () => registerPopGuard(null); }, [registerPopGuard, confirmLeave]);
   function navigateSafely(path: string) {
     if (confirmLeave()) { setContactOpen(false); navigate(path); }
   }
-  const routeLabel = route.kind === 'runs' ? (route.creating ? '发起运行' : '运行看板')
-    : route.kind === 'repair' ? '运行操作' : route.kind === 'devices' ? '本机设备' : workspaceKinds[route.kind].label;
+  const routeLabel = route.kind === 'dashboard' ? 'Dashboard' : route.kind === 'runs' ? (route.creating ? 'Start a run' : 'Run dashboard')
+    : route.kind === 'repair' ? 'Run controls' : route.kind === 'devices' ? 'Local devices' : workspaceKinds[route.kind].label;
 
   async function logout() {
     if (logoutPending) return;
@@ -59,41 +64,37 @@ export function Workspace({ session, route, navigate, onSessionEnd, registerPopG
     }
   }
 
-  return <div className="shell">
-    <aside className="sidebar">
+  return <div className={"shell futuristic-shell command-shell" + (route.kind === 'dashboard' ? ' dashboard-shell' : '')} data-motion="enabled">
+    <div className="ambient-field" aria-hidden="true"><i /><i /><span /></div>
+    <header className="command-navigation">
       <Brand />
-      <p className="nav-label">工作空间 <span>WORKSPACE</span></p>
-      <nav className="nav" aria-label="工作台">
-        <button type="button" aria-current={route.kind === 'runs' && !route.creating ? 'page' : undefined} onClick={() => navigateSafely('/runs')}><span className="nav-symbol" aria-hidden="true">◫</span><span>运行看板</span><span className="nav-indicator" aria-hidden="true" /></button>
-        <button type="button" aria-current={route.kind === 'runs' && route.creating ? 'page' : undefined} onClick={() => navigateSafely('/runs/new')}><span className="nav-symbol" aria-hidden="true">↗</span><span>发起运行</span><span className="nav-indicator" aria-hidden="true" /></button>
+      <nav className="nav" aria-label="Workspace">
+        <button type="button" aria-current={route.kind === 'dashboard' ? 'page' : undefined} onClick={() => navigateSafely('/dashboard')}><svg className="config-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span><span className="nav-indicator" aria-hidden="true" /></button>
         {(Object.keys(workspaceKinds) as ObjectKind[]).map(kind =>
           <button type="button" key={kind} aria-current={route.kind === kind ? 'page' : undefined}
             onClick={() => { if (confirmLeave()) { setContactOpen(false); navigate('/' + kind); } }}>
             <ConfigIcon kind={kind} /><span>{workspaceKinds[kind].label}</span><span className="nav-indicator" aria-hidden="true" />
           </button>
         )}
-        <button type="button" aria-current={route.kind === 'devices' ? 'page' : undefined} onClick={() => navigateSafely('/devices')}><span className="nav-symbol" aria-hidden="true">▣</span><span>本机设备</span><span className="nav-indicator" aria-hidden="true" /></button>
+        <button type="button" aria-current={route.kind === 'devices' ? 'page' : undefined} onClick={() => navigateSafely('/devices')}><span className="nav-symbol" aria-hidden="true">▣</span><span>Local devices</span><span className="nav-indicator" aria-hidden="true" /></button>
       </nav>
-      <div className="sidebar-note"><span className="eyebrow">BUILT FOR COLLABORATION</span><p>一个方向。<br />多个 Agent，一起交付。</p><span className="sidebar-line" /></div>
-      <div className="side-footer">
-        <div className="account-row"><span className="avatar" aria-hidden="true">{[...session.user.displayName][0]}</span>
-          <div><strong>{session.user.displayName}</strong><small>@{session.user.username}</small></div></div>
-        <button type="button" aria-pressed={contactOpen} onClick={() => setContactOpen(value => !value)}>本人联系方式</button>
-        <button type="button" disabled={logoutPending} onClick={() => void logout()}>{logoutPending ? '退出中…' : '退出登录'}</button>
+      <div className="command-account">
+        <button type="button" className="account-trigger" aria-label="My contact information" aria-expanded={contactOpen} onClick={() => { setContactOpen(value => !value); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><span className="avatar" aria-hidden="true">{[...session.user.displayName][0]}</span><span className="account-name">{session.user.displayName}</span></button>
+        <button type="button" className="account-signout" disabled={logoutPending} onClick={() => void logout()}>{logoutPending ? 'Exiting…' : 'Sign out'}</button>
         {logoutError && <p role="alert">{logoutError}</p>}
       </div>
-    </aside>
+    </header>
     <main className="main">
-      <div className="topbar"><span>工作台 <span className="crumb-divider">/</span> <strong>{routeLabel}</strong></span>
-        <span className="session-badge"><span className="signal-dot" /> 已登录</span></div>
+      {route.kind !== 'dashboard' && <div className="topbar"><span>workbench <span className="crumb-divider">/</span> <strong>{routeLabel}</strong></span>
+        <div className="topbar-controls"><span className="session-badge"><span className="signal-dot" /> Logged in</span></div></div>}
       <div className="main-content">
       {contactOpen && <ContactCard close={() => setContactOpen(false)} onUnauthorized={onSessionEnd} />}
-      {route.kind === 'repair' ? <RunRepairControls key={route.id} runId={route.id} csrf={session.csrfToken} navigate={navigateSafely} onUnauthorized={onSessionEnd} />
+      {route.kind === 'requirements' ? <RequirementHub csrf={session.csrfToken} initialId={route.id} creating={route.creating} navigate={navigateSafely} onUnauthorized={onSessionEnd} onDirtyChange={onFlowDirtyChange} /> : route.kind === 'dashboard' ? <Suspense fallback={<p role="status">Loading mission control…</p>}><Dashboard navigate={navigateSafely} onUnauthorized={onSessionEnd} /></Suspense> : route.kind === 'repair' ? <RunRepairControls key={route.id} runId={route.id} csrf={session.csrfToken} navigate={navigateSafely} onUnauthorized={onSessionEnd} />
         : route.kind === 'devices' ? <DevicesPage csrf={session.csrfToken} onUnauthorized={onSessionEnd} /> : route.kind === 'runs' ?
         route.creating ? <RunStartPage csrf={session.csrfToken} navigate={navigate} onUnauthorized={onSessionEnd} onDirtyChange={onFlowDirtyChange} /> :
           <RunsPage id={route.id} csrf={session.csrfToken} navigate={navigateSafely} onUnauthorized={onSessionEnd} /> :
         <ConfigWorkspace key={route.kind} route={route} csrf={session.csrfToken} navigate={navigate} onUnauthorized={onSessionEnd} onFlowDirtyChange={onFlowDirtyChange} confirmLeave={confirmLeave} />}
-      <footer className="workspace-footer"><span>AGENTSHIP / DELIVERY WORKSPACE</span><span>需求 · 流程 · 协作</span></footer>
+      <footer className="workspace-footer"><span>AGENTSHIP / DELIVERY WORKSPACE</span><span>Requirements · Process · Collaboration</span></footer>
       </div>
     </main>
   </div>;
@@ -113,14 +114,14 @@ function ContactCard({ close, onUnauthorized }: { close: () => void; onUnauthori
   }, [onUnauthorized, revision]);
 
   return <section className="panel contact-panel" aria-labelledby="contact-title">
-    <div className="row between"><h2 id="contact-title">本人联系方式</h2><Button onClick={close}>关闭</Button></div>
+    <div className="row between"><h2 id="contact-title">My contact information</h2><Button onClick={close}>Close</Button></div>
     {state.value ? <dl className="contact-details">
-      <div><dt>邮箱</dt><dd>{state.value.email}</dd></div>
-      <div><dt>手机号</dt><dd>{state.value.phone}</dd></div>
+      <div><dt>Email</dt><dd>{state.value.email ?? 'Not provided'}</dd></div>
+      <div><dt>Phone number</dt><dd>{state.value.phone ?? 'Not provided'}</dd></div>
     </dl> : state.error ? <div className="row">
       <p role="alert" className="inline-error">{state.error}</p>
-      <Button onClick={() => { setState({}); setRevision(n => n + 1); }}>重试</Button>
-    </div> : <p role="status">读取中…</p>}
+      <Button onClick={() => { setState({}); setRevision(n => n + 1); }}>Retry</Button>
+    </div> : <p role="status">Loading…</p>}
   </section>;
 }
 
@@ -136,6 +137,7 @@ type ConfigWorkspaceProps = {
 function ConfigWorkspace({ route, csrf, navigate, onUnauthorized, onFlowDirtyChange, confirmLeave }: ConfigWorkspaceProps) {
   const { kind, id, creating } = route;
   const [search, setSearch] = useState('');
+  const [searchDraft, setSearchDraft] = useState('');
   const [page, setPage] = useState<Page<ConfigSummary> | null>(null);
   const [listError, setListError] = useState('');
   const [loadingMore, setLoadingMore] = useState(false);
@@ -147,6 +149,16 @@ function ConfigWorkspace({ route, csrf, navigate, onUnauthorized, onFlowDirtyCha
   const pageAbort = useRef<AbortController | null>(null);
   const display = workspaceKinds[kind];
   const path = '/' + kind;
+
+  useEffect(() => {
+    if (kind !== 'flows' && kind !== 'agents') return;
+    const term = searchDraft.trim();
+    if (term === search) return;
+    const timer = window.setTimeout(() => {
+      setListError(''); setPage(null); setSearch(term);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [kind, searchDraft, search]);
 
   useEffect(() => {
     pageAbort.current?.abort();
@@ -225,83 +237,98 @@ function ConfigWorkspace({ route, csrf, navigate, onUnauthorized, onFlowDirtyCha
   }
 
   const active = detail?.id === id ? detail : null;
-
-  return <>
-    <Heading label="MISSION CONTROL / 配置工作区" title={display.label} text={display.description}
-      actions={<Button variant="accent" onClick={() => select('new')}>新建{display.singular}</Button>} />
-    {notice && <p className="positive-note" role="status">{notice}</p>}
-    <div className={kind === 'flows' ? 'split flow-workspace' : 'split'}>
-      <section className="panel config-list" aria-label={display.label + '列表'}>
-        <div className="list-heading"><span>我的{display.label}</span><span className="list-count">{page ? `已加载 ${page.items.length}` : '—'}</span></div>
-        <form className="search-row" role="search" onSubmit={event => {
+  const compactLibrary = kind === 'flows' || kind === 'agents';
+  const agentSetup = kind === 'agents' && creating;
+  const searchForm = <form className={compactLibrary ? 'search-row config-search' + (searchDraft.trim() !== search ? ' is-typing' : '') : 'search-row'} role="search" onClick={event => {
+          if (compactLibrary && (event.target === event.currentTarget || (event.target as Element).closest('.search-lens'))) {
+            (event.currentTarget.elements.namedItem('search') as HTMLInputElement)?.focus();
+          }
+        }} onSubmit={event => {
           const term = formData(event).text('search').trim();
           if (search === term) refreshList();
           else { setListError(''); setPage(null); setSearch(term); }
         }}>
-          <input name="search" aria-label={'搜索' + display.label} type="search" placeholder="按名称搜索" />
-          <button>搜索</button>
-        </form>
+          {compactLibrary && <span className="search-lens" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg></span>}
+          <input name="search" aria-label={'Search ' + display.label} type="search" value={searchDraft} onChange={event => setSearchDraft(event.target.value)} placeholder={compactLibrary ? `Find ${display.label.toLowerCase()} by name…` : 'Search by name'} />
+          {compactLibrary && <button className="search-clear" type="button" aria-label={'Clear ' + display.singular + ' search'} disabled={!searchDraft} onClick={() => { setSearchDraft(''); if (search) { setListError(''); setPage(null); setSearch(''); } }}>×</button>}
+          {compactLibrary ? <span className="search-live"><i aria-hidden="true" />Live search</span> : <button className="search-submit">Search</button>}
+        </form>;
+
+  return <>
+    <Heading label={agentSetup ? 'AGENT CONFIGURATION / NEW AGENT' : 'MISSION CONTROL/Configuration workspace'} title={agentSetup ? 'Create agent' : display.label} text={agentSetup ? 'Define its role. Connect a skill. Bring it into your workflow.' : display.description}
+      actions={agentSetup ? <Button onClick={() => { if (confirmLeave()) navigate(path); }}>Back to agents</Button> : !creating && <Button variant="accent" onClick={() => select('new')}>Create {display.singular}</Button>} />
+    {notice && <p className="positive-note" role="status">{notice}</p>}
+    <div className={compactLibrary ? 'split config-library' : 'split'}>
+      {!agentSetup && <section className="panel config-list" aria-label={display.label + ' list'}>
+        <div className="list-heading"><span>My {display.label}</span><span className="list-count">{page ? `Loaded ${page.items.length}` : '—'}</span></div>
+        {compactLibrary ? <div className="library-search-area">{searchForm}</div> : searchForm}
         {listError && <div className="grid"><p className="inline-error" role="alert">{listError}</p>
-          <Button onClick={refreshList}>刷新列表</Button></div>}
-        {!page && !listError && <p role="status">读取列表…</p>}
-        {page?.items.length === 0 && <div className="empty list-empty"><ConfigIcon kind={kind} /><p>{search ? '没有符合条件的配置。' : '还没有可见的配置。'}</p><small>{search ? '试试其他名称。' : '点击右上方，新建第一项配置。'}</small></div>}
+          <Button onClick={refreshList}>Refresh list</Button></div>}
+        {!page && !listError && <p role="status">Read list…</p>}
+        {page?.items.length === 0 && (compactLibrary
+          ? <div className="config-empty-state">
+              <span className="config-empty-icon" aria-hidden="true"><ConfigIcon kind={kind} /></span>
+              <div><h3>{search ? `No matching ${display.label.toLowerCase()}` : `No ${display.label.toLowerCase()} yet`}</h3>
+                <p>{search ? `Try a different ${display.singular} name.` : kind === 'flows' ? 'Create a workflow to connect stages, nodes and agents.' : 'Create an agent to define its role and skills.'}</p></div>
+            </div>
+          : <div className="empty list-empty"><ConfigIcon kind={kind} /><p>{search ? 'There are no matching configurations.' : 'There is no visible configuration yet.'}</p><small>{search ? 'Try another name.' : 'Click on the upper right corner to create the first configuration.'}</small></div>)}
         {page?.items.map(item => <button key={item.id} type="button" className="item ghost"
           aria-current={id === item.id ? 'true' : undefined} onClick={() => select(item.id)}>
-          <span className="item-body"><ConfigIcon kind={kind} /><span><strong>{item.name}</strong><small>{item.allowedActions.includes('manage_members') ? '可管理配置与成员' : item.allowedActions.includes('edit') ? '可编辑配置' : '可查看配置'}</small></span></span><span className="pill">{kind === 'flows' ? item.workflowVersion == null ? '待完善' : `v${item.workflowVersion}` : `v${item.version}`}</span>
+          <span className="item-body"><ConfigIcon kind={kind} /><span><strong>{item.name}</strong><small>{item.allowedActions.includes('manage_members') ? 'Manage configuration and members' : item.allowedActions.includes('edit') ? 'Editable configuration' : 'Viewable configuration'}</small></span></span><span className="pill">{kind === 'flows' ? item.workflowVersion == null ? 'Incomplete' : `v${item.workflowVersion}` : `v${item.version}`}</span>
         </button>)}
         {page?.nextCursor && <Button disabled={loadingMore} onClick={() => void more()}>
-          {loadingMore ? '读取中…' : '加载更多'}</Button>}
-      </section>
-      <section aria-label="配置详情">
+          {loadingMore ? 'Loading…' : 'load more'}</Button>}
+      </section>}
+      {(!compactLibrary || creating || id) && <section aria-label="Configuration details">
         {creating ? <ConfigEditor key="new" kind={kind} csrf={csrf} onError={fail} onUnauthorized={onUnauthorized} onDirtyChange={onFlowDirtyChange}
             onExisting={select} onSaved={saved => {
               if (currentWorkspacePath() !== path + '/new') return;
               setDetail(saved);
-              setNotice('已创建' + display.singular + '。');
+              setNotice('Created ' + display.singular + '.');
               refreshList();
               navigate(path + '/' + saved.id);
             }} />
           : active ? <>
-            <ConfigEditor key={active.id + ':' + active.version} kind={kind} csrf={csrf} item={active} onError={fail} onUnauthorized={onUnauthorized} onDirtyChange={onFlowDirtyChange}
+            <ConfigEditor key={'editor:' + active.id + ':' + active.version} kind={kind} csrf={csrf} item={active} onError={fail} onUnauthorized={onUnauthorized} onDirtyChange={onFlowDirtyChange}
               onExisting={select} onSaved={saved => {
                 if (currentWorkspacePath() !== path + '/' + active.id) return;
                 setDetail(saved);
-                setNotice('配置已保存。');
+                setNotice('Configuration saved.');
                 refreshList();
               }}
               onRefresh={() => setDetailRevision(n => n + 1)} />
-            <OwnershipPanel key={active.id + ':' + active.version} item={active} csrf={csrf} onError={fail} beforeChange={confirmLeave}
+            <OwnershipPanel key={'ownership:' + active.id + ':' + active.version} item={active} csrf={csrf} onError={fail} beforeChange={confirmLeave}
               onRefresh={() => setDetailRevision(n => n + 1)}
               onChanged={action => {
                 if (currentWorkspacePath() !== path + '/' + active.id) return;
                 setDetail(null);
                 refreshList();
                 if (action === 'transfer') {
-                  setNotice('已转交配置。');
+                  setNotice('Configuration transferred.');
                   navigate(path);
                 } else {
-                  setNotice(action === 'add_deputy' ? '已添加副负责人。' : '已移除副负责人。');
+                  setNotice(action === 'add_deputy' ? 'Co-owner added.' : 'Co-owner removed.');
                   setDetailRevision(n => n + 1);
                 }
               }} />
           </>
           : id ? detailError?.id === id ? <div className="panel grid">
               <p className="inline-error" role="alert">{detailError.message}</p>
-              <Button onClick={() => select(id)}>重新读取</Button>
-            </div> : <p className="panel" role="status">读取配置…</p>
+              <Button onClick={() => select(id)}>reread</Button>
+            </div> : <p className="panel" role="status">Read configuration…</p>
           : <section className="workspace-welcome">
-              <div className="welcome-copy"><p className="eyebrow">YOUR NEXT MISSION</p><h2>从这里，组织下一次交付。</h2>
-                <p>从左侧选择一项配置，或新建{display.singular}。<br />把目标、路径与协作角色准备好。</p>
-                <span className="welcome-tag"><span className="signal-dot" /> 当前配置由你与获授权的负责人共同管理</span>
+              <div className="welcome-copy"><p className="eyebrow">YOUR NEXT MISSION</p><h2>From here, organize your next delivery.</h2>
+                <p>Select a configuration from the left, or create a new {display.singular}.<br />Have goals, paths, and collaborative roles ready.</p>
+                <span className="welcome-tag"><span className="signal-dot" /> The current configuration is managed by you and the authorized person responsible</span>
               </div>
               <MissionGraphic />
               <div className="workspace-guide">
-                <div><ConfigIcon kind="requirements" /><span><strong>明确需求</strong><small>记录目标与交付说明</small></span></div>
-                <div><ConfigIcon kind="flows" /><span><strong>规划流程</strong><small>组织交付路径与职责</small></span></div>
-                <div><ConfigIcon kind="agents" /><span><strong>配置 Agent</strong><small>定义角色与技能</small></span></div>
+                <div><ConfigIcon kind="requirements" /><span><strong>Define requirements</strong><small>Document goals and delivery instructions</small></span></div>
+                <div><ConfigIcon kind="flows" /><span><strong>Plan workflows</strong><small>Organizational delivery path and responsibilities</small></span></div>
+                <div><ConfigIcon kind="agents" /><span><strong>Configure Agent</strong><small>Define roles and skills</small></span></div>
               </div>
             </section>}
-      </section>
+      </section>}
     </div>
   </>;
 }
@@ -367,17 +394,17 @@ function BasicConfigEditor({ kind, csrf, item, onError, onUnauthorized, onSaved,
     setExisting('');
     try {
       const name = text('name').trim();
-      if (!name) { setError('请填写名称。'); return; }
+      if (!name) { setError('Please fill in the name.'); return; }
       let data: ConfigData;
       if (kind === 'requirements') {
         const projectId = requirement?.projectId ?? text('projectId');
-        if (!projectId) { setError('请选择项目。'); return; }
+        if (!projectId) { setError('Please select a project.'); return; }
         data = { projectId, description: text('description').trim() || null };
       } else {
         const roleKey = agent?.roleKey ?? text('roleKey').trim();
-        if (!roleKey) { setError('请填写角色标识。'); return; }
+        if (!roleKey) { setError('Please fill in the role ID.'); return; }
         const skillRef = text('skillRef').trim();
-        data = { roleKey, description: text('description').trim(), ...(skillRef ? { skillRef } : {}) };
+        data = { roleKey, workspaceAccess: text('workspaceAccess') as 'read_only' | 'write' | 'legacy', description: text('description').trim(), ...(skillRef ? { skillRef } : {}) };
       }
       const saved = await mutation.send<ConfigDetail>(configPath(kind, item?.id), item ? 'PATCH' : 'POST',
         { name, data, ...(item ? { expectedVersion: item.version } : {}) });
@@ -393,37 +420,33 @@ function BasicConfigEditor({ kind, csrf, item, onError, onUnauthorized, onSaved,
     }
   }
 
-  return <section className="panel">
+  return <section className={'panel' + (kind === 'agents' ? ' agent-editor' : '')}>
     <div className="row between">
-      <h2>{item ? item.name : '新建' + workspaceKinds[kind].singular}</h2>
-      {item && <span className="pill">版本 {item.version}</span>}
+      <h2>{item ? item.name : kind === 'agents' ? 'Configure your agent' : 'Create ' + workspaceKinds[kind].singular}</h2>
+      {item && <span className="pill">Version {item.version}</span>}
     </div>
     <form className="grid form-stack" onSubmit={save}>
       <fieldset disabled={!canEdit || mutation.pending}>
-        <Field label="名称"><input name="name" defaultValue={item?.name} required /></Field>
+        {kind !== 'agents' && <Field label="Name"><input name="name" defaultValue={item?.name} required /></Field>}
         {kind === 'requirements' && <>
-          {item ? <p className="subtle">需求保留在原有项目中。</p> : <Field label="项目">
-            <select name="projectId" required defaultValue="">
-              <option value="">{projects === null ? '读取项目…' : projects.length ? '请选择项目' : '没有可用项目'}</option>
+          {item ? <p className="subtle">The requirements remain in the original project.</p> : <Field label="project">
+            <Select name="projectId" required defaultValue="">
+              <option value="">{projects === null ? 'Read items…' : projects.length ? 'Select a project' : 'No items available'}</option>
               {projects?.map(project => <option value={project.id} key={project.id}>{project.name}</option>)}
-            </select>
+            </Select>
           </Field>}
           {projectError && <div className="row"><p className="inline-error" role="alert">{projectError}</p>
-            <Button onClick={() => { setProjectError(''); setProjectRevision(n => n + 1); }}>重试读取项目</Button>
+            <Button onClick={() => { setProjectError(''); setProjectRevision(n => n + 1); }}>Retry reading items</Button>
           </div>}
-          <Field label="需求说明"><textarea name="description" defaultValue={requirement?.description ?? ''} /></Field>
+          <Field label="Requirement description"><textarea name="description" defaultValue={requirement?.description ?? ''} /></Field>
         </>}
-        {kind === 'agents' && <>
-          <Field label="角色标识"><input name="roleKey" defaultValue={agent?.roleKey} readOnly={!!agent} required /></Field>
-          <Field label="说明"><textarea name="description" defaultValue={agent?.description ?? ''} /></Field>
-          <Field label="技能引用（可选）"><input name="skillRef" defaultValue={agent?.skillRef} /></Field>
-        </>}
+        {kind === 'agents' && <AgentFields name={item?.name} roleKey={agent?.roleKey} description={agent?.description} skillRef={agent?.skillRef} workspaceAccess={agent?.workspaceAccess} />}
       </fieldset>
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {existing && <Button onClick={() => onExisting(existing)}>打开已有需求</Button>}
-      {conflict && onRefresh && <Button onClick={onRefresh}>读取最新版本并重新编辑</Button>}
-      {canEdit && <div className="actions"><button className="accent" disabled={mutation.pending || conflict}>
-        {mutation.pending ? '保存中…' : item ? '保存修改' : '创建配置'}</button></div>}
+      {existing && <Button onClick={() => onExisting(existing)}>Open existing requirements</Button>}
+      {conflict && onRefresh && <Button onClick={onRefresh}>Read the latest version and edit again</Button>}
+      {canEdit && <div className={'actions' + (kind === 'agents' ? ' agent-savebar' : '')}>{kind === 'agents' && <p>Agent name and role ID are required. You can refine instructions and skills later.</p>}<button className="accent" disabled={mutation.pending || conflict}>
+        {mutation.pending ? 'Saving…' : item ? 'Save changes' : kind === 'agents' ? 'Create agent' : 'Create configuration'}</button></div>}
     </form>
   </section>;
 }
@@ -460,44 +483,44 @@ function OwnershipPanel({ item, csrf, onChanged, onError, onRefresh, beforeChang
   }
 
   return <section className="panel" aria-labelledby="ownership-title">
-    <h2 id="ownership-title">负责人</h2>
+    <h2 id="ownership-title">Ownership</h2>
     <ul className="member-list">
-      <li><span>{item.owner.displayName} <small>@{item.owner.username}</small></span><span className="pill good">主负责人</span></li>
+      <li><span>{item.owner.displayName} <small>@{item.owner.username}</small></span><span className="pill good">Owner</span></li>
       {item.deputies.map(deputy => <li key={deputy.id}>
         <span>{deputy.displayName} <small>@{deputy.username}</small></span>
-        <span className="actions"><span className="pill">副负责人</span>
+        <span className="actions"><span className="pill">Co-owner</span>
           {canManage && <Button variant="ghost tiny" disabled={mutation.pending || conflict}
-            onClick={() => void change('remove_deputy', { userId: deputy.id })}>移除 @{deputy.username}</Button>}
+            onClick={() => void change('remove_deputy', { userId: deputy.id })}>Remove @{deputy.username}</Button>}
         </span>
       </li>)}
     </ul>
-    {!item.deputies.length && <p className="subtle">暂无副负责人。</p>}
+    {!item.deputies.length && <p className="subtle">There is currently no co-owner.</p>}
     {canManage && <div className="grid">
       <form className="ownership-form" onSubmit={event => {
         const username = formData(event).text('deputy').trim();
         if (username) void change('add_deputy', { username });
       }}>
-        <Field label="副负责人用户名">
+        <Field label="Co-owner username">
           <input name="deputy" required pattern="[A-Za-z0-9_\-]{1,100}" maxLength={100} autoComplete="off" />
         </Field>
-        <button disabled={mutation.pending || conflict}>添加副负责人</button>
+        <button disabled={mutation.pending || conflict}>Add co-owner</button>
       </form>
       {transferring ? <form className="gate grid" onSubmit={event => {
         const username = formData(event).text('successor').trim();
         if (username) void change('transfer', { username });
       }}>
-        <p>转交成功后，新主负责人接管配置，你将失去对它的访问。</p>
-        <Field label="接任人用户名">
+        <p>After a successful transfer, the new owner takes over the configuration and you lose access to it.</p>
+        <Field label="Successor username">
           <input name="successor" required pattern="[A-Za-z0-9_\-]{1,100}" maxLength={100} autoComplete="off" />
         </Field>
         <div className="actions">
-          <button className="accent" disabled={mutation.pending || conflict}>确认转交</button>
-          <Button disabled={mutation.pending} onClick={() => setTransferring(false)}>取消</Button>
+          <button className="accent" disabled={mutation.pending || conflict}>Confirm transfer</button>
+          <Button disabled={mutation.pending} onClick={() => setTransferring(false)}>Cancel</Button>
         </div>
-      </form> : <div><Button disabled={mutation.pending || conflict} onClick={() => setTransferring(true)}>转交主负责人</Button></div>}
+      </form> : <div><Button disabled={mutation.pending || conflict} onClick={() => setTransferring(true)}>Transfer ownership</Button></div>}
     </div>}
     {error && <p className="inline-error" role="alert">{error}</p>}
-    {conflict && <Button onClick={onRefresh}>读取最新负责人</Button>}
+    {conflict && <Button onClick={onRefresh}>Reload ownership</Button>}
   </section>;
 }
 

@@ -47,9 +47,9 @@ public class ArtifactArchiveService implements ArchiveQueries {
         var run = lockRun(runId);
         sessions.requireActive(actor.id(), actor.sessionId());
         if (!actor.id().equals(run.currentOwner()) || !actor.id().equals(run.initiator())) throw missing();
-        if (!"completed".equals(run.state())) throw RequestFields.conflict("ARCHIVE_NOT_READY", "流程完成后可归档已交付产物。");
+        if (!"completed".equals(run.state())) throw RequestFields.conflict("ARCHIVE_NOT_READY", "The delivered product can be archived after the process is completed.");
         if (!runs.matchesFinalArtifact(runId, artifact, expected)) {
-            throw RequestFields.conflict("ARCHIVE_CANDIDATE_CHANGED", "请选择当前已完成节点的产物。");
+            throw RequestFields.conflict("ARCHIVE_CANDIDATE_CHANGED", "Please select the product of the currently completed node.");
         }
         if (store.approve(artifact, runId, run.deviceId(), actor.id(), retryAt)) {
             store.auditApproval(artifact, runId, actor.id(), requestId);
@@ -101,11 +101,11 @@ public class ArtifactArchiveService implements ArchiveQueries {
         fence(entry, body);
         String export = sha(body, "exportCommit");
         if (entry.exportCommit() != null) {
-            if (!export.equals(entry.exportCommit())) throw RequestFields.conflict("ARCHIVE_CANDIDATE_CHANGED", "归档快照已固定。");
+            if (!export.equals(entry.exportCommit())) throw RequestFields.conflict("ARCHIVE_CANDIDATE_CHANGED", "Archive snapshot is pinned.");
             return Map.of("decision", "reconcile");
         }
         if (!grantCurrent(job.run(), entry)) {
-            throw new ApiProblem(403, "ARCHIVE_GRANT_REQUIRED", "归档授权已过期或负责人已变更。");
+            throw new ApiProblem(403, "ARCHIVE_GRANT_REQUIRED", "The archiving authorization has expired or the person responsible has changed.");
         }
         Instant limit = Instant.now().plusSeconds(25);
         Instant grantLimit = entry.approvedAt().plusSeconds(86_400);
@@ -124,7 +124,7 @@ public class ArtifactArchiveService implements ArchiveQueries {
         if ("succeeded".equals(state)) {
             if (!sha(body, "observedCommit").equals(entry.exportCommit()) ||
                     !tag(entry).equals(RequestFields.text(body, "ref", 180))) {
-                throw RequestFields.conflict("ARCHIVE_EVIDENCE_MISMATCH", "归档证据与已固定的标签或提交不符。");
+                throw RequestFields.conflict("ARCHIVE_EVIDENCE_MISMATCH", "The archived evidence does not match a pinned tag or commit.");
             }
             if ("succeeded".equals(entry.state())) return Map.of("accepted", true, "duplicate", true);
         }
@@ -206,6 +206,6 @@ public class ArtifactArchiveService implements ArchiveQueries {
         return sha;
     }
 
-    private static ApiProblem missing() { return new ApiProblem(404, "NOT_FOUND", "归档任务不存在或没有访问权限。"); }
-    private static ApiProblem stale() { return RequestFields.conflict("ARCHIVE_LEASE_LOST", "归档任务租约已失效。"); }
+    private static ApiProblem missing() { return new ApiProblem(404, "NOT_FOUND", "The archive task does not exist or does not have access rights."); }
+    private static ApiProblem stale() { return RequestFields.conflict("ARCHIVE_LEASE_LOST", "The archive task lease has expired."); }
 }

@@ -30,7 +30,7 @@ class JdbcWorkerTaskStore implements WorkerTaskStore {
     public TaskContext lock(UUID device, UUID task, boolean skip) {
         var ids=jdbc.queryForList("SELECT t.run_id,r.requirement_id FROM role_task t JOIN run r ON r.id=t.run_id WHERE t.id=:task AND t.device_id=:device AND t.kind IN ('git','agent','coordinator')",
                 Map.of("task",task,"device",device));
-        if(ids.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","任务不存在或不属于当前电脑");
+        if(ids.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","The task does not exist or does not belong to the current computer");
         var identity=ids.getFirst();
         var run=runs.lock((UUID) identity.get("run_id"), (UUID) identity.get("requirement_id"), skip);
         if(run==null) return null;

@@ -98,7 +98,7 @@ public class RunReadModel {
         long version=((Number)run.get("state_version")).longValue();
         var position=cursors.decode(cursor,eventScope(actor,id));
         long previous=position==null?0:Long.parseLong(position.name());
-        if(previous>version) throw new ApiProblem(410,"CURSOR_EXPIRED","运行进度已更新，请重新读取。 ");
+        if(previous>version) throw new ApiProblem(410,"CURSOR_EXPIRED","The running progress has been updated, please read again. ");
         List<Map<String,Object>> items=previous==version?List.of():List.of(Map.of(
                 "sequence",version,"runVersion",version,"kind","run_changed","time",Instant.now().toString()));
         return Map.of("items",items,"nextCursor",eventCursor(actor,id,version));
@@ -106,7 +106,7 @@ public class RunReadModel {
 
     private Map<String,Object> authorizedRun(Actor actor, UUID id) {
         var rows=jdbc.queryForList(SELECT+" AND r.id=:id",Map.of("actor",actor.id(),"id",id));
-        if(rows.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","运行不存在或没有访问权限");
+        if(rows.isEmpty()) throw new ApiProblem(404,"NOT_FOUND","Run does not exist or does not have access rights");
         return rows.getFirst();
     }
 

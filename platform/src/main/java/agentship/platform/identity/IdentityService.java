@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,11 +27,14 @@ public class IdentityService {
     private final PasswordEncoder passwords;
     private final LocalVerification verification;
     private final String missingAccountHash;
+    private final boolean requireContactVerification;
 
-    public IdentityService(JdbcTemplate db, PasswordEncoder passwords, LocalVerification verification) {
+    public IdentityService(JdbcTemplate db, PasswordEncoder passwords, LocalVerification verification,
+                           @Value("${agentship.require-contact-verification:false}") boolean requireContactVerification) {
         this.db = db;
         this.passwords = passwords;
         this.verification = verification;
+        this.requireContactVerification = requireContactVerification;
         this.missingAccountHash = passwords.encode(Tokens.random());
     }
 
@@ -47,21 +51,25 @@ public class IdentityService {
     public record Authenticated(Actor actor, User user) {}
     public record LoginResult(Session session, String cookie) {}
     private record Credentials(User user, String hash) {}
-    private record RegistrationState(UUID accountId, String status, boolean emailVerified, boolean phoneVerified) {}
+    private record RegistrationState(UUID accountId, String status, boolean emailVerified, boolean phoneVerified, boolean emailRequired, boolean phoneRequired) {}
 
     @Transactional
     public Receipt register(Registration input, String requestId) {
-        verification.requireAvailable();
+        if (requireContactVerification) verification.requireAvailable();
         String name = requiredTrimmed(input.name(), 100);
         String username = requiredTrimmed(input.username(), 100);
         if (!USERNAME.matcher(username).matches() || !username.equals(input.username())) throw ApiProblem.invalid();
-        String email = requiredTrimmed(input.email(), 254);
-        if (!EMAIL.matcher(email).matches()) throw ApiProblem.invalid();
-        String phone = normalizePhone(input.phone());
+        String email = input.email() == null || input.email().isBlank() ? null : requiredTrimmed(input.email(), 254);
+        if (email != null && !EMAIL.matcher(email).matches()) throw ApiProblem.invalid();
+        String phone = input.phone() == null || input.phone().isBlank() ? null : normalizePhone(input.phone());
+        List<String> requiredChannels = new ArrayList<>(2);
+        if (email != null) requiredChannels.add("email");
+        if (phone != null) requiredChannels.add("phone");
+        boolean needsVerification = requireContactVerification && !requiredChannels.isEmpty();
         String password = input.password();
         if (!validPassword(password) || !password.equals(input.confirmPassword())) throw ApiProblem.invalid();
         String usernameKey = key(username);
-        String emailKey = key(email);
+        String emailKey = email == null ? null : key(email);
         String passwordHash = passwords.encode(password);
 
         db.update("""
@@ -78,22 +86,30 @@ public class IdentityService {
 
         UUID accountId = UUID.randomUUID();
         var expiry = db.query("""
-                INSERT INTO account (id,display_name,username,username_key,email,email_login_key,phone,password_hash,status)
-                VALUES (?,?,?,?,?,?,?,?,'pending') ON CONFLICT DO NOTHING
+                INSERT INTO account (id,display_name,username,username_key,email,email_login_key,phone,password_hash,status,verification_required)
+                VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING
                 RETURNING created_at + interval '24 hours'
                 """, (rs, row) -> rs.getObject(1, OffsetDateTime.class),
-                accountId, name, username, usernameKey, email, emailKey, phone, passwordHash)
-                .stream().findFirst().orElseThrow(() -> new ApiProblem(409, "IDENTIFIER_UNAVAILABLE", "所填注册标识不可用。"));
+                accountId, name, username, usernameKey, email, emailKey, phone, passwordHash,
+                needsVerification ? "pending" : "active", requireContactVerification)
+                .stream().findFirst().orElseThrow(() -> new ApiProblem(409, "IDENTIFIER_UNAVAILABLE", "The registration ID filled in is not available."));
 
+        if (!needsVerification) {
+            provisionPersonalProject(accountId);
+            audit(accountId, "register", requestId);
+            audit(accountId, "activate_account", requestId);
+            return new Receipt("active", List.of(), null, null);
+        }
         String reference = Tokens.random();
         db.update("INSERT INTO registration_scope (account_id,reference_digest) VALUES (?,?)",
                 accountId, Tokens.digest(reference));
         audit(accountId, "register", requestId);
-        return new Receipt("verification_required", CHANNELS, reference, expiry);
+        return new Receipt("verification_required", requiredChannels, reference, expiry);
     }
 
     @Transactional
     public VerificationResult verify(Proof proof, String requestId) {
+        if (!requireContactVerification) throw new ApiProblem(404, "NOT_FOUND", "Contact verification is currently disabled.");
         verification.requireAvailable();
         if (!Tokens.valid(proof.registrationRef()) || proof.channel() == null || !CHANNELS.contains(proof.channel())
                 || proof.code() == null || !proof.code().matches("[0-9]{8}")) throw proofRejected();
@@ -104,6 +120,7 @@ public class IdentityService {
                 """, (rs, row) -> rs.getObject(1, UUID.class), Tokens.digest(proof.registrationRef()));
         if (ids.isEmpty()) throw proofRejected();
         var state = state(proof.registrationRef()).orElseThrow(IdentityService::proofRejected);
+        if (proof.channel().equals("email") ? !state.emailRequired() : !state.phoneRequired()) throw proofRejected();
         if (!Tokens.equal(verification.code(proof.registrationRef(), proof.channel()), proof.code())) throw proofRejected();
 
         if (proof.channel().equals("email") ? state.emailVerified() : state.phoneVerified()) {
@@ -114,13 +131,13 @@ public class IdentityService {
                 UPDATE account SET
                     email_verified_at = CASE WHEN ? = 'email' THEN statement_timestamp() ELSE email_verified_at END,
                     phone_verified_at = CASE WHEN ? = 'phone' THEN statement_timestamp() ELSE phone_verified_at END,
-                    status = CASE WHEN (? = 'email' OR email_verified_at IS NOT NULL)
-                                   AND (? = 'phone' OR phone_verified_at IS NOT NULL)
+                    status = CASE WHEN (email IS NULL OR ? = 'email' OR email_verified_at IS NOT NULL)
+                                   AND (phone IS NULL OR ? = 'phone' OR phone_verified_at IS NOT NULL)
                                   THEN 'active' ELSE 'pending' END
                 WHERE id = ? AND status = 'pending' AND created_at > clock_timestamp() - interval '24 hours'
-                RETURNING id,status,email_verified_at IS NOT NULL,phone_verified_at IS NOT NULL
+                RETURNING id,status,email_verified_at IS NOT NULL,phone_verified_at IS NOT NULL,email IS NOT NULL,phone IS NOT NULL
                 """, (rs, row) -> new RegistrationState(rs.getObject(1, UUID.class), rs.getString(2),
-                        rs.getBoolean(3), rs.getBoolean(4)), proof.channel(), proof.channel(), proof.channel(),
+                        rs.getBoolean(3), rs.getBoolean(4), rs.getBoolean(5), rs.getBoolean(6)), proof.channel(), proof.channel(), proof.channel(),
                 proof.channel(), state.accountId()).stream().findFirst().orElseThrow(IdentityService::proofRejected);
 
         if (changed.status().equals("active")) provisionPersonalProject(changed.accountId());
@@ -129,19 +146,20 @@ public class IdentityService {
     }
 
     public List<Message> developmentInbox(String reference) {
-        if (!verification.enabled()) throw new ApiProblem(404, "NOT_FOUND", "未找到所请求的内容。");
+        if (!requireContactVerification || !verification.enabled()) throw new ApiProblem(404, "NOT_FOUND", "The requested content was not found.");
         var state = state(reference).orElseThrow(IdentityService::proofRejected);
         if (!state.status().equals("pending")) return List.of();
         List<Message> messages = new ArrayList<>(2);
-        if (!state.emailVerified()) messages.add(new Message("email", verification.code(reference, "email")));
-        if (!state.phoneVerified()) messages.add(new Message("phone", verification.code(reference, "phone")));
+        if (state.emailRequired() && !state.emailVerified()) messages.add(new Message("email", verification.code(reference, "email")));
+        if (state.phoneRequired() && !state.phoneVerified()) messages.add(new Message("phone", verification.code(reference, "phone")));
         return messages;
     }
 
     @Transactional
     public LoginResult login(Login input, String requestId) {
         String identifier = requiredTrimmed(input.identifier(), 254);
-        if (!validPassword(input.password())) throw ApiProblem.unauthenticated();
+        // Existing accounts may have passwords created under the previous registration policy.
+        if (!boundedPassword(input.password())) throw ApiProblem.unauthenticated();
         var credentials = db.query("""
                 SELECT id,display_name,username,password_hash FROM account
                 WHERE status = 'active' AND CASE WHEN ? THEN email_login_key = ? ELSE username_key = ? END
@@ -208,12 +226,12 @@ public class IdentityService {
     private Optional<RegistrationState> state(String reference) {
         if (!Tokens.valid(reference)) return Optional.empty();
         return db.query("""
-                SELECT a.id,a.status,a.email_verified_at IS NOT NULL,a.phone_verified_at IS NOT NULL
+                SELECT a.id,a.status,a.email_verified_at IS NOT NULL,a.phone_verified_at IS NOT NULL,a.email IS NOT NULL,a.phone IS NOT NULL
                 FROM registration_scope r JOIN account a ON a.id=r.account_id
                 WHERE r.reference_digest=? AND a.status IN ('pending','active')
                   AND a.created_at > clock_timestamp()-interval '24 hours'
                 """, (rs, row) -> new RegistrationState(rs.getObject(1, UUID.class), rs.getString(2),
-                rs.getBoolean(3), rs.getBoolean(4)), Tokens.digest(reference)).stream().findFirst();
+                        rs.getBoolean(3), rs.getBoolean(4), rs.getBoolean(5), rs.getBoolean(6)), Tokens.digest(reference)).stream().findFirst();
     }
 
     private VerificationResult verificationResult(RegistrationState state) {
@@ -225,7 +243,7 @@ public class IdentityService {
 
     private void provisionPersonalProject(UUID accountId) {
         UUID projectId = UUID.randomUUID();
-        db.update("INSERT INTO project (id,name) VALUES (?,?)", projectId, "个人工作区");
+        db.update("INSERT INTO project (id,name) VALUES (?,?)", projectId, "personal workspace");
         db.update("""
                 INSERT INTO project_permission (project_id,account_id,capability,granted_by)
                 VALUES (?,?,'view_project',?),(?,?,'create_requirement',?)
@@ -259,12 +277,18 @@ public class IdentityService {
     }
 
     private static boolean validPassword(String password) {
+        return boundedPassword(password) && password.codePointCount(0, password.length()) >= 8
+                && password.matches("(?s).*[a-z].*") && password.matches("(?s).*[A-Z].*")
+                && password.matches("(?s).*[0-9].*") && password.matches("(?s).*[\\p{P}\\p{S}].*");
+    }
+
+    private static boolean boundedPassword(String password) {
         if (password == null || password.length() > 256 || password.indexOf(0) >= 0) return false;
         int size = password.codePointCount(0, password.length());
-        return size >= 15 && size <= 128;
+        return size >= 1 && size <= 128;
     }
 
     private static ApiProblem proofRejected() {
-        return new ApiProblem(400, "INVALID_REQUEST", "验证码无效或注册已过期。");
+        return new ApiProblem(400, "INVALID_REQUEST", "The verification code is invalid or the registration has expired.");
     }
 }

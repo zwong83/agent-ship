@@ -37,7 +37,7 @@ public class WorkerJobService {
     @Transactional
     public Map<String,Object> poll(String authorization,JsonNode body) {
         var device=devices.authenticate(authorization);
-        if(!"1".equals(RequestFields.text(body,"protocolVersion",8))) throw RequestFields.conflict("PROTOCOL_MISMATCH","请更新本机程序");
+        if(!"1".equals(RequestFields.text(body,"protocolVersion",8))) throw RequestFields.conflict("PROTOCOL_MISMATCH","Please update the local program");
         String status=RequestFields.text(body,"codexStatus",20);
         if(!Set.of("available","unavailable","unknown","not_required").contains(status)
                 || device.mode().equals("demo")!=status.equals("not_required")) throw ApiProblem.invalid();
@@ -115,7 +115,7 @@ public class WorkerJobService {
     @Transactional
     public Map<String,Object> authorize(String authorization,UUID task,String key,JsonNode body) {
         var context=tasks.lock(devices.authenticate(authorization).id(),task,false);
-        if(!context.isGit()) throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","当前任务不允许 Git 外部写入");
+        if(!context.isGit()) throw new ApiProblem(403,"EXTERNAL_SCOPE_DENIED","The current task does not allow Git external writes");
         if(!task.equals(RequestFields.id(body,"taskId"))) throw ApiProblem.invalid();
         fence(context,body);
         String scope="git:authorize:"+task;
@@ -133,7 +133,7 @@ public class WorkerJobService {
         if(prior!=null) return Map.of("accepted",true,"duplicate",true,"receiptId",prior);
         fence(context,body);
         long sequence=RequestFields.number(body,"sequence",1,Long.MAX_VALUE);
-        if(sequence!=((Number)context.attempt().get("last_event_sequence")).longValue()+1) throw RequestFields.conflict("EVENT_SEQUENCE_GAP","任务事件必须按顺序提交");
+        if(sequence!=((Number)context.attempt().get("last_event_sequence")).longValue()+1) throw RequestFields.conflict("EVENT_SEQUENCE_GAP","Task events must be submitted in order");
         String type=RequestFields.text(body,"type",30);
         JsonNode result=body.get("result");
         if(result==null || !result.isObject() || !Set.of("progress","complete","failure","question","message").contains(type)) throw ApiProblem.invalid();
@@ -164,7 +164,7 @@ public class WorkerJobService {
                 || !Set.of("leased", "running").contains(context.attempt().get("state"))
                 || !((Timestamp) context.attempt().get("lease_deadline")).toInstant().isAfter(Instant.now())
                 || context.run().get("finished_at") != null) {
-            throw RequestFields.conflict("STALE_LEASE", "任务租约已失效，请重新领取任务");
+            throw RequestFields.conflict("STALE_LEASE", "The task lease has expired, please claim the task again");
         }
     }
 
