@@ -7,7 +7,7 @@ import { RequirementList } from './requirement-list';
 import { useDashboardSnapshot, type DashboardSnapshotState } from './use-dashboard-snapshot';
 
 function MetricCard({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
-  return <section className={'telemetry-card ' + className} aria-label={title}><header><h2>{title}</h2></header>{children}</section>;
+  return <section className={'telemetry-card ' + className} aria-label={title}><header><h2>{title}</h2></header><div className="telemetry-body" role="region" aria-label={title + ' details'} tabIndex={0}>{children}</div></section>;
 }
 /** Density follows the actual orbital scene, including the height available below its header. */
 export const fleetCapacity = (width: number, height: number) => Math.min(width, height) >= 500 ? 6 : Math.min(width, height) >= 430 ? 4 : 2;

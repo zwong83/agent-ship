@@ -1,4 +1,5 @@
 /* Bottom inventory layout: the orbital scene retains the center column and its motion. */
+.dashboard-command .telemetry-body { display: contents; }
 .dashboard-command.command-layout { --command-height: 610px; }
 .dashboard-command.command-layout .command-grid { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(450px, 1.7fr) minmax(240px, 1fr); }
 .dashboard-command.command-layout .command-telemetry { grid-column: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); height: var(--command-height); gap: 14px; }
@@ -90,3 +91,77 @@
 .dashboard-command.command-layout .requirement-execution[open] { padding: 0; }
 .dashboard-command.command-layout .requirement-row:has(.requirement-chat) .requirement-select { min-height: 44px; }
 .dashboard-command.command-layout .requirement-row:has(.requirement-chat) .requirement-progress small { display: block; }
+
+/* Desktop command deck: allocate the viewport, then scroll data within its cards.
+   Narrow/zoomed screens retain the stacked layout so text and controls stay usable. */
+@media (min-width: 1000px) and (min-height: 600px) {
+  .dashboard-shell.shell { display: flex; flex-direction: column; height: 100dvh; min-height: 0; }
+  .dashboard-shell .command-navigation { flex: none; position: relative; }
+  .dashboard-shell > .main { flex: 1; min-height: 0; overflow: hidden; }
+  .dashboard-shell .main-content { display: flex; flex-direction: column; height: 100%; min-height: 0; width: 100%; padding: 8px 20px; }
+  .dashboard-shell .contact-panel { position: absolute; z-index: 80; top: 64px; right: 20px; width: min(520px, 90vw); max-height: calc(100dvh - 85px); overflow: auto; }
+  .dashboard-command.command-layout { display: flex; flex-direction: column; flex: 1; width: 100%; min-height: 0; gap: 8px; margin: 0 auto; }
+  .dashboard-command.command-layout > :is(.command-heading, .command-summary, .command-scope, .fleet-error, .fleet-bottom) { flex: none; margin: 0; }
+  .dashboard-command.command-layout .command-heading { gap: 12px; }
+  .dashboard-command.command-layout .command-title-group h1 { font-size: 30px; }
+  .dashboard-command.command-layout .command-overline { font-size: 11px; }
+  .dashboard-command.command-layout .command-summary { min-height: 48px; padding: 4px; }
+  .dashboard-command.command-layout .command-summary-item { flex-direction: row; align-items: center; gap: 14px; padding: 0 18px; }
+  .dashboard-command.command-layout .command-summary-item strong { font-size: 34px; }
+  .dashboard-command.command-layout .command-summary-item span { font-size: 15px; }
+  .dashboard-command.command-layout .command-summary-item small { font-size: 12px; margin: 0; }
+  .dashboard-command.command-layout .command-scope { min-height: 28px; }
+  .dashboard-command.command-layout .command-scope button { min-height: 28px; padding: 3px 10px; }
+  .dashboard-command.command-layout .fleet-error { max-height: 60px; overflow: auto; font-size: 14px; }
+  .dashboard-command.command-layout .command-grid { flex: 1; min-height: 0; grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.7fr) minmax(220px, 1fr); grid-template-rows: minmax(0, 1fr); gap: 12px; }
+  .dashboard-command.command-layout .command-grid > * { min-height: 0; height: 100%; grid-row: 1; }
+  .dashboard-command.command-layout .command-telemetry-left { grid-column: 1; }
+  .dashboard-command.command-layout .command-fleet { grid-column: 2; }
+  .dashboard-command.command-layout .command-telemetry-right { grid-column: 3; }
+  .dashboard-command.command-layout .command-telemetry { grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .dashboard-command.command-layout .command-telemetry .telemetry-card { min-height: 0; padding: 9px 12px; }
+  .dashboard-command.command-layout .command-telemetry .telemetry-card header { padding-bottom: 4px; margin-bottom: 5px; }
+  .dashboard-command.command-layout .command-telemetry .telemetry-card h2 { font-size: 20px; }
+  .dashboard-command.command-layout .telemetry-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #80e4d1 #061827; }
+  .dashboard-command.command-layout .telemetry-body > * { flex-shrink: 0; }
+  .dashboard-command.command-layout .telemetry-body > :is(.attention-list, .recent-activity-list) { flex: 1; min-height: 0; }
+  .dashboard-command.command-layout .command-telemetry .metric-primary { margin: 0 0 3px; gap: 8px; }
+  .dashboard-command.command-layout .command-telemetry .metric-primary > strong { font-size: 28px; }
+  .dashboard-command.command-layout .metric-pairs { margin: 0; gap: 3px; }
+  .dashboard-command.command-layout .metric-pairs :is(dt, dd) { font-size: 14px; line-height: 1.25; }
+  .dashboard-command.command-layout .token-unreported { font-size: 22px; }
+  .dashboard-command.command-layout .command-telemetry .telemetry-note { font-size: 14px; margin: 3px 0 0; }
+  .dashboard-command.command-layout .workflow-progress-card progress { margin-bottom: 4px; height: 5px; }
+  .dashboard-command.command-layout .workflow-progress-card .metric-pairs > div { flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; }
+  .dashboard-command.command-layout .output-metrics > div { min-height: 30px; }
+  .dashboard-command.command-layout .output-metrics :is(dt, dd) { font-size: 15px; }
+  .dashboard-command.command-layout .attention-entry { gap: 3px 8px; }
+  .dashboard-command.command-layout .attention-entry > strong { font-size: 16px; }
+  .dashboard-command.command-layout .attention-entry p { font-size: 13px; }
+  .dashboard-command.command-layout .activity-scope { font-size: 12px; margin-bottom: 3px; }
+  .dashboard-command.command-layout .recent-activity-list article { padding: 3px 1px 6px; }
+  .dashboard-command.command-layout .recent-activity-list button { font-size: 15px; min-height: 26px; }
+  .dashboard-command.command-layout .recent-activity-list p { font-size: 13px; }
+  .dashboard-command.command-layout .command-fleet > header { flex: none; height: 40px; min-height: 40px; padding: 4px 14px; }
+  .dashboard-command.command-layout .command-fleet h2 { font-size: 25px; }
+  .dashboard-command.command-layout .command-fleet .earth-stage { min-height: 0; }
+  .dashboard-command.command-layout .command-fleet-footer { height: 34px; min-height: 34px; padding: 2px 10px; font-size: 13px; flex-wrap: nowrap; }
+  .dashboard-command.command-layout .requirements-panel { flex: 0 0 clamp(170px, 28dvh, 290px); min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 40px minmax(0, 1fr) 16px; gap: 5px 20px; margin: 0; padding: 8px 12px; }
+  .dashboard-command.command-layout .requirements-heading { align-items: center; gap: 12px; margin: 0; padding: 0; }
+  .dashboard-command.command-layout .requirements-heading h2 { font-size: 24px; margin: 0; }
+  .dashboard-command.command-layout .requirements-heading p { display: none; }
+  .dashboard-command.command-layout .requirements-heading > span { height: 28px; min-width: 32px; font-size: 19px; }
+  .dashboard-command.command-layout .requirements-toolbar { min-width: 0; gap: 12px; margin: 0; }
+  .dashboard-command.command-layout .requirement-tabs { width: min(400px, 58%); }
+  .dashboard-command.command-layout .requirement-tabs button { min-height: 36px; font-size: 15px; }
+  .dashboard-command.command-layout .requirement-search { width: min(360px, 42%); }
+  .dashboard-command.command-layout .requirement-search input { font-size: 15px; }
+  .dashboard-command.command-layout .requirement-scroll { grid-column: 1 / -1; min-height: 0; max-height: none; }
+  .dashboard-command.command-layout .requirements-table { min-width: 860px; }
+  .dashboard-command.command-layout .requirements-table th { padding: 6px 10px; font-size: 12px; }
+  .dashboard-command.command-layout .requirement-row td { padding: 4px 10px; }
+  .dashboard-command.command-layout .requirement-name { font-size: 17px; }
+  .dashboard-command.command-layout .requirement-agent, .dashboard-command.command-layout .requirement-stage { font-size: 14px; }
+  .dashboard-command.command-layout .requirement-count { grid-column: 1 / -1; padding: 0; font-size: 12px; line-height: 16px; }
+  .dashboard-command.command-layout .fleet-bottom { min-height: 14px; font-size: 10px; line-height: 14px; }
+}
