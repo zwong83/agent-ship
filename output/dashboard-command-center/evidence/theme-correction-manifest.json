@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-16",
+  "branch": "codex/dashboard-command-center",
+  "description": "Source snapshot after approved dashboard theme correction",
+  "files": [
+    {
+      "path": "frontend/src/dashboard-model.ts",
+      "sha256": "2df767f121afd3f32cc32da016859e619004ff0599b51f3948621cdcbb2114de"
+    },
+    {
+      "path": "frontend/src/dashboard.tsx",
+      "sha256": "229bfe3b38c61d4461793be48e1b571373d46f3fd61ab14f72dbe1bffeecf701"
+    },
+    {
+      "path": "frontend/src/dashboard-command.css",
+      "sha256": "ca5965942b398c8d1b4adbf2bf04dc96e65cc075fff5747358819dbb08e6b4d1"
+    },
+    {
+      "path": "frontend/src/requirement-list.tsx",
+      "sha256": "d444bc0c6c68ff89442c1b93212603762a8c5e26f1d655afcd450d5a7501ef31"
+    },
+    {
+      "path": "frontend/src/use-dashboard-snapshot.ts",
+      "sha256": "bbf1dd895031453917595e78a8f136f4b35e0d4a0a301fabc90f97c23bb0ef75"
+    },
+    {
+      "path": "frontend/src/earth-fleet.tsx",
+      "sha256": "4fc4378d806dc35b79f776a0734acdaf1fcce06bf9a0d68d2f73b3baf43a220d"
+    },
+    {
+      "path": "frontend/src/earth-geometry.ts",
+      "sha256": "77f881bce8f11570cc212ee138633b9474521cad74976443ea4e7c3c5ff9e326"
+    },
+    {
+      "path": "frontend/src/main.tsx",
+      "sha256": "ac06252384f6de682f9bde97708f970cd22d407b5e769326a59859a84ada5390"
+    },
+    {
+      "path": "frontend/test/dashboard-catalog.test.mjs",
+      "sha256": "e30f92430347580338c79aa1661f122ebbc48147c5ea066ba37306c6061a649c"
+    },
+    {
+      "path": "frontend/test/dashboard-model.test.mjs",
+      "sha256": "3c58c1b6177e147388adc2d175be1cca0b008546aa1dd927f19438d9c0e5a8d9"
+    },
+    {
+      "path": "frontend/test/dashboard-motion.test.mjs",
+      "sha256": "b068c558ab4aa4d78957d07a2d01354d310d5b57a82d8ae664accade5a0dfe41"
+    },
+    {
+      "path": "frontend/test/dashboard-snapshot.test.mjs",
+      "sha256": "affa35ee2a54f6dee6b7eb20a014427d5c37a047662b02788edfaaa5d4d2c7a0"
+    },
+    {
+      "path": "frontend/test/dashboard-view.test.mjs",
+      "sha256": "3ce8b7f11eea71278dde31aa32c8347fcd9bb1e2576b64bf66ca6c8cc7e24e24"
+    },
+    {
+      "path": "frontend/test/earth-formation.test.mjs",
+      "sha256": "ec84d6f4053a3a8458b27f48f4dd74d6fb2dfc779b886d20dcee02427cdfc31d"
+    },
+    {
+      "path": "frontend/test/fleet-labels.test.mjs",
+      "sha256": "3ade24a6736188b9c69a4b9c8df40bfd8b231255a329ffce4851dd69c5d65de3"
+    },
+    {
+      "path": "frontend/test/workflow-dependency.test.mjs",
+      "sha256": "fc809ddd5ccf54eff5e8d830932abe919acd64fdf8141d43b00a530b72d02601"
+    },
+    {
+      "path": "frontend/test/workflow-map-render.test.mjs",
+      "sha256": "5858caf471b9500d90c249fc7cdb0cd6f774df3a1a47f8317d01428b49844e17"
+    },
+    {
+      "path": "frontend/test/workflow-progress.test.mjs",
+      "sha256": "9238f436e09a848990a55cf6018a3fa1f420b17585fa2f5d9c25c221656f896a"
+    }
+  ]
+}

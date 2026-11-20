@@ -1,0 +1,117 @@
+/* Genos is served locally; real variable weights and italics avoid synthetic faces. */
+@font-face {
+  font-family: 'Genos';
+  src: url('/fonts/genos/Genos-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Genos';
+  src: url('/fonts/genos/Genos-Italic-Variable.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  --font-ui: 'Genos', 'Segoe UI', sans-serif;
+  --weight-body: 400;
+  --weight-label: 500;
+  --weight-control: 600;
+  --weight-heading: 700;
+  font-family: var(--font-ui);
+}
+body { font-size: 18px; font-weight: var(--weight-body); line-height: 1.45; }
+.dashboard-command { font-family: var(--font-ui); }
+button, input, select, textarea { font-family: var(--font-ui); }
+button { font-weight: var(--weight-control); }
+strong, b { font-weight: var(--weight-heading); }
+label { font-size: 16px; font-weight: var(--weight-label); }
+input, select, textarea { font-size: 18px; }
+h1, h2, h3, h4 { font-weight: var(--weight-heading); letter-spacing: 0; line-height: 1.15; }
+h1 { font-size: clamp(34px, 3vw, 44px); }
+h2 { font-size: 28px; }
+h3 { font-size: 22px; }
+/* Technical captions share the UI face; code and copyable commands stay monospaced. */
+:is(.eyebrow, .brand small, .nav-label span, .list-count, .workspace-footer > span:first-child,
+  .country-abbreviation, .country-dial-code, .satellite span, .circuit-header, .circuit-label,
+  .sequence-label, .flow-toolbar strong, .map-stage-number, .flow-stage-index,
+  .step-heading > span, .launch-flow-preview small, .radar-core, .dashboard-stat strong,
+  .dashboard-progress-label strong, .network-caption, .network-legend, .mission-metrics strong,
+  .mission-empty-symbol, .mission-guide li > span, .launch-rail li > span, .launch-rail-note,
+  .category-count, .title-coordinate, .fleet-sync small, .fleet-scope > div > span:not(.scope-led),
+  .telemetry-code, .metric-primary > strong, .metric-pairs dd, .gauge-ring strong,
+  .delivery-gauge > div:last-child strong, .fleet-sector, .ship-callout, .fleet-space-footer,
+  .telemetry-tag, .output-metrics dd, .fleet-bottom, .search-live, .agent-step, .agent-field-tag,
+  .agent-instruction-footer span, .dashboard-command .command-overline,
+  .dashboard-command .command-live, .dashboard-command .requirements-heading > span,
+  .live-progress strong, .execution-entry-footer > span, .execution-scroll-hint,
+  .earth-coordinates, .orbital-status, .ship-callsign, .roster-callsign, .scene-caption,
+  .scene-legend, .deck-mark, .core-top, .editor-view-switch button span,
+  .node-section-heading > span, .node-section-heading > small, .select-footer,
+  .map-mode, .node-glyph, .spatial-map-node .map-node-kind, .network-port text) {
+  font-family: var(--font-ui);
+}
+.brand { font-weight: 700; letter-spacing: -.01em; }
+.brand small, .eyebrow { font-size: 12px; font-weight: 500; }
+.mast .subtle, .auth .auth-story > p:not(.eyebrow) { font-size: 18px; }
+.mast .eyebrow, .search-live, .list-count, .session-badge { font-size: 12px; }
+.list-heading, .topbar, .item small, .pill, .auth-form small,
+.auth .password-checklist li, .auth .password-confirm-status { font-size: 15px; }
+.item strong { font-size: 18px; font-weight: 600; }
+.list-empty p, .inline-error, .positive-note, .auth-message { font-size: 17px; }
+.auth .country-field-label, .auth .country-trigger-value > span,
+.auth .country-trigger-value strong, .auth .country-option-name { font-size: 16px; }
+.command-navigation .nav button { font-size: 17px; font-weight: 500; }
+.command-navigation .nav button[aria-current] { font-weight: 650; }
+.auth .auth-story h1 { font-size: clamp(40px, 4vw, 60px); font-weight: 700; letter-spacing: -.01em; }
+.auth .auth-form > h2 { font-size: 34px; font-weight: 650; }
+.auth label, .auth input, .auth button { font-size: 18px; }
+.auth .auth-caption { font-size: 12px; }
+.agent-editor > .row h2 { font-size: 30px; }
+.agent-config-card h3, .flow-inspector .node-settings-heading h3 { font-size: 24px; font-weight: 650; }
+.agent-config-card label, .agent-config-card header p, .agent-config-card input,
+.agent-config-card textarea, .futuristic-shell .config-search.search-row input[type=search] { font-size: 18px; }
+.agent-config-card .agent-field-help, .select-option, .select-search input { font-size: 16px; }
+.select-trigger { font-size: 17px; }
+.node-section-heading > strong, .stage-list-intro h3 { font-size: 20px; font-weight: 650; }
+/* Genos has a compact x-height: data labels need larger sizes than the previous face. */
+.dashboard-command .command-title-group h1 { font-size: 38px; font-weight: 700; letter-spacing: -.01em; }
+.dashboard-command .command-overline, .dashboard-command .command-live { font-size: 13px; font-weight: 500; }
+.dashboard-command .command-summary-item strong { font-size: 44px; font-weight: 600; letter-spacing: -.02em; }
+.dashboard-command .command-summary-item span { font-size: 17px; }
+.dashboard-command .command-summary-item small { font-size: 13px; }
+.dashboard-command .requirements-heading h2, .dashboard-command .command-fleet h2 { font-size: 30px; font-weight: 650; letter-spacing: 0; }
+.dashboard-command .requirements-heading p { font-size: 16px; }
+.dashboard-command .requirements-heading > span { font-size: 23px; font-weight: 600; }
+.dashboard-command .requirement-tabs button { font-size: 16px; font-weight: 550; }
+.dashboard-command .requirement-tabs button[aria-pressed=true] { font-weight: 700; }
+.dashboard-command .requirement-search input { font-size: 17px; }
+.dashboard-command .requirement-name { font-size: 18px; font-weight: 650; letter-spacing: 0; }
+.dashboard-command .requirement-percent { font-size: 18px; font-weight: 600; }
+.dashboard-command .requirement-agent { font-size: 14px; }
+.dashboard-command .requirement-state, .dashboard-command .requirement-stage,
+.dashboard-command .requirement-progress small, .dashboard-command .requirement-count { font-size: 13px; }
+.dashboard-command .requirement-chat, .dashboard-command .attention-entry button { font-size: 14px; font-weight: 600; }
+.dashboard-command .requirement-execution > div { font-size: 15px; }
+.dashboard-command .command-fleet .select-trigger { font-size: 15px; }
+.dashboard-command .command-fleet-footer { font-size: 15px; }
+.dashboard-command .command-telemetry .telemetry-card h2 { font-size: 23px; font-weight: 650; letter-spacing: 0; }
+.dashboard-command .metric-primary > strong { font-size: 42px; font-weight: 600; }
+.dashboard-command .metric-primary > span:not(.activity-wave), .dashboard-command .metric-pairs dt,
+.dashboard-command .output-metrics dt, .dashboard-command .telemetry-note { font-size: 16px; }
+.dashboard-command .token-unreported { font-size: 27px; font-weight: 500; }
+.dashboard-command .attention-entry > strong { font-size: 21px; font-weight: 600; }
+.dashboard-command .attention-entry p { font-size: 15px; }
+.dashboard-command .earth-ship-tooltip { font-size: 14px; font-weight: 600; line-height: 1.1; }
+.dashboard-command .fleet-tools > button:not([aria-label]) { font-size: 16px; }
+.dashboard-command .fleet-bottom { font-size: 11px; }
+.dashboard-command :is(.command-summary-item strong, .requirement-percent, .metric-primary strong, .metric-pairs dd, .output-metrics dd) { font-variant-numeric: tabular-nums; }
+@media(max-width:600px) {
+  .command-navigation .nav button, .dashboard-shell .command-navigation .nav button { font-size: 13px; }
+  .dashboard-command .command-title-group h1 { font-size: 34px; }
+  .dashboard-command .command-summary-item strong { font-size: 36px; }
+  .dashboard-command .command-summary-item span { font-size: 15px; }
+  .dashboard-command .requirement-name { font-size: 17px; }
+  .dashboard-command .requirement-agent { font-size: 15px; }
+}

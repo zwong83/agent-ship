@@ -1,0 +1,19 @@
+{
+  "branch": "codex/dashboard-command-center",
+  "baseline": "472c6182229912f1c4aab1eb9eda559896127b1f",
+  "files": {
+    "frontend/src/dashboard-command.css": "42560a98b6acdcc93d010e3a56cef661fa0997416b4eeb690758e94156b75f4d",
+    "frontend/src/dashboard-model.ts": "2df767f121afd3f32cc32da016859e619004ff0599b51f3948621cdcbb2114de",
+    "frontend/src/dashboard.tsx": "7475f48181de28145d75fc9c4e65df0cc1b22f6c9a83e98751adbe7f32d44d2b",
+    "frontend/src/earth-fleet.tsx": "d0f057a1faf308924bfc7ad81070bf2c9752fecfa9fd5a16171ce4c45360c01a",
+    "frontend/src/main.tsx": "ac06252384f6de682f9bde97708f970cd22d407b5e769326a59859a84ada5390",
+    "frontend/src/requirement-list.tsx": "fd43754da3d25dbd7671eb076038690be6fb2c998edbcb43b1e7bda3d00c7efe",
+    "frontend/src/use-dashboard-snapshot.ts": "bbf1dd895031453917595e78a8f136f4b35e0d4a0a301fabc90f97c23bb0ef75",
+    "frontend/test/dashboard-catalog.test.mjs": "e30f92430347580338c79aa1661f122ebbc48147c5ea066ba37306c6061a649c",
+    "frontend/test/dashboard-motion.test.mjs": "b068c558ab4aa4d78957d07a2d01354d310d5b57a82d8ae664accade5a0dfe41",
+    "frontend/test/dashboard-snapshot.test.mjs": "affa35ee2a54f6dee6b7eb20a014427d5c37a047662b02788edfaaa5d4d2c7a0",
+    "frontend/test/dashboard-view.test.mjs": "3ce8b7f11eea71278dde31aa32c8347fcd9bb1e2576b64bf66ca6c8cc7e24e24",
+    "frontend/test/earth-formation.test.mjs": "ec84d6f4053a3a8458b27f48f4dd74d6fb2dfc779b886d20dcee02427cdfc31d",
+    "platform/test/dashboard_preview.py": "d444066b360769f913e7b92e873d4d435261f2df7920083fb9df8a6909fd42c4"
+  }
+}

@@ -106,50 +106,64 @@ Real GitHub and Codex execution require separate acceptance checks with your sel
 
 ## Fleet dashboard
 
-The workspace uses a compact top navigation. Dashboard telemetry defaults to all
-running requirements (including queued, preparing and blocked runs); completed,
-stopped, failed and unstarted requirements are excluded. Selecting a requirement
-ship scopes every card to its live runs. Ships can be searched and paged without
-changing the selected scope. Clearing the selection restores the aggregate view.
-The dashboard refreshes every five seconds while visible, limits detail requests
-to four concurrent calls, and reuses unchanged terminal runs. A failed refresh
-marks the retained snapshot as stale; authorization failures clear it.
+The command center uses the approved navy, mint and cyan glass theme with a compact
+navigation bar, summary strip, requirements catalog, orbital fleet and telemetry.
+The **All** list includes every accessible requirement, including unstarted and
+historical work. Search and Running/Blocked/Queued filters affect only the list.
+Each row shows recorded progress, actual executing agents and stage/node context;
+expand current activity to inspect parallel agents or agents awaiting a reply.
+Unknown progress is shown as unavailable, and historical progress is labeled.
 
-Requirement status, agent tasks, resolved steps, blockers, artifacts, repair
-cycles and assigned-device connectivity come from the existing APIs. Token usage
-is explicitly shown as not reported because the execution service does not yet
-persist token counts. No token or cost estimates are synthesized.
+Select a row, ship or scope dropdown to focus telemetry on that requirement's live
+runs. The catalog stays available. Clear focus to restore all operational runs.
+No-run and completed requirements remain selectable without inventing live work.
+Focus survives rename/completion and clears when catalog access is removed.
 
-The center is a large transparent holographic sphere with no geographic Earth.
-The scene always displays six distinct tilted circular orbital paths. Up to six
-live requirement ships occupy them on wide desktops, four on tablets and two on
-phones. Empty paths do not fabricate agents or wakes. Coordinated phases share an 84-second cycle so separation cannot drift; ships follow perspective-projected 3D circles through both
-hemispheres, bank gently with the tangent, shrink/dim behind the translucent glass and
-pass in front when approaching. Wakes use the same projected curve and split into
-a fading center trail and two spreading ripples. Render depth places rear hulls
-below the glass and front hulls above it. Numbered stationary name cards preserve
-readability and keyboard access when paths cross in projection. Ships and cards
-focus telemetry, and red dots retain direct chat access. Fleet paging never changes
-aggregate telemetry.
-The approved navy-and-mint agent sailboat image is shared by the fleet, sign-in,
-account creation, workspace brand and browser icon. Its mast stays upright with
-a gentle bank so the agent face remains recognizable. Medium-small 76px hulls
-have a screen-space size cap at close projected crossings.
-The alert HUD is independent of ship depth, with separated 52px hit targets above
-the glass. Pointer hover or keyboard focus pins an alert in place while its ship
-keeps moving. A connector identifies its ship. Every blocked requirement also has
-a stationary red chat button in its name card, subject to existing permissions.
-Selected paths brighten and blocked paths turn red. Rendering is capped at 30
-frames per second and pixel density at 2. OS reduced-motion preferences render a
-static formation. Frames, observers and listeners clean up on exit.
+The fleet always has six tilted circular paths around a transparent sphere. It
+shows six ships when the shorter scene dimension is at least 500px, four at
+430–499px, and two below 430px. Paging makes every live requirement reachable.
+The shared 84-second cycle preserves projected separation. Approved agent sailboats
+move through front/rear depth and leave glowing wakes on their own paths. The
+separate roster grid has been replaced by the requirements list; ship names remain
+visible in separated nameplates, with full names available on hover/focus and in
+the list. Independent 52px alert targets pin on hover/focus while
+ships continue moving. Red alerts and row chat buttons open the permitted blocked
+run's chat; they do not acquire chat control or send a message. Queued ships have
+gray beacons, running ships green, blocked ships red.
 
-Green beacons indicate in-progress requirements; red beacons indicate blockers
-or offline execution devices. A red beacon opens the blocked run's chat directly
-when the existing API permission permits it. Existing chat connection ownership
-still applies. Future dependency waits do not trigger false red alerts. The
-scrollable Live execution card supplies stationary, keyboard-accessible controls
-and lists current stages, nodes, coordinators and assigned agents, including
-parallel nodes. Stale snapshots are explicitly labeled and use muted beacons.
+Progress uses current node waves. Activity uses actual online agent/coordinator
+tasks on unresolved current nodes, not assigned roles. Tokens remain **Not reported**
+until the service supplies usage telemetry. The dashboard refreshes every five
+seconds while visible, limits detail reads to four, and caches unchanged terminal
+details. Failed reads retain a clearly stale snapshot and disable direct chat;
+401/403 clear protected data. Reduced-motion preferences produce a static formation.
+Rendering remains capped at 30fps and DPR 2, with effect cleanup on exit.
 
-Run `node frontend/test/dashboard-model.test.mjs` for aggregation, scope and
-blocker checks, and `node frontend/test/earth-formation.test.mjs` for six distinct circular planes, 360-degree loops, front/back perspective, tangent headings, exact wakes and empty-slot rendering checks.
+The scoped [delivery index](output/dashboard-command-center/README.md) links the
+BRD, PRD, SRS, FRS, SA, SD, implementation evidence and verification report. Run all
+focused frontend suites from the repository in PowerShell:
+
+```powershell
+Get-ChildItem frontend/test -Filter '*.test.mjs' | ForEach-Object {
+    node $_.FullName
+    if ($LASTEXITCODE -ne 0) { throw "Test failed: $($_.Name)" }
+}
+npx.cmd --prefix frontend --no-install tsc --project frontend/tsconfig.json --noEmit
+```
+
+`platform/test/dashboard_preview.py` is an optional local-only synthetic fixture
+helper for the running Java/PostgreSQL site. It creates its own test account and
+recorded runs without executing GitHub or Codex. Create `.agentship/stop-dashboard-preview`
+to stop its heartbeats and retire only its own unfinished runs. Synthetic metadata
+stays under ignored `.agentship/`; these records are not production agent evidence.
+
+The current dashboard places the scrollable requirements table below the central
+fleet, with three telemetry cards on either side. Workflow progress counts current
+resolved nodes; Recent activity displays persisted run/task events with timestamps,
+scoped to the selected requirement or all current runs. If no current runs exist,
+the activity card labels its historical records. Its run-detail payload is limited
+to 30 events per run and the card shows the latest 30 across its scope.
+
+After starting the local stack and generating a dashboard preview fixture, run
+`python platform/test/verify_dashboard_activity.py` for real API/database timestamp
+and access-isolation checks. See the [layout delivery addendum](output/dashboard-command-center/bottom-layout-delivery.md).

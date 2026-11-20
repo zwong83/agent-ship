@@ -68,6 +68,7 @@ public class RunReadModel {
         result.put("sourceRequirementVersion",row.get("requirement_version"));
         Map<UUID, Map<String, Object>> displayedArtifacts = new LinkedHashMap<>();
         result.put("stages",stages(row, displayedArtifacts));
+        result.put("recentActivity",recentActivity(id));
         Boolean canOperate=jdbc.queryForObject("SELECT can_chat(:run,:actor)",Map.of("run",id,"actor",actor.id()),Boolean.class);
         var actions=new ArrayList<>(List.of("view"));
         if(Boolean.TRUE.equals(canOperate)) actions.add("open_repair_control");
@@ -102,6 +103,22 @@ public class RunReadModel {
         List<Map<String,Object>> items=previous==version?List.of():List.of(Map.of(
                 "sequence",version,"runVersion",version,"kind","run_changed","time",Instant.now().toString()));
         return Map.of("items",items,"nextCursor",eventCursor(actor,id,version));
+    }
+
+    // Called only after authorizedRun. These are persisted times, not poll notifications.
+    private List<Map<String,Object>> recentActivity(UUID runId) {
+        return jdbc.query("""
+                SELECT id,kind,recorded_at FROM (
+                    SELECT e.id::text AS id,e.event_type AS kind,e.created_at AS recorded_at
+                    FROM task_event e JOIN role_task t ON t.id=e.task_id WHERE t.run_id=:run
+                    UNION ALL
+                    SELECT id::text || ':started','started',created_at FROM run WHERE id=:run
+                    UNION ALL
+                    SELECT id::text || ':finished',state,finished_at FROM run WHERE id=:run AND finished_at IS NOT NULL
+                ) activity ORDER BY recorded_at DESC,id DESC LIMIT 30
+                """,Map.of("run",runId),(rs,index)->Map.<String,Object>of(
+                    "id",rs.getString("id"),"kind",rs.getString("kind"),
+                    "time",rs.getTimestamp("recorded_at").toInstant().toString()));
     }
 
     private Map<String,Object> authorizedRun(Actor actor, UUID id) {

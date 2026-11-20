@@ -1,0 +1,44 @@
+# Dashboard visual implementation
+
+Version 1.0 · 2026-11-16 · Branch `codex/dashboard-command-center` · Scoped visual contributor.
+
+## Sources and authorized scope
+
+Visual authority: [approved dashboard image](approved-dashboard.jpg), inspected before implementation. Governing scoped design: [frontend SD v1.0](../SD/dashboard-command-center/frontend.md), especially DES-D04 and DES-D05; [SD source register](../SD/dashboard-command-center/index.md) traces the approved BRD, PRD, SRS, FRS and SA. Final design go-ahead was received before the stylesheet was written. Sample values in the image are not production values.
+
+Implemented only `frontend/src/dashboard-command.css`. The dashboard UI owner supplies the agreed semantic markup and the root contributor imports the stylesheet after the existing theme. No asset replacement, geometry changes, backend behavior, application arithmetic or new dependency is included in this visual task.
+
+## Visual result
+
+- Preserved the original navy, mint and cool blue palette. Panels use layered blue-glass gradients, bevel highlights, low edge lights and soft offset shadows. Rose is reserved for blocked/attention states.
+- Added the shallow four-cell summary strip, three-column desktop hierarchy, independently scrollable requirements list and four supporting telemetry cards. Selected rows, statuses and focus have distinct treatments.
+- Preserved the approved agent sailboat and existing six-path scene. Removed inherited minimum height/aspect constraints through scoped overrides, allowing the scene to use its panel space after the UI owner removes the duplicate roster.
+- Desktop panel height follows `clamp(520px, 100dvh - 270px, 840px)`; intermediate screens use two columns, then narrow screens show inventory first, fleet second and telemetry last. Long row names/context wrap. Unknown progress has a neutral track rather than a fabricated percentage.
+- Search, filters, selection, clear, pagination and chat controls have at least 44px targets; existing 52px independent alert targets remain unchanged. List scrollbar stays visible. Callsign tooltips appear on hover or keyboard focus, without pausing the ships.
+- The strip edge animation and retained scene/activity motion continue in normal mode. The new layer honors reduced-motion preferences. Shared theme overrides are limited to `.dashboard-command` and dashboard navigation under `.dashboard-shell`.
+
+## Implementation workflow disposition
+
+Frontend implementation skill steps 1–8: (1) bounded CSS-only scope and approved visual confirmed; (2) TDD conditional inactive because this task adds presentation only, with the approved image and responsive visual checks as its oracle; (3) existing theme, final TSX and selector contracts inspected; (4) shared scene, controls and assets reused; (5) scoped CSS implementation completed; (6) syntax and selected color contrasts checked locally; (7) visual limitations and parent browser checks identified below; (8) stylesheet and this evidence handoff supplied to the orchestrator.
+
+Clean-code mandatory steps 1–7: selected the approved visual/component sources; limited ownership to a new stylesheet; used descriptive component selectors; retained shared variables for repeated colors and panel height; grouped styles by panel with responsive overrides at the end; reconciled selectors with actual markup and removed an invalid font shorthand; validated CSS compilation and recorded the remaining rendered verification. No behavioral test was added that mirrors CSS declarations.
+
+## Local evidence
+
+| Check | Result |
+|---|---|
+| esbuild CSS transform using the existing installed dependency | PASS, zero warnings; generated output 32,155 bytes at initial handoff |
+| Primary text `#e2edf5` on base panel `#102b3b` | 12.35:1 |
+| Secondary text `#abc0ce` on base panel `#102b3b` | 7.80:1 |
+| Row detail `#a6bfcd` against conservative light row base `#274653` | 5.25:1 |
+| Active-tab dark text `#062b26` on mint `#72e6cd` | 10.07:1 |
+
+Contrast checks are source-color calculations, not a claim that every composited pixel or state has been audited. No browser actions were performed by this contributor. The orchestrator owns desktop 1440×1000, 1280×800, tablet 768px, mobile 390px/320px, keyboard, actual alert geometry and reduced-motion browser evidence. Final user acceptance remains separate from local verification.
+
+## Rendered-review correction
+
+The orchestrator's first 1440×1000 browser measurement found that the right rail inflated from its intended 730px to 898px, and the activity disclosure inherited an unrelated two-column layout. Corrected the scoped disclosure to block layout with a full-width summary and clear plus/minus affordance. The desktop rail now has an explicit matching height, shrinkable tracks and an internally scrollable attention region; compact padding applies on short desktop viewports. CSS compilation after the correction passed with zero warnings (33,518 generated bytes). Rendered confirmation remains the orchestrator's check.
+
+The 1280×800 review then found a 352px-high fleet scene and insufficient space for six safely separated ships. A short-desktop variant now reduces the navigation/header/summary spacing, uses a 586px panel at that viewport and a single-line fleet footer. Expected grid start is about 194px and scene height about 466px; these are design calculations awaiting exact browser measurement. Short-desktop attention entries place the chat control alongside explanatory text to keep a sole alert directly accessible. CSS compilation after this refinement passed with zero warnings (35,147 generated bytes). The 1440×1000 layout is unchanged by this media query.
+
+The orchestrator subsequently confirmed grid y=194 and a 511×468 scene at 1280×800, with the sole attention chat fully visible. At 768px, 390px and 320px, measured document width equaled viewport width. Six-ship spacing at the short-desktop scene still required a geometry-safe capacity adjustment owned by the UI contributor; the scene retains all six paths. The final 320px navigation-only correction reduces label type to 9px and inline padding to 2px, retaining existing control hit areas and separating adjacent labels. It uses the actual `workspace.tsx` dashboard shell and command navigation classes; no other page changes. Final CSS transform again returned zero warnings.

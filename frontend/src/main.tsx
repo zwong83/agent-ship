@@ -12,6 +12,9 @@ import './configuration.css';
 import './node-settings.css';
 import './command-center.css';
 import './earth-fleet.css';
+import './dashboard-command.css';
+import './typography.css';
+import './dashboard-layout.css';
 
 function workspaceRoute(path: string): WorkspaceRoute | null {
   if (/^\/dashboard\/?$/.test(path.toLowerCase())) return { kind: 'dashboard' };

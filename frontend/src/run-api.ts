@@ -133,6 +133,7 @@ export interface GitContext {
 }
 
 export interface RunDetail extends RunSummary {
+  recentActivity?: { id: string; kind: string; time: string }[];
   initiatorId: string;
   requirementRevision: number;
   sourceRequirementVersion: number;

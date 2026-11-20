@@ -46,7 +46,8 @@ drawOrbitTracks(ctx,640,516,0,[{blocked:false,selected:false,stale:false}],creat
 assert.ok(strokes>12,'Occupied paths gain fading wakes in the appropriate hemisphere');
 console.log('PASS six distinct 3D circular planes, perspective bounds, front/back transitions, tangent headings, exact wakes, stable phases and empty-slot rendering.');
 
-for (const [width,height,count] of [[294,434,2],[364,434,2],[355,434,2],[580,516,4],[640,516,6],[980,806,6]]) {
+// Include measured command-center scenes and exact density thresholds.
+for (const [width,height,count] of [[294,308,2],[364,338,2],[294,434,2],[364,434,2],[355,434,2],[430,430,4],[511,468,4],[734,486,4],[580,516,4],[500,500,6],[580,552,6],[640,516,6],[980,806,6]]) {
   const plans = createOrbitPlans(Array.from({length:count},(_,i)=>'live-'+i));
   const pinned = new Map();
   for (let seconds = 0; seconds < 168; seconds += .125) {

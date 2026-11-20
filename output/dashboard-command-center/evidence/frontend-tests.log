@@ -1,0 +1,36 @@
+TEST dashboard-catalog.test.mjs
+PASS catalog lifecycle coverage, operational/history separation and unavailable progress.
+PASS latest-wave progress, repaired blockers, active task counts, retained artifacts and concurrent run denominators.
+PASS trimmed name search, exclusive status filters, global inventory preservation and clear labels.
+PASS actual named agents, parallel stage/node context, role fallback, waiting separation, offline and stale receipts.
+PASS duplicate inventory, run-scoped task identity, chat permissions and immutable inputs.
+PASS actual task visibility during lagging node-state updates.
+EXIT 0
+TEST dashboard-model.test.mjs
+PASS dashboard metrics: aggregation, scope, progress, duplicate artifacts, offline execution and terminal runs.
+PASS live scope, blocked chat permissions, concurrent requirements, parallel stages and assigned agents.
+EXIT 0
+TEST dashboard-motion.test.mjs
+PASS real orbital effects: reduced motion, preference changes, continuous sailing, pinned alert, hidden page, DPR cap, and disposal
+EXIT 0
+TEST dashboard-snapshot.test.mjs
+PASS snapshot authorization precedence
+PASS snapshot paging, atomicity, max-four reads, cache, stale recovery, and disposal
+EXIT 0
+TEST dashboard-view.test.mjs
+PASS dashboard initial catalog and loading semantics
+PASS catalog rows, progress, parallel agents, safe markup, stale capabilities, and queued fleet semantics
+EXIT 0
+TEST earth-formation.test.mjs
+PASS six distinct 3D circular planes, perspective bounds, front/back transitions, tangent headings, exact wakes, stable phases and empty-slot rendering.
+PASS repeated-cycle projected ship clearance, non-overlapping hull bounds, independent 52px alert targets and pinned hover/focus anchors.
+EXIT 0
+TEST workflow-dependency.test.mjs
+PASS: dependency validation covers valid connections, missing nodes, duplicates, stage order, terminal nodes and cycles.
+EXIT 0
+TEST workflow-map-render.test.mjs
+PASS: rendered workflow preview, active dependencies, offline states, and keyboard targets.
+EXIT 0
+TEST workflow-progress.test.mjs
+PASS: workflow motion reflects recorded states, resolved dependencies, and offline execution.
+EXIT 0

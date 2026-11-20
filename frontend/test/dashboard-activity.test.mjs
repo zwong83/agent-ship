@@ -1,0 +1,37 @@
+import { buildSync } from 'esbuild';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+const result = buildSync({ stdin: { resolveDir: fileURLToPath(new URL('..', import.meta.url)), loader: 'tsx', contents: `
+import assert from 'node:assert/strict';
+import { recentActivity, fleetMetrics } from './src/dashboard-model';
+import { DashboardView } from './src/dashboard';
+import { renderToStaticMarkup } from 'react-dom/server';
+const run = (id, events = []) => ({id,requirementId:id,requirementName:id,state:'waiting',version:1,
+  allowedActions:['open_repair_control'],deviceStatus:{id:'d',connectivity:'online'},stages:[],recentActivity:events});
+const a=run('a',[{id:'a1',kind:'question',time:'2026-11-20T10:00:00Z'},{id:'bad',kind:'progress',time:'invalid'}]);
+const b=run('b',[{id:'b1',kind:'complete',time:'2026-11-20T11:00:00Z'}]);
+const names=new Map([['a','Renamed requirement']]);
+const activity=recentActivity([a,b,a],names);
+assert.deepEqual(activity.map(e=>e.id),['b1','a1']);
+assert.equal(activity[1].requirementName,'Renamed requirement');
+assert.equal(activity[1].label,'Agent requested a reply');
+assert.equal(recentActivity([a],names).length,1,'Selected scope excludes other requirements');
+assert.equal(recentActivity([a,b],names,1)[0].id,'b1','Limits apply after global ordering');
+assert.deepEqual(recentActivity([run('old')],names),[]);
+const node=(id,state)=>({nodeId:id,wave:1,state,tasks:[],artifactIds:[]});
+const weighted=fleetMetrics([{...a,stages:[{nodes:[node('1','complete')]}]}, {...b,stages:[{nodes:[node('1','running'),node('2','pending'),node('3','pending')]}]}]);
+assert.equal(weighted.progress,25,'Use resolved steps over total steps, not a mean of requirement percentages');
+assert.equal(weighted.remaining,3);
+globalThis.document={fullscreenEnabled:false};
+const runs=[a,b,run('c')];
+const requirements=runs.map(r=>({id:r.id,name:r.id,kind:'requirements',version:1,allowedActions:['view']}));
+const html=renderToStaticMarkup(<DashboardView snapshot={{data:{requirements,runs,updated:new Date()},error:'',pending:false,accessLost:false}} refresh={()=>{}} navigate={()=>{}}/>);
+assert.equal((html.match(/class="attention-entry"/g)||[]).length,3,'All blockers remain reachable');
+assert.match(html,/<table class="requirements-table">/);
+assert.ok(html.includes('<th scope="col">Current agent</th>'));
+assert.ok(html.indexOf('requirements-panel')>html.indexOf('recent-activity-card'),'Inventory follows both side columns');
+for (const title of ['Agent activity','Token consumption','Workflow progress','Needs attention','Delivery output','Recent activity']) assert.ok(html.includes('aria-label="'+title+'"'));
+assert.match(html,/dateTime="2026-11-20T11:00:00Z"/);
+console.log('PASS recorded timeline ordering, scope, deduplication, timestamps, weighted progress, all blockers and bottom table');
+` }, bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false });
+new Function('require', result.outputFiles[0].text)(createRequire(import.meta.url));
