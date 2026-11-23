@@ -45,6 +45,7 @@ $env:AGENTSHIP_LOCAL_VERIFICATION = 'true'
 $env:AGENTSHIP_REQUIRE_CONTACT_VERIFICATION = 'false'
 $env:AGENTSHIP_SECURE_COOKIE = 'false'
 $env:AGENTSHIP_BIND_ADDRESS = '127.0.0.1'
+$env:AGENTSHIP_LOCAL_CATALOG_ENABLED = 'true'
 $env:AGENTSHIP_PORT = '4173'
 Write-Host 'Starting AgentShip at http://127.0.0.1:4173. Press Ctrl+C to stop the website.'
 try {

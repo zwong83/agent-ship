@@ -46,6 +46,15 @@
 .agent-skill-note .signal-dot { margin-top:5px; flex-shrink:0; }
 .agent-skill-note strong { font-size:12px; color:#c9f7e4; }
 .agent-skill-note p { margin:7px 0 0; font-size:12px; color:#a7c3cc; line-height:1.7; }
+.local-skill-controls { display:flex; align-items:flex-start; gap:10px; }
+.local-skill-controls .spatial-select { flex:1; min-width:0; }
+.local-skill-controls > button { flex-shrink:0; }
+.local-skill-preview { margin:16px 0; padding:16px; border:1px solid #568d7f66; border-radius:10px; background:#102c35; overflow-wrap:anywhere; }
+.local-skill-preview strong { color:#c9f7e4; }
+.local-skill-preview p { margin:8px 0; color:#bfd6dc; line-height:1.6; }
+.local-skill-preview > span { font-size:13px; color:#9fbeca; }
+.local-skill-picker > label:not(:first-child) { margin-top:20px; }
+@media(max-width:600px) { .local-skill-controls { flex-direction:column; } .local-skill-controls .spatial-select { width:100%; } }
 .agent-savebar { justify-content:space-between; padding-top:20px; border-top:1px solid #4b748466; }
 .agent-savebar p { margin:0; max-width:440px; font-size:12px; line-height:1.6; color:#a7c1cc; }
 .agent-savebar > button { min-height:44px; padding:12px 26px; }
