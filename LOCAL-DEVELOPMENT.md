@@ -59,6 +59,22 @@ Prototype accounts are stored separately and are not migrated into PostgreSQL.
 ## Configure delivery
 
 Create the required roles on **Agents**, then create a workflow on **Workflows**.
+Agent configuration includes **Local agents & skills**, a searchable list of
+installed agent workflows and skills. Select an entry to connect its skill;
+empty name, role ID and instruction fields on a new agent receive suggestions.
+Existing edits and saved agent fields are preserved. Manual skill references
+remain available for other workers.
+
+The local launcher enables `AGENTSHIP_LOCAL_CATALOG_ENABLED=true`. Discovery
+requires a signed-in, direct loopback request and reads only bounded `SKILL.md`
+frontmatter from the server user's `~/.agents/skills` and `$CODEX_HOME/skills`
+(default `~/.codex/skills`). It does not execute or install skills, expose absolute
+paths or skill bodies, or inspect arbitrary browser-supplied directories. It skips
+symlinks and malformed files, deduplicates names with `.agents/skills` first, and
+reports partial scans. The setting defaults to disabled for shared deployments.
+This is the library on the **AgentShip host**, not automatic discovery from a
+remote browser or paired worker. Codex still checks skill availability at run time.
+
 Add named stages and nodes, select a coordinator and the required sub-agents, and
 finish with an end node. Check nodes require both pass and repair routes.
 
